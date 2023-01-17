@@ -10,7 +10,6 @@ pub async fn run() {
 	let window = WindowBuilder::new().build(&event_loop).unwrap();
 	let mut state = State::new(window).await;
 
-	// run()
 	event_loop.run(move |event, _, control_flow| match event {
 		Event::WindowEvent {
 			ref event,
@@ -34,13 +33,31 @@ pub async fn run() {
 					WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
 						state.resize(**new_inner_size);
 					}
+					WindowEvent::CursorMoved { position, .. } => {
+						let r = position.x.abs() / (position.x.abs() + position.y.abs());
+						let g = position.y.abs() / (position.x.abs() + position.y.abs());
+						//println!("red: {}, green: {}", r, g);
+						match state.render(r, g) {
+							Ok(_) => {}
+							// Reconfigure the surface if it's lost or outdated
+							Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {
+								state.resize(state.size)
+							}
+							// The system is out of memory, we should probably quit
+							Err(wgpu::SurfaceError::OutOfMemory) => {
+								*control_flow = ControlFlow::Exit
+							}
+
+							Err(wgpu::SurfaceError::Timeout) => log::warn!("Surface timeout"),
+						}
+					}
 					_ => {}
 				}
 			}
 		}
 		Event::RedrawRequested(window_id) if window_id == state.window().id() => {
 			state.update();
-			match state.render() {
+			match state.render(0.0, 0.0) {
 				Ok(_) => {}
 				// Reconfigure the surface if it's lost or outdated
 				Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {
@@ -70,6 +87,7 @@ struct State {
 	config: wgpu::SurfaceConfiguration,
 	size: winit::dpi::PhysicalSize<u32>,
 	window: Window,
+	render_pipeline: wgpu::RenderPipeline,
 }
 
 impl State {
@@ -121,6 +139,9 @@ impl State {
 			alpha_mode: wgpu::CompositeAlphaMode::Auto,
 		};
 		surface.configure(&device, &config);
+
+		let shader = device.create_shader_module(wgpu::include_wgsl!("shader.wgsl"));
+
 		Self {
 			window,
 			surface,
@@ -152,7 +173,7 @@ impl State {
 		//todo!()
 	}
 
-	fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
+	fn render(&mut self, x: f64, y: f64) -> Result<(), wgpu::SurfaceError> {
 		let output = self.surface.get_current_texture()?;
 		let view = output
 			.texture
@@ -171,8 +192,8 @@ impl State {
 					resolve_target: None,
 					ops: wgpu::Operations {
 						load: wgpu::LoadOp::Clear(wgpu::Color {
-							r: 0.1,
-							g: 0.2,
+							r: x,
+							g: y,
 							b: 0.3,
 							a: 1.0,
 						}),
