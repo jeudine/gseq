@@ -1,5 +1,5 @@
 use g_breath::run;
 
 fn main() {
-	pollster::block_on(run());
+	pollster::block_on(run("res/cube.obj"));
 }
