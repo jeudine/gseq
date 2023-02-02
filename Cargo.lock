@@ -535,20 +535,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "g-breath"
-version = "0.1.0"
-dependencies = [
- "bytemuck",
- "cgmath",
- "env_logger",
- "log",
- "pollster",
- "tobj",
- "wgpu",
- "winit",
-]
-
-[[package]]
 name = "getrandom"
 version = "0.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -608,6 +594,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "363e3677e55ad168fef68cf9de3a4a310b53124c5e784c53a1d70e92d23f2126"
 dependencies = [
  "bitflags",
+]
+
+[[package]]
+name = "gseq"
+version = "0.1.0"
+dependencies = [
+ "bytemuck",
+ "cgmath",
+ "env_logger",
+ "log",
+ "pollster",
+ "tobj",
+ "wgpu",
+ "winit",
 ]
 
 [[package]]

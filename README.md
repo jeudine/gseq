@@ -1,4 +1,4 @@
-# G-breath
+# GSeq
 
 ## TODO
 
