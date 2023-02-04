@@ -1,14 +1,14 @@
 // Vertex shader
 
 struct TransformUniform {
-    transform: mat4x4<f32>,
+    m: mat4x4<f32>,
 };
 
 @group(0) @binding(0)
 var<uniform> view_proj: TransformUniform;
 
-@group(0) @binding(1)
-var<uniform> model: TransformUniform;
+@group(1) @binding(0)
+var<uniform> transform: TransformUniform;
 
 struct VertexInput {
     @location(0) position: vec3<f32>,
@@ -25,7 +25,7 @@ fn vs_main(
 ) -> VertexOutput {
     var out: VertexOutput;
     out.color = vec3<f32>(1.0, 1.0, 1.0);
-    out.clip_position = view_proj.transform * model.transform * vec4<f32>(in.position, 1.0);
+    out.clip_position = view_proj.m * transform.m * vec4<f32>(in.position, 1.0);
     return out;
 }
 

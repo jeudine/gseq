@@ -38,22 +38,29 @@ impl Camera {
 #[repr(C)]
 // This is so we can store this in a buffer
 #[derive(Debug, Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
-struct CameraUniform {
+pub struct Matrix {
 	// We can't use cgmath with bytemuck directly so we'll have
 	// to convert the Matrix4 into a 4x4 f32 array
-	view_proj: [[f32; 4]; 4],
+	m: [[f32; 4]; 4],
 }
 
-impl CameraUniform {
-	fn new() -> Self {
+impl Matrix {
+	fn identity() -> Self {
 		use cgmath::SquareMatrix;
 		Self {
-			view_proj: cgmath::Matrix4::identity().into(),
+			m: cgmath::Matrix4::identity().into(),
+		}
+	}
+
+	fn zero() -> Self {
+		use cgmath::Zero;
+		Self {
+			m: cgmath::Matrix4::zero().into(),
 		}
 	}
 
 	fn update_view_proj(&mut self, camera: &Camera) {
-		self.view_proj = camera.build_view_projection_matrix().into();
+		self.m = camera.build_view_projection_matrix().into();
 	}
 }
 
@@ -64,12 +71,11 @@ struct State {
 	config: wgpu::SurfaceConfiguration,
 	size: winit::dpi::PhysicalSize<u32>,
 	render_pipeline: wgpu::RenderPipeline,
-	model: Model,
+	model: Vec<Model>,
 	camera: Camera,
-	camera_uniform: CameraUniform,
+	camera_uniform: Matrix,
 	view_proj_buffer: wgpu::Buffer,
-	model_buffer: wgpu::Buffer,
-	mvp_bind_group: wgpu::BindGroup,
+	bind_group: wgpu::BindGroup,
 	window: Window,
 }
 
@@ -125,8 +131,6 @@ impl State {
 			source: wgpu::ShaderSource::Wgsl(include_str!("shader.wgsl").into()),
 		});
 
-		let model = Model::new(file_name, &device).unwrap();
-
 		let camera = Camera {
 			// position the camera one unit up and 2 units back
 			// +z is out of the screen
@@ -141,7 +145,7 @@ impl State {
 			zfar: 100.0,
 		};
 
-		let mut camera_uniform = CameraUniform::new();
+		let mut camera_uniform = Matrix::identity();
 
 		camera_uniform.update_view_proj(&camera);
 
@@ -151,58 +155,33 @@ impl State {
 			usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
 		});
 
-		let model_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-			label: Some("model_buffer"),
-			contents: bytemuck::cast_slice(&[camera_uniform]),
-			usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+		let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+			entries: &[wgpu::BindGroupLayoutEntry {
+				binding: 0,
+				visibility: wgpu::ShaderStages::VERTEX,
+				ty: wgpu::BindingType::Buffer {
+					ty: wgpu::BufferBindingType::Uniform,
+					has_dynamic_offset: false,
+					min_binding_size: None,
+				},
+				count: None,
+			}],
+			label: Some("mvp_bind_group_layout"),
 		});
 
-		let mvp_bind_group_layout =
-			device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-				entries: &[
-					wgpu::BindGroupLayoutEntry {
-						binding: 0,
-						visibility: wgpu::ShaderStages::VERTEX,
-						ty: wgpu::BindingType::Buffer {
-							ty: wgpu::BufferBindingType::Uniform,
-							has_dynamic_offset: false,
-							min_binding_size: None,
-						},
-						count: None,
-					},
-					wgpu::BindGroupLayoutEntry {
-						binding: 1,
-						visibility: wgpu::ShaderStages::VERTEX,
-						ty: wgpu::BindingType::Buffer {
-							ty: wgpu::BufferBindingType::Uniform,
-							has_dynamic_offset: false,
-							min_binding_size: None,
-						},
-						count: None,
-					},
-				],
-				label: Some("mvp_bind_group_layout"),
-			});
-
-		let mvp_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-			layout: &mvp_bind_group_layout,
-			entries: &[
-				wgpu::BindGroupEntry {
-					binding: 0,
-					resource: view_proj_buffer.as_entire_binding(),
-				},
-				wgpu::BindGroupEntry {
-					binding: 1,
-					resource: model_buffer.as_entire_binding(),
-				},
-			],
+		let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+			layout: &bind_group_layout,
+			entries: &[wgpu::BindGroupEntry {
+				binding: 0,
+				resource: view_proj_buffer.as_entire_binding(),
+			}],
 			label: Some("mvp_bind_group"),
 		});
 
 		let render_pipeline_layout =
 			device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
 				label: Some("Render Pipeline Layout"),
-				bind_group_layouts: &[&mvp_bind_group_layout],
+				bind_group_layouts: &[&bind_group_layout, &bind_group_layout],
 				push_constant_ranges: &[],
 			});
 
@@ -250,6 +229,9 @@ impl State {
 			multiview: None,
 		});
 
+		let model1 = Model::new(file_name, &device, &bind_group_layout).unwrap();
+		let model2 = Model::new(file_name, &device, &bind_group_layout).unwrap();
+
 		Self {
 			surface,
 			device,
@@ -257,12 +239,11 @@ impl State {
 			config,
 			size,
 			render_pipeline,
-			model,
+			model: vec![model1, model2],
 			camera,
 			camera_uniform,
 			view_proj_buffer,
-			model_buffer,
-			mvp_bind_group,
+			bind_group,
 			window,
 		}
 	}
@@ -285,7 +266,20 @@ impl State {
 		false
 	}
 
-	fn update(&mut self) {}
+	fn update(&mut self) {
+		self.queue.write_buffer(
+			&self.model[0].transform_buffer,
+			0,
+			bytemuck::cast_slice(&Matrix::zero().m),
+		);
+		/*
+		self.queue.write_buffer(
+			&self.model[1].transform_buffer,
+			0,
+			bytemuck::cast_slice(&Matrix::zero().m),
+		);
+		*/
+	}
 
 	fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
 		let output = self.surface.get_current_texture()?;
@@ -319,12 +313,15 @@ impl State {
 			});
 
 			render_pass.set_pipeline(&self.render_pipeline);
-			render_pass.set_bind_group(0, &self.mvp_bind_group, &[]);
-			for m in &self.model.meshes {
-				//TODO: do a method
-				render_pass.set_vertex_buffer(0, m.vertex_buffer.slice(..));
-				render_pass.set_index_buffer(m.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
-				render_pass.draw_indexed(0..m.num_elements, 0, 0..1);
+			render_pass.set_bind_group(0, &self.bind_group, &[]);
+			for model in &self.model {
+				render_pass.set_bind_group(1, &model.bind_group, &[]);
+				for m in &model.meshes {
+					render_pass.set_vertex_buffer(0, m.vertex_buffer.slice(..));
+					render_pass
+						.set_index_buffer(m.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
+					render_pass.draw_indexed(0..m.num_elements, 0, 0..1);
+				}
 			}
 		}
 
@@ -339,7 +336,6 @@ pub async fn run(file_name: &str) {
 	let event_loop = EventLoop::new();
 	let window = WindowBuilder::new().build(&event_loop).unwrap();
 
-	// State::new uses async code, so we're going to wait for it to finish
 	let mut state = State::new(window, file_name).await;
 
 	event_loop.run(move |event, _, control_flow| {
