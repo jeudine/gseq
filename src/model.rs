@@ -1,4 +1,4 @@
-use crate::Matrix;
+use crate::{Matrix3, Matrix4};
 use std::error::Error;
 use std::mem;
 use tobj::load_obj;
@@ -8,8 +8,10 @@ use wgpu::{util::DeviceExt, BindGroup, BindGroupLayout};
 
 pub struct Model {
 	pub meshes: Vec<Mesh>,
-	pub transform: Matrix,
+	pub transform: Matrix4,
+	pub normal: Matrix3,
 	pub transform_buffer: wgpu::Buffer,
+	pub normal_buffer: wgpu::Buffer,
 	pub bind_group: BindGroup,
 }
 
@@ -86,7 +88,13 @@ impl Model {
 
 		let transform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
 			label: Some("transform_buffer"),
-			contents: bytemuck::cast_slice(&[Matrix::identity()]),
+			contents: bytemuck::cast_slice(&[Matrix4::identity()]),
+			usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+		});
+
+		let normal_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+			label: Some("normal_buffer"),
+			contents: bytemuck::cast_slice(&[Matrix3::identity()]),
 			usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
 		});
 
@@ -101,7 +109,8 @@ impl Model {
 
 		Ok(Model {
 			meshes,
-			transform: Matrix::identity(),
+			transform: Matrix4::identity(),
+			normal: Matrix3::identity(),
 			transform_buffer,
 			bind_group,
 		})

@@ -1,4 +1,6 @@
+pub mod light;
 pub mod model;
+use crate::light::Light;
 use crate::model::Model;
 use std::iter;
 
@@ -38,13 +40,22 @@ impl Camera {
 #[repr(C)]
 // This is so we can store this in a buffer
 #[derive(Debug, Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
-pub struct Matrix {
+pub struct Matrix4 {
 	// We can't use cgmath with bytemuck directly so we'll have
 	// to convert the Matrix4 into a 4x4 f32 array
 	m: [[f32; 4]; 4],
 }
 
-impl Matrix {
+#[repr(C)]
+// This is so we can store this in a buffer
+#[derive(Debug, Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct Matrix3 {
+	// We can't use cgmath with bytemuck directly so we'll have
+	// to convert the Matrix4 into a 4x4 f32 array
+	m: [[f32; 3]; 3],
+}
+
+impl Matrix4 {
 	fn identity() -> Self {
 		use cgmath::SquareMatrix;
 		Self {
@@ -64,6 +75,22 @@ impl Matrix {
 	}
 }
 
+impl Matrix3 {
+	fn identity() -> Self {
+		use cgmath::SquareMatrix;
+		Self {
+			m: cgmath::Matrix3::identity().into(),
+		}
+	}
+
+	fn zero() -> Self {
+		use cgmath::Zero;
+		Self {
+			m: cgmath::Matrix3::zero().into(),
+		}
+	}
+}
+
 struct State {
 	surface: wgpu::Surface,
 	device: wgpu::Device,
@@ -72,8 +99,9 @@ struct State {
 	size: winit::dpi::PhysicalSize<u32>,
 	render_pipeline: wgpu::RenderPipeline,
 	model: Vec<Model>,
+	light: Vec<Light>,
 	camera: Camera,
-	camera_uniform: Matrix,
+	camera_uniform: Matrix4,
 	view_proj_buffer: wgpu::Buffer,
 	bind_group: wgpu::BindGroup,
 	window: Window,
@@ -145,7 +173,7 @@ impl State {
 			zfar: 100.0,
 		};
 
-		let mut camera_uniform = Matrix::identity();
+		let mut camera_uniform = Matrix4::identity();
 
 		camera_uniform.update_view_proj(&camera);
 
@@ -155,22 +183,38 @@ impl State {
 			usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
 		});
 
-		let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-			entries: &[wgpu::BindGroupLayoutEntry {
-				binding: 0,
-				visibility: wgpu::ShaderStages::VERTEX,
-				ty: wgpu::BindingType::Buffer {
-					ty: wgpu::BufferBindingType::Uniform,
-					has_dynamic_offset: false,
-					min_binding_size: None,
-				},
-				count: None,
-			}],
-			label: Some("mvp_bind_group_layout"),
-		});
+		let mvp_bind_group_layout =
+			device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+				entries: &[wgpu::BindGroupLayoutEntry {
+					binding: 0,
+					visibility: wgpu::ShaderStages::VERTEX,
+					ty: wgpu::BindingType::Buffer {
+						ty: wgpu::BufferBindingType::Uniform,
+						has_dynamic_offset: false,
+						min_binding_size: None,
+					},
+					count: None,
+				}],
+				label: Some("mvp_bind_group_layout"),
+			});
+
+		let light_bind_group_layout =
+			device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+				entries: &[wgpu::BindGroupLayoutEntry {
+					binding: 0,
+					visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
+					ty: wgpu::BindingType::Buffer {
+						ty: wgpu::BufferBindingType::Uniform,
+						has_dynamic_offset: false,
+						min_binding_size: None,
+					},
+					count: None,
+				}],
+				label: Some("light_bind_group_layout"),
+			});
 
 		let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-			layout: &bind_group_layout,
+			layout: &mvp_bind_group_layout,
 			entries: &[wgpu::BindGroupEntry {
 				binding: 0,
 				resource: view_proj_buffer.as_entire_binding(),
@@ -181,7 +225,12 @@ impl State {
 		let render_pipeline_layout =
 			device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
 				label: Some("Render Pipeline Layout"),
-				bind_group_layouts: &[&bind_group_layout, &bind_group_layout],
+				// TODO: if we want multiple lights add more light bind groups
+				bind_group_layouts: &[
+					&mvp_bind_group_layout,
+					&mvp_bind_group_layout,
+					&light_bind_group_layout,
+				],
 				push_constant_ranges: &[],
 			});
 
@@ -229,8 +278,10 @@ impl State {
 			multiview: None,
 		});
 
-		let model1 = Model::new(file_name, &device, &bind_group_layout).unwrap();
-		let model2 = Model::new(file_name, &device, &bind_group_layout).unwrap();
+		let model0 = Model::new(file_name, &device, &mvp_bind_group_layout).unwrap();
+		let model1 = Model::new(file_name, &device, &mvp_bind_group_layout).unwrap();
+
+		let light0 = Light::new(&device, &light_bind_group_layout);
 
 		Self {
 			surface,
@@ -239,7 +290,8 @@ impl State {
 			config,
 			size,
 			render_pipeline,
-			model: vec![model1, model2],
+			model: vec![model0, model1],
+			light: vec![light0],
 			camera,
 			camera_uniform,
 			view_proj_buffer,
@@ -270,7 +322,7 @@ impl State {
 		self.queue.write_buffer(
 			&self.model[0].transform_buffer,
 			0,
-			bytemuck::cast_slice(&Matrix::zero().m),
+			bytemuck::cast_slice(&Matrix4::zero().m),
 		);
 		/*
 		self.queue.write_buffer(
@@ -314,6 +366,7 @@ impl State {
 
 			render_pass.set_pipeline(&self.render_pipeline);
 			render_pass.set_bind_group(0, &self.bind_group, &[]);
+			render_pass.set_bind_group(2, &self.light[0].bind_group, &[]);
 			for model in &self.model {
 				render_pass.set_bind_group(1, &model.bind_group, &[]);
 				for m in &model.meshes {
