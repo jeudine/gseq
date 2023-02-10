@@ -1,18 +1,12 @@
-use crate::{Matrix3, Matrix4};
 use std::error::Error;
 use std::mem;
 use tobj::load_obj;
-use wgpu::{util::DeviceExt, BindGroup, BindGroupLayout};
+use wgpu::util::DeviceExt;
 
 //TODO Normals
 
 pub struct Model {
 	pub meshes: Vec<Mesh>,
-	pub transform: Matrix4,
-	pub normal: Matrix3,
-	pub transform_buffer: wgpu::Buffer,
-	pub normal_buffer: wgpu::Buffer,
-	pub bind_group: BindGroup,
 }
 
 pub struct Mesh {
@@ -22,11 +16,7 @@ pub struct Mesh {
 }
 
 impl Model {
-	pub fn new(
-		file_name: &str,
-		device: &wgpu::Device,
-		bind_group_layout: &BindGroupLayout,
-	) -> Result<Model, Box<dyn Error>> {
+	pub fn new(file_name: &str, device: &wgpu::Device) -> Result<Model, Box<dyn Error>> {
 		let (models, _) = load_obj(
 			file_name,
 			&tobj::LoadOptions {
@@ -86,34 +76,7 @@ impl Model {
 			})
 			.collect::<Vec<_>>();
 
-		let transform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-			label: Some("transform_buffer"),
-			contents: bytemuck::cast_slice(&[Matrix4::identity()]),
-			usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-		});
-
-		let normal_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-			label: Some("normal_buffer"),
-			contents: bytemuck::cast_slice(&[Matrix3::identity()]),
-			usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-		});
-
-		let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-			layout: &bind_group_layout,
-			entries: &[wgpu::BindGroupEntry {
-				binding: 0,
-				resource: transform_buffer.as_entire_binding(),
-			}],
-			label: Some("mvp_bind_group"),
-		});
-
-		Ok(Model {
-			meshes,
-			transform: Matrix4::identity(),
-			normal: Matrix3::identity(),
-			transform_buffer,
-			bind_group,
-		})
+		Ok(Self { meshes })
 	}
 
 	pub fn desc<'a>() -> wgpu::VertexBufferLayout<'a> {

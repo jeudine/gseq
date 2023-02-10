@@ -7,20 +7,27 @@ struct TransformUniform {
 @group(0) @binding(0)
 var<uniform> view_proj: TransformUniform;
 
-@group(1) @binding(0)
-var<uniform> transform: TransformUniform;
-
 struct Light {
     position: vec3<f32>,
     color: vec3<f32>,
 }
 
-@group(2) @binding(0)
+@group(1) @binding(0)
 var<uniform> light: Light;
 
 struct VertexInput {
     @location(0) position: vec3<f32>,
     @location(1) normal: vec3<f32>,
+};
+
+struct InstanceInput {
+    @location(2) model_matrix_0: vec4<f32>,
+    @location(3) model_matrix_1: vec4<f32>,
+    @location(4) model_matrix_2: vec4<f32>,
+    @location(5) model_matrix_3: vec4<f32>,
+    @location(6) normal_matrix_0: vec3<f32>,
+    @location(7) normal_matrix_1: vec3<f32>,
+    @location(8) normal_matrix_2: vec3<f32>,
 };
 
 struct VertexOutput {
@@ -32,12 +39,26 @@ struct VertexOutput {
 
 @vertex
 fn vs_main(
-    in: VertexInput,
+    model: VertexInput,
+    instance: InstanceInput,
 ) -> VertexOutput {
+    let model_matrix = mat4x4<f32>(
+        instance.model_matrix_0,
+        instance.model_matrix_1,
+        instance.model_matrix_2,
+        instance.model_matrix_3,
+    );
+    let normal_matrix = mat3x3<f32>(
+        instance.normal_matrix_0,
+        instance.normal_matrix_1,
+        instance.normal_matrix_2,
+    );
     var out: VertexOutput;
-    out.clip_position = view_proj.m * transform.m * vec4<f32>(in.position, 1.0);
     out.color = vec3<f32>(1.0, 1.0, 1.0);
-    //out.world_normal = normal_matrix
+    out.world_normal = normal_matrix * model.normal;
+    var world_position: vec4<f32> = model_matrix * vec4<f32>(model.position, 1.0);
+    out.world_position = world_position.xyz;
+    out.clip_position = view_proj.m * world_position;
     return out;
 }
 

@@ -1,7 +1,13 @@
+pub mod camera;
+pub mod group;
+pub mod instance;
 pub mod light;
 pub mod model;
+use crate::camera::Camera;
+use crate::group::Group;
 use crate::light::Light;
 use crate::model::Model;
+use instance::Instance;
 use std::iter;
 
 use wgpu::util::DeviceExt;
@@ -11,32 +17,6 @@ use winit::{
 	window::{Window, WindowBuilder},
 };
 
-struct Camera {
-	eye: cgmath::Point3<f32>,
-	target: cgmath::Point3<f32>,
-	up: cgmath::Vector3<f32>,
-	aspect: f32,
-	fovy: f32,
-	znear: f32,
-	zfar: f32,
-}
-
-#[rustfmt::skip]
-pub const OPENGL_TO_WGPU_MATRIX: cgmath::Matrix4<f32> = cgmath::Matrix4::new(
-    1.0, 0.0, 0.0, 0.0,
-    0.0, 1.0, 0.0, 0.0,
-    0.0, 0.0, 0.5, 0.0,
-    0.0, 0.0, 0.5, 1.0,
-);
-
-impl Camera {
-	fn build_view_projection_matrix(&self) -> cgmath::Matrix4<f32> {
-		let view = cgmath::Matrix4::look_at_rh(self.eye, self.target, self.up);
-		let proj = cgmath::perspective(cgmath::Deg(self.fovy), self.aspect, self.znear, self.zfar);
-		return OPENGL_TO_WGPU_MATRIX * proj * view;
-	}
-}
-
 #[repr(C)]
 // This is so we can store this in a buffer
 #[derive(Debug, Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
@@ -44,15 +24,6 @@ pub struct Matrix4 {
 	// We can't use cgmath with bytemuck directly so we'll have
 	// to convert the Matrix4 into a 4x4 f32 array
 	m: [[f32; 4]; 4],
-}
-
-#[repr(C)]
-// This is so we can store this in a buffer
-#[derive(Debug, Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
-pub struct Matrix3 {
-	// We can't use cgmath with bytemuck directly so we'll have
-	// to convert the Matrix4 into a 4x4 f32 array
-	m: [[f32; 3]; 3],
 }
 
 impl Matrix4 {
@@ -69,24 +40,12 @@ impl Matrix4 {
 			m: cgmath::Matrix4::zero().into(),
 		}
 	}
-
-	fn update_view_proj(&mut self, camera: &Camera) {
-		self.m = camera.build_view_projection_matrix().into();
-	}
 }
 
-impl Matrix3 {
-	fn identity() -> Self {
-		use cgmath::SquareMatrix;
-		Self {
-			m: cgmath::Matrix3::identity().into(),
-		}
-	}
-
-	fn zero() -> Self {
-		use cgmath::Zero;
-		Self {
-			m: cgmath::Matrix3::zero().into(),
+impl From<Camera> for Matrix4 {
+	fn from(camera: Camera) -> Self {
+		Matrix4 {
+			m: camera.build_view_projection_matrix().into(),
 		}
 	}
 }
@@ -98,10 +57,9 @@ struct State {
 	config: wgpu::SurfaceConfiguration,
 	size: winit::dpi::PhysicalSize<u32>,
 	render_pipeline: wgpu::RenderPipeline,
-	model: Vec<Model>,
-	light: Vec<Light>,
+	groups: Vec<Group>,
+	lights: Vec<Light>,
 	camera: Camera,
-	camera_uniform: Matrix4,
 	view_proj_buffer: wgpu::Buffer,
 	bind_group: wgpu::BindGroup,
 	window: Window,
@@ -173,9 +131,7 @@ impl State {
 			zfar: 100.0,
 		};
 
-		let mut camera_uniform = Matrix4::identity();
-
-		camera_uniform.update_view_proj(&camera);
+		let camera_uniform: Matrix4 = camera.into();
 
 		let view_proj_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
 			label: Some("view_proj_buffer"),
@@ -183,7 +139,7 @@ impl State {
 			usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
 		});
 
-		let mvp_bind_group_layout =
+		let vp_bind_group_layout =
 			device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
 				entries: &[wgpu::BindGroupLayoutEntry {
 					binding: 0,
@@ -195,7 +151,7 @@ impl State {
 					},
 					count: None,
 				}],
-				label: Some("mvp_bind_group_layout"),
+				label: Some("mv_bind_group_layout"),
 			});
 
 		let light_bind_group_layout =
@@ -214,23 +170,19 @@ impl State {
 			});
 
 		let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-			layout: &mvp_bind_group_layout,
+			layout: &vp_bind_group_layout,
 			entries: &[wgpu::BindGroupEntry {
 				binding: 0,
 				resource: view_proj_buffer.as_entire_binding(),
 			}],
-			label: Some("mvp_bind_group"),
+			label: Some("vp_bind_group"),
 		});
 
 		let render_pipeline_layout =
 			device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
 				label: Some("Render Pipeline Layout"),
 				// TODO: if we want multiple lights add more light bind groups
-				bind_group_layouts: &[
-					&mvp_bind_group_layout,
-					&mvp_bind_group_layout,
-					&light_bind_group_layout,
-				],
+				bind_group_layouts: &[&vp_bind_group_layout, &light_bind_group_layout],
 				push_constant_ranges: &[],
 			});
 
@@ -240,7 +192,7 @@ impl State {
 			vertex: wgpu::VertexState {
 				module: &shader,
 				entry_point: "vs_main",
-				buffers: &[Model::desc()],
+				buffers: &[Model::desc(), Instance::desc()],
 			},
 			fragment: Some(wgpu::FragmentState {
 				module: &shader,
@@ -278,10 +230,8 @@ impl State {
 			multiview: None,
 		});
 
-		let model0 = Model::new(file_name, &device, &mvp_bind_group_layout).unwrap();
-		let model1 = Model::new(file_name, &device, &mvp_bind_group_layout).unwrap();
-
 		let light0 = Light::new(&device, &light_bind_group_layout);
+		let group0 = Group::new(&file_name, 2, &device);
 
 		Self {
 			surface,
@@ -290,10 +240,9 @@ impl State {
 			config,
 			size,
 			render_pipeline,
-			model: vec![model0, model1],
-			light: vec![light0],
+			groups: vec![group0],
+			lights: vec![light0],
 			camera,
-			camera_uniform,
 			view_proj_buffer,
 			bind_group,
 			window,
@@ -318,20 +267,7 @@ impl State {
 		false
 	}
 
-	fn update(&mut self) {
-		self.queue.write_buffer(
-			&self.model[0].transform_buffer,
-			0,
-			bytemuck::cast_slice(&Matrix4::zero().m),
-		);
-		/*
-		self.queue.write_buffer(
-			&self.model[1].transform_buffer,
-			0,
-			bytemuck::cast_slice(&Matrix::zero().m),
-		);
-		*/
-	}
+	fn update(&mut self) {}
 
 	fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
 		let output = self.surface.get_current_texture()?;
@@ -365,15 +301,16 @@ impl State {
 			});
 
 			render_pass.set_pipeline(&self.render_pipeline);
-			render_pass.set_bind_group(0, &self.bind_group, &[]);
-			render_pass.set_bind_group(2, &self.light[0].bind_group, &[]);
-			for model in &self.model {
-				render_pass.set_bind_group(1, &model.bind_group, &[]);
-				for m in &model.meshes {
+
+			for g in &self.groups {
+				render_pass.set_vertex_buffer(1, g.instance_buffer.slice(..));
+				for m in &g.model.meshes {
 					render_pass.set_vertex_buffer(0, m.vertex_buffer.slice(..));
 					render_pass
 						.set_index_buffer(m.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
-					render_pass.draw_indexed(0..m.num_elements, 0, 0..1);
+					render_pass.set_bind_group(0, &self.bind_group, &[]);
+					render_pass.set_bind_group(1, &self.lights[0].bind_group, &[]);
+					render_pass.draw_indexed(0..m.num_elements, 0, 0..g.instances.len() as _);
 				}
 			}
 		}
