@@ -3,7 +3,7 @@ pub mod group;
 pub mod instance;
 pub mod light;
 pub mod model;
-use crate::camera::Camera;
+use crate::camera::{Camera, CameraUniform};
 use crate::group::Group;
 use crate::light::Light;
 use crate::model::Model;
@@ -38,14 +38,6 @@ impl Matrix4 {
 		use cgmath::Zero;
 		Self {
 			m: cgmath::Matrix4::zero().into(),
-		}
-	}
-}
-
-impl From<Camera> for Matrix4 {
-	fn from(camera: Camera) -> Self {
-		Matrix4 {
-			m: camera.build_view_projection_matrix().into(),
 		}
 	}
 }
@@ -131,7 +123,7 @@ impl State {
 			zfar: 100.0,
 		};
 
-		let camera_uniform: Matrix4 = camera.into();
+		let camera_uniform: CameraUniform = camera.into();
 
 		let view_proj_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
 			label: Some("view_proj_buffer"),
@@ -143,7 +135,7 @@ impl State {
 			device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
 				entries: &[wgpu::BindGroupLayoutEntry {
 					binding: 0,
-					visibility: wgpu::ShaderStages::VERTEX,
+					visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
 					ty: wgpu::BindingType::Buffer {
 						ty: wgpu::BufferBindingType::Uniform,
 						has_dynamic_offset: false,
