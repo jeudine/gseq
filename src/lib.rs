@@ -49,8 +49,8 @@ struct State {
 	config: wgpu::SurfaceConfiguration,
 	size: winit::dpi::PhysicalSize<u32>,
 	render_pipeline: wgpu::RenderPipeline,
-	groups: Vec<Group>,
-	lights: Vec<Light>,
+	pub groups: Vec<Group>,
+	pub lights: Vec<Light>,
 	camera: Camera,
 	view_proj_buffer: wgpu::Buffer,
 	bind_group: wgpu::BindGroup,
@@ -259,7 +259,20 @@ impl State {
 		false
 	}
 
-	fn update(&mut self) {}
+	fn update(&mut self) {
+		self.groups[0].instances[0].position = [4.0, 0.0, -2.0].into();
+		let instance_data = self.groups[0]
+			.instances
+			.iter()
+			.map(Instance::to_raw)
+			.collect::<Vec<_>>();
+
+		self.queue.write_buffer(
+			&self.groups[0].instance_buffer,
+			0,
+			bytemuck::cast_slice(&instance_data),
+		);
+	}
 
 	fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
 		let output = self.surface.get_current_texture()?;

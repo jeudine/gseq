@@ -55,7 +55,7 @@ fn vs_main(
         instance.normal_matrix_2,
     );
     var out: VertexOutput;
-    out.color = vec3<f32>(1.0, 1.0, 1.0);
+    out.color = vec3<f32>(0.0, 0.2, 0.2);
     out.world_normal = normal_matrix * model.normal;
     var world_position: vec4<f32> = model_matrix * vec4<f32>(model.position, 1.0);
     out.world_position = world_position.xyz;
@@ -80,6 +80,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     let specular_strength = pow(max(dot(in.world_normal, half_dir), 0.0), 32.0);
     let specular_color = specular_strength * light.color;
 
-    let result = (ambient_color + diffuse_color + specular_color) * object_color.xyz;
+	let result = (ambient_color + diffuse_color + specular_color) * object_color.xyz;
 
     return vec4<f32>(result, object_color.a);}
