@@ -3,12 +3,14 @@ pub mod group;
 pub mod instance;
 pub mod light;
 pub mod model;
+pub mod texture;
 use crate::camera::{Camera, CameraUniform};
 use crate::group::Group;
 use crate::light::Light;
 use crate::model::Model;
 use instance::Instance;
 use std::iter;
+use texture::Texture;
 
 use wgpu::util::DeviceExt;
 use winit::{
@@ -49,6 +51,7 @@ struct State {
 	config: wgpu::SurfaceConfiguration,
 	size: winit::dpi::PhysicalSize<u32>,
 	render_pipeline: wgpu::RenderPipeline,
+	depth_texture: Texture,
 	pub groups: Vec<Group>,
 	pub lights: Vec<Light>,
 	camera: Camera,
@@ -170,6 +173,9 @@ impl State {
 			label: Some("vp_bind_group"),
 		});
 
+		let depth_texture =
+			texture::Texture::create_depth_texture(&device, &config, "depth_texture");
+
 		let render_pipeline_layout =
 			device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
 				label: Some("Render Pipeline Layout"),
@@ -211,14 +217,18 @@ impl State {
 				// Requires Features::CONSERVATIVE_RASTERIZATION
 				conservative: false,
 			},
-			depth_stencil: None,
+			depth_stencil: Some(wgpu::DepthStencilState {
+				format: texture::Texture::DEPTH_FORMAT,
+				depth_write_enabled: true,
+				depth_compare: wgpu::CompareFunction::Less, // 1.
+				stencil: wgpu::StencilState::default(),     // 2.
+				bias: wgpu::DepthBiasState::default(),
+			}),
 			multisample: wgpu::MultisampleState {
 				count: 1,
 				mask: !0,
 				alpha_to_coverage_enabled: false,
 			},
-			// If the pipeline will be used with a multiview render pass, this
-			// indicates how many array layers the attachments will have.
 			multiview: None,
 		});
 
@@ -232,6 +242,7 @@ impl State {
 			config,
 			size,
 			render_pipeline,
+			depth_texture,
 			groups: vec![group0],
 			lights: vec![light0],
 			camera,
@@ -250,6 +261,8 @@ impl State {
 			self.size = new_size;
 			self.config.width = new_size.width;
 			self.config.height = new_size.height;
+			self.depth_texture =
+				texture::Texture::create_depth_texture(&self.device, &self.config, "depth_texture");
 			self.surface.configure(&self.device, &self.config);
 		}
 	}
@@ -302,7 +315,14 @@ impl State {
 						store: true,
 					},
 				})],
-				depth_stencil_attachment: None,
+				depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+					view: &self.depth_texture.view,
+					depth_ops: Some(wgpu::Operations {
+						load: wgpu::LoadOp::Clear(1.0),
+						store: true,
+					}),
+					stencil_ops: None,
+				}),
 			});
 
 			render_pass.set_pipeline(&self.render_pipeline);
