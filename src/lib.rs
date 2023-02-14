@@ -1,14 +1,18 @@
-pub mod camera;
-pub mod group;
+pub mod action;
+mod camera;
+mod group;
 pub mod instance;
-pub mod light;
-pub mod model;
-pub mod texture;
+pub mod item;
+mod light;
+mod model;
+mod texture;
 use crate::camera::{Camera, CameraUniform};
 use crate::group::Group;
 use crate::light::Light;
 use crate::model::Model;
-use instance::Instance;
+pub use action::Action;
+pub use instance::Instance;
+pub use item::Item;
 use std::iter;
 use texture::Texture;
 
@@ -61,7 +65,7 @@ struct State {
 }
 
 impl State {
-	async fn new(window: Window, file_name: &str) -> Self {
+	async fn new(window: Window, items: Vec<Item>) -> Self {
 		let size = window.inner_size();
 
 		// The instance is a handle to our GPU
@@ -123,7 +127,7 @@ impl State {
 			aspect: config.width as f32 / config.height as f32,
 			fovy: 45.0,
 			znear: 0.1,
-			zfar: 100.0,
+			zfar: 1000.0,
 		};
 
 		let camera_uniform: CameraUniform = camera.into();
@@ -233,7 +237,10 @@ impl State {
 		});
 
 		let light0 = Light::new(&device, &light_bind_group_layout);
-		let group0 = Group::new(&file_name, 2, &device);
+		let groups = items
+			.iter()
+			.map(|x| Group::new(&x.file_name, &x.params, &device))
+			.collect();
 
 		Self {
 			surface,
@@ -243,7 +250,7 @@ impl State {
 			size,
 			render_pipeline,
 			depth_texture,
-			groups: vec![group0],
+			groups: groups,
 			lights: vec![light0],
 			camera,
 			view_proj_buffer,
@@ -273,6 +280,7 @@ impl State {
 	}
 
 	fn update(&mut self) {
+		/*
 		self.groups[0].instances[0].position = [4.0, 0.0, -2.0].into();
 		let instance_data = self.groups[0]
 			.instances
@@ -285,6 +293,7 @@ impl State {
 			0,
 			bytemuck::cast_slice(&instance_data),
 		);
+		*/
 	}
 
 	fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
@@ -335,7 +344,7 @@ impl State {
 						.set_index_buffer(m.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
 					render_pass.set_bind_group(0, &self.bind_group, &[]);
 					render_pass.set_bind_group(1, &self.lights[0].bind_group, &[]);
-					render_pass.draw_indexed(0..m.num_elements, 0, 0..g.instances.len() as _);
+					render_pass.draw_indexed(0..m.num_elements, 0, 0..g.params.len() as _);
 				}
 			}
 		}
@@ -347,11 +356,11 @@ impl State {
 	}
 }
 
-pub async fn run(file_name: &str) {
+pub async fn run(items: Vec<Item>) {
 	let event_loop = EventLoop::new();
 	let window = WindowBuilder::new().build(&event_loop).unwrap();
 
-	let mut state = State::new(window, file_name).await;
+	let mut state = State::new(window, items).await;
 
 	event_loop.run(move |event, _, control_flow| {
 		match event {
