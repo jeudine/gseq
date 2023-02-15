@@ -127,7 +127,7 @@ impl State {
 			aspect: config.width as f32 / config.height as f32,
 			fovy: 45.0,
 			znear: 0.1,
-			zfar: 1000.0,
+			zfar: 100.0,
 		};
 
 		let camera_uniform: CameraUniform = camera.into();
@@ -280,20 +280,21 @@ impl State {
 	}
 
 	fn update(&mut self) {
-		/*
-		self.groups[0].instances[0].position = [4.0, 0.0, -2.0].into();
-		let instance_data = self.groups[0]
-			.instances
-			.iter()
-			.map(Instance::to_raw)
-			.collect::<Vec<_>>();
+		for g in &mut self.groups {
+			for p in &mut g.params {
+				match p.1 {
+					Action::Still => {}
+					//TODO: time stamp
+					Action::Rotate(q) => p.0.rotation = p.0.rotation * cgmath::Basis3::from(q),
+				}
+			}
 
-		self.queue.write_buffer(
-			&self.groups[0].instance_buffer,
-			0,
-			bytemuck::cast_slice(&instance_data),
-		);
-		*/
+			//TODO: maybe only do one loop
+			let instance_data = g.params.iter().map(|p| p.0.to_raw()).collect::<Vec<_>>();
+
+			self.queue
+				.write_buffer(&g.instance_buffer, 0, bytemuck::cast_slice(&instance_data));
+		}
 	}
 
 	fn render(&mut self) -> Result<(), wgpu::SurfaceError> {

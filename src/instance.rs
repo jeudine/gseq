@@ -1,9 +1,10 @@
-use cgmath;
+use cgmath::{One, Zero};
 
 #[derive(Copy, Clone)]
 pub struct Instance {
+	pub scale: f32,
+	pub rotation: cgmath::Basis3<f32>,
 	pub position: cgmath::Vector3<f32>,
-	pub rotation: cgmath::Quaternion<f32>,
 }
 
 #[repr(C)]
@@ -16,16 +17,20 @@ pub struct InstanceRaw {
 
 impl Instance {
 	pub fn new() -> Self {
-		use cgmath::Zero;
 		let position = cgmath::Vector3::zero();
-		let rotation = cgmath::Quaternion::zero();
-		Instance { position, rotation }
+		let rotation = cgmath::Basis3::one();
+		Instance {
+			position,
+			rotation,
+			scale: 1.0,
+		}
 	}
 
 	pub fn to_raw(&self) -> InstanceRaw {
 		InstanceRaw {
 			model: (cgmath::Matrix4::from_translation(self.position)
-				* cgmath::Matrix4::from(self.rotation))
+				* cgmath::Matrix4::from(cgmath::Matrix3::from(self.rotation))
+				* cgmath::Matrix4::from_scale(self.scale))
 			.into(),
 			normal: cgmath::Matrix3::from(self.rotation).into(),
 		}
