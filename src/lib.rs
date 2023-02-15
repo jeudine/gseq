@@ -11,9 +11,11 @@ use crate::group::Group;
 use crate::light::Light;
 use crate::model::Model;
 pub use action::Action;
+use cgmath::Rotation3;
 pub use instance::Instance;
 pub use item::Item;
 use std::iter;
+use std::time::Instant;
 use texture::Texture;
 
 use wgpu::util::DeviceExt;
@@ -62,6 +64,7 @@ struct State {
 	view_proj_buffer: wgpu::Buffer,
 	bind_group: wgpu::BindGroup,
 	window: Window,
+	start_time: Instant,
 }
 
 impl State {
@@ -256,6 +259,7 @@ impl State {
 			view_proj_buffer,
 			bind_group,
 			window,
+			start_time: Instant::now(),
 		}
 	}
 
@@ -280,18 +284,20 @@ impl State {
 	}
 
 	fn update(&mut self) {
+		let time = self.start_time.elapsed().as_secs_f32();
 		for g in &mut self.groups {
-			for p in &mut g.params {
-				match p.1 {
-					Action::Still => {}
-					//TODO: time stamp
-					Action::Rotate(q) => p.0.rotation = p.0.rotation * cgmath::Basis3::from(q),
-				}
-			}
-
-			//TODO: maybe only do one loop
-			let instance_data = g.params.iter().map(|p| p.0.to_raw()).collect::<Vec<_>>();
-
+			let instance_data = g
+				.params
+				.iter()
+				.map(|p| match p.1 {
+					Action::Still => p.0.to_raw(),
+					Action::Rotate(v, s) => {
+						let a = s * time;
+						let rotation = cgmath::Basis3::from_axis_angle(v, a);
+						p.0.to_raw_rotate(&rotation)
+					}
+				})
+				.collect::<Vec<_>>();
 			self.queue
 				.write_buffer(&g.instance_buffer, 0, bytemuck::cast_slice(&instance_data));
 		}
@@ -318,8 +324,8 @@ impl State {
 					ops: wgpu::Operations {
 						load: wgpu::LoadOp::Clear(wgpu::Color {
 							r: 0.1,
-							g: 0.2,
-							b: 0.3,
+							g: 0.1,
+							b: 0.2,
 							a: 1.0,
 						}),
 						store: true,

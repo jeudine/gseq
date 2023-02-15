@@ -21,9 +21,12 @@ fn main() {
 		params: vec![
 			(
 				instance0,
-				Action::Rotate(cgmath::Quaternion::new(0.2, 0.0, 0.1, 0.0)),
+				Action::Rotate(cgmath::Vector3::new(0.0, 1.0, 0.0), cgmath::Rad(-0.8)),
 			),
-			(instance1, Action::Still),
+			(
+				instance1,
+				Action::Rotate(cgmath::Vector3::new(0.0, 1.0, 0.0), cgmath::Rad(0.8)),
+			),
 		],
 	};
 	pollster::block_on(run(vec![item0]));
