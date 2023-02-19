@@ -34,22 +34,6 @@ pub struct Matrix4 {
 	m: [[f32; 4]; 4],
 }
 
-impl Matrix4 {
-	fn identity() -> Self {
-		use cgmath::SquareMatrix;
-		Self {
-			m: cgmath::Matrix4::identity().into(),
-		}
-	}
-
-	fn zero() -> Self {
-		use cgmath::Zero;
-		Self {
-			m: cgmath::Matrix4::zero().into(),
-		}
-	}
-}
-
 struct State {
 	surface: wgpu::Surface,
 	device: wgpu::Device,
@@ -59,7 +43,7 @@ struct State {
 	render_pipeline: wgpu::RenderPipeline,
 	depth_texture: Texture,
 	pub groups: Vec<Group>,
-	pub lights: Vec<Light>,
+	pub lights: Light,
 	camera: Camera,
 	view_proj_buffer: wgpu::Buffer,
 	bind_group: wgpu::BindGroup,
@@ -158,16 +142,38 @@ impl State {
 
 		let light_bind_group_layout =
 			device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-				entries: &[wgpu::BindGroupLayoutEntry {
-					binding: 0,
-					visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
-					ty: wgpu::BindingType::Buffer {
-						ty: wgpu::BufferBindingType::Uniform,
-						has_dynamic_offset: false,
-						min_binding_size: None,
+				entries: &[
+					wgpu::BindGroupLayoutEntry {
+						binding: 0,
+						visibility: wgpu::ShaderStages::FRAGMENT,
+						ty: wgpu::BindingType::Buffer {
+							ty: wgpu::BufferBindingType::Uniform,
+							has_dynamic_offset: false,
+							min_binding_size: None,
+						},
+						count: None,
 					},
-					count: None,
-				}],
+					wgpu::BindGroupLayoutEntry {
+						binding: 1,
+						visibility: wgpu::ShaderStages::FRAGMENT,
+						ty: wgpu::BindingType::Buffer {
+							ty: wgpu::BufferBindingType::Uniform,
+							has_dynamic_offset: false,
+							min_binding_size: None,
+						},
+						count: None,
+					},
+					wgpu::BindGroupLayoutEntry {
+						binding: 2,
+						visibility: wgpu::ShaderStages::FRAGMENT,
+						ty: wgpu::BindingType::Buffer {
+							ty: wgpu::BufferBindingType::Uniform,
+							has_dynamic_offset: false,
+							min_binding_size: None,
+						},
+						count: None,
+					},
+				],
 				label: Some("light_bind_group_layout"),
 			});
 
@@ -239,7 +245,7 @@ impl State {
 			multiview: None,
 		});
 
-		let light0 = Light::new(&device, &light_bind_group_layout);
+		let lights = Light::new(&device, &light_bind_group_layout);
 		let groups = items
 			.iter()
 			.map(|x| Group::new(&x.file_name, &x.params, &device))
@@ -254,7 +260,7 @@ impl State {
 			render_pipeline,
 			depth_texture,
 			groups: groups,
-			lights: vec![light0],
+			lights: lights,
 			camera,
 			view_proj_buffer,
 			bind_group,
@@ -323,9 +329,9 @@ impl State {
 					resolve_target: None,
 					ops: wgpu::Operations {
 						load: wgpu::LoadOp::Clear(wgpu::Color {
-							r: 0.1,
-							g: 0.1,
-							b: 0.2,
+							r: 0.01,
+							g: 0.01,
+							b: 0.01,
 							a: 1.0,
 						}),
 						store: true,
@@ -350,7 +356,7 @@ impl State {
 					render_pass
 						.set_index_buffer(m.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
 					render_pass.set_bind_group(0, &self.bind_group, &[]);
-					render_pass.set_bind_group(1, &self.lights[0].bind_group, &[]);
+					render_pass.set_bind_group(1, &self.lights.bind_group, &[]);
 					render_pass.draw_indexed(0..m.num_elements, 0, 0..g.params.len() as _);
 				}
 			}

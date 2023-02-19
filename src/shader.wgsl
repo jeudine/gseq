@@ -14,7 +14,11 @@ struct Light {
 }
 
 @group(1) @binding(0)
-var<uniform> light: Light;
+var<uniform> light_0: Light;
+@group(1) @binding(1)
+var<uniform> light_1: Light;
+@group(1) @binding(2)
+var<uniform> light_2: Light;
 
 struct VertexInput {
 	@location(0) position: vec3<f32>,
@@ -55,7 +59,7 @@ fn vs_main(
 		instance.normal_matrix_2,
 	);
 	var out: VertexOutput;
-	out.color = vec3<f32>(0.2, 0.1, 1.0);
+	out.color = vec3<f32>(0.6, 0.6, 0.6);
 	out.world_normal = normal_matrix * model.normal;
 	var world_position: vec4<f32> = model_matrix * vec4<f32>(model.position, 1.0);
 	out.world_position = world_position.xyz;
@@ -68,17 +72,35 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 	let object_color: vec4<f32> = vec4<f32>(in.color, 1.0);
 
 	let ambient_strength = 0.1;
-	let ambient_color = light.color * ambient_strength;
+	let ambient_color = (light_0.color + light_1.color + light_2.color) * ambient_strength;
 
-	let light_dir = normalize(light.position - in.world_position);
-	let diffuse_strength = max(dot(in.world_normal, light_dir), 0.0);
-	let diffuse_color = light.color * diffuse_strength;
+	let light_dir_0 = normalize(light_0.position - in.world_position);
+	let diffuse_strength_0 = max(dot(in.world_normal, light_dir_0), 0.0);
+	let diffuse_color_0 = light_0.color * diffuse_strength_0;
+
+	let light_dir_1 = normalize(light_1.position - in.world_position);
+	let diffuse_strength_1 = max(dot(in.world_normal, light_dir_1), 0.0);
+	let diffuse_color_1 = light_1.color * diffuse_strength_1;
+
+	let light_dir_2 = normalize(light_2.position - in.world_position);
+	let diffuse_strength_2 = max(dot(in.world_normal, light_dir_2), 0.0);
+	let diffuse_color_2 = light_2.color * diffuse_strength_2;
+
+	let diffuse_color = diffuse_color_0 + diffuse_color_1 + diffuse_color_2;
 	
 	let view_dir = normalize(camera.view_pos.xyz - in.world_position);
-	let half_dir = normalize(view_dir + light_dir);
+	let half_dir_0 = normalize(view_dir + light_dir_0);
+	let half_dir_1 = normalize(view_dir + light_dir_1);
+	let half_dir_2 = normalize(view_dir + light_dir_2);
 	
-	let specular_strength = pow(max(dot(in.world_normal, half_dir), 0.0), 256.0);
-	let specular_color = specular_strength * light.color;
+	let specular_strength_0 = pow(max(dot(in.world_normal, half_dir_0), 0.0), 256.0);
+	let specular_strength_1 = pow(max(dot(in.world_normal, half_dir_1), 0.0), 256.0);
+	let specular_strength_2 = pow(max(dot(in.world_normal, half_dir_2), 0.0), 256.0);
+	let specular_color_0 = specular_strength_0 * light_0.color;
+	let specular_color_1 = specular_strength_1 * light_1.color;
+	let specular_color_2 = specular_strength_2 * light_2.color;
+
+	let specular_color = specular_color_0 + specular_color_1 + specular_color_2;
 
 	let result = (ambient_color + diffuse_color + specular_color) * object_color.xyz;
 

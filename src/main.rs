@@ -17,7 +17,7 @@ fn main() {
 	};
 
 	let item0 = Item {
-		file_name: "../../Downloads/DNA.obj".to_string(),
+		file_name: "res/DNA.obj".to_string(),
 		params: vec![
 			(
 				instance0,
@@ -29,6 +29,18 @@ fn main() {
 			),
 		],
 	};
-	pollster::block_on(run(vec![item0]));
+	let item1 = Item {
+		file_name: "res/male.obj".to_string(),
+		params: vec![(
+			Instance {
+				position: cgmath::Vector3::new(0.0, 0.0, -20.0),
+				rotation: cgmath::Basis3::one(),
+				scale: 2.0,
+			},
+			Action::Rotate(cgmath::Vector3::new(0.0, 1.0, 0.0), cgmath::Rad(-0.8)),
+		)],
+	};
+
+	pollster::block_on(run(vec![item0, item1]));
 	//pollster::block_on(run("res/cube.obj"));
 }
