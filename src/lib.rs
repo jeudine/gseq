@@ -1,5 +1,6 @@
 pub mod action;
 mod camera;
+pub mod fft;
 mod group;
 pub mod instance;
 pub mod item;
@@ -12,6 +13,7 @@ use crate::light::Light;
 use crate::model::Model;
 pub use action::Action;
 use cgmath::Rotation3;
+pub use fft::FFT;
 pub use instance::Instance;
 pub use item::Item;
 use std::iter;

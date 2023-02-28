@@ -11,7 +11,9 @@ log = "0.4"
 wgpu = "0.14"
 pollster = "0.2"
 bytemuck = { version = "1.12", features = [ "derive" ] }
+# algebra library
 cgmath = "0.18"
 # Load the .obj
 tobj = "3.2"
 rustfft = "6.1.0"
+cpal = "0.15.0"
