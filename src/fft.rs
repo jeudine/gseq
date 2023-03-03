@@ -1,14 +1,23 @@
 use cpal::{
-	traits::{DeviceTrait, HostTrait},
-	BufferSize,
+	platform::Stream,
+	traits::{DeviceTrait, HostTrait, StreamTrait},
+	FromSample, Sample,
 };
 use std::error::Error;
+use std::sync::{Arc, Mutex};
 
 pub struct FFT {
-	chunck_size: u32,
-	sample_rate: u32,
+	//sample_rate: u32,
 	nb_channels: u32,
 	freq_limits: Vec<u32>,
+	stream: Stream,
+	buffer: Arc<Mutex<Buffer>>,
+}
+
+struct Buffer {
+	a: Vec<i16>,
+	pos: usize,
+	len: usize,
 }
 
 impl FFT {
@@ -30,11 +39,54 @@ impl FFT {
 			.expect("Failed to get default input config");
 		println!("Default input config: {:?}", config);
 
+		let buffer = Buffer {
+			a: vec![0; chunck_size as usize],
+			len: chunck_size as usize,
+			pos: 0,
+		};
+
+		let buffer_arc = Arc::new(Mutex::new(buffer));
+		let buffer_arc_2 = buffer_arc.clone();
+
+		let err_fn = move |err| {
+			eprintln!("an error occurred on stream: {}", err);
+		};
+
+		let stream = match config.sample_format() {
+			cpal::SampleFormat::I8 => device.build_input_stream(
+				&config.into(),
+				move |data, _: &_| write_input_data::<i8>(data, &buffer_arc),
+				err_fn,
+				None,
+			)?,
+			cpal::SampleFormat::I16 => device.build_input_stream(
+				&config.into(),
+				move |data, _: &_| write_input_data::<i16>(data, &buffer_arc),
+				err_fn,
+				None,
+			)?,
+			cpal::SampleFormat::I32 => device.build_input_stream(
+				&config.into(),
+				move |data, _: &_| write_input_data::<i32>(data, &buffer_arc),
+				err_fn,
+				None,
+			)?,
+			cpal::SampleFormat::F32 => device.build_input_stream(
+				&config.into(),
+				move |data, _: &_| write_input_data::<f32>(data, &buffer_arc),
+				err_fn,
+				None,
+			)?,
+			_ => return Err(Box::from("Unsupported sample format")),
+		};
+
+		stream.play()?;
+
 		Ok(Self {
-			chunck_size,
-			sample_rate: config.sample_rate().0,
 			nb_channels,
 			freq_limits: Self::calculate_channel_frequency(min_freq, max_freq, nb_channels),
+			buffer: buffer_arc_2,
+			stream,
 		})
 	}
 
@@ -54,4 +106,23 @@ const fn num_bits<T>() -> usize {
 
 fn log_2(x: u32) -> u32 {
 	num_bits::<u32>() as u32 - x.leading_zeros() - 1
+}
+
+type BufferHandle = Arc<Mutex<Buffer>>;
+
+fn write_input_data<T>(input: &[T], buffer: &BufferHandle)
+where
+	T: Sample,
+	i16: FromSample<T>,
+{
+	if let Ok(mut buffer) = buffer.try_lock() {
+		for &sample in input.iter() {
+			let pos = buffer.pos;
+			buffer.a[pos] = i16::from_sample(sample);
+			buffer.pos = pos + 1;
+			if buffer.pos == buffer.len {
+				buffer.pos = 0;
+			}
+		}
+	}
 }
