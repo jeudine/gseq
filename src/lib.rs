@@ -51,6 +51,9 @@ struct State {
 	bind_group: wgpu::BindGroup,
 	window: Window,
 	start_time: Instant,
+	fft: FFT,
+	nb_fft_instances: u32,
+	cur_fft_instance: u32,
 }
 
 impl State {
@@ -248,10 +251,20 @@ impl State {
 		});
 
 		let lights = Light::new(&device, &light_bind_group_layout);
-		let groups = items
+		let groups: Vec<Group> = items
 			.iter()
 			.map(|x| Group::new(&x.file_name, &x.params, &device))
 			.collect();
+
+		let mut nb_fft_instances = 0;
+		for g in &groups {
+			for (_, a) in &g.params {
+				if let Action::FFT = a {
+					nb_fft_instances += 1;
+				}
+			}
+		}
+		let fft = FFT::init(2048, 4, 20, 15000).unwrap();
 
 		Self {
 			surface,
@@ -261,13 +274,16 @@ impl State {
 			size,
 			render_pipeline,
 			depth_texture,
-			groups: groups,
+			groups,
 			lights: lights,
 			camera,
 			view_proj_buffer,
 			bind_group,
 			window,
 			start_time: Instant::now(),
+			fft,
+			nb_fft_instances,
+			cur_fft_instance: 0,
 		}
 	}
 
@@ -292,6 +308,12 @@ impl State {
 	}
 
 	fn update(&mut self) {
+		let mut to_change = self.fft.to_change.lock().unwrap();
+		if *to_change {
+			*to_change = false;
+			//TODO
+		}
+		let mut count_fft_instance = 0;
 		let time = self.start_time.elapsed().as_secs_f32();
 		for g in &mut self.groups {
 			let instance_data = g
@@ -303,6 +325,15 @@ impl State {
 						let a = s * time;
 						let rotation = cgmath::Basis3::from_axis_angle(v, a);
 						p.0.to_raw_rotate(&rotation)
+					}
+					Action::FFT => {
+						let i = if count_fft_instance == self.cur_fft_instance {
+							p.0.to_raw()
+						} else {
+							Instance::raw_zero()
+						};
+						count_fft_instance += 1;
+						i
 					}
 				})
 				.collect::<Vec<_>>();

@@ -47,6 +47,13 @@ impl Instance {
 		}
 	}
 
+	pub fn raw_zero() -> InstanceRaw {
+		InstanceRaw {
+			model: cgmath::Matrix4::zero().into(),
+			normal: cgmath::Matrix3::zero().into(),
+		}
+	}
+
 	pub fn desc<'a>() -> wgpu::VertexBufferLayout<'a> {
 		use std::mem;
 		wgpu::VertexBufferLayout {

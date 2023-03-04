@@ -4,10 +4,8 @@ use gseq::run;
 use gseq::Action;
 use gseq::Instance;
 use gseq::Item;
-use gseq::FFT;
 
 fn main() {
-	let fft = FFT::init(2048, 4, 20, 15000).unwrap();
 	let instance0 = Instance {
 		position: cgmath::Vector3::new(15.0, 0.0, -30.0),
 		rotation: cgmath::Basis3::one(),

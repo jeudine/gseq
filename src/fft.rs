@@ -12,6 +12,7 @@ pub struct FFT {
 	freq_limits: Vec<u32>,
 	stream: Stream,
 	buffer: Arc<Mutex<Buffer>>,
+	pub to_change: Arc<Mutex<bool>>,
 }
 
 struct Buffer {
@@ -82,11 +83,15 @@ impl FFT {
 
 		stream.play()?;
 
+		let to_change = false;
+		let to_change_arc = Arc::new(Mutex::new(to_change));
+
 		Ok(Self {
 			nb_channels,
 			freq_limits: Self::calculate_channel_frequency(min_freq, max_freq, nb_channels),
 			buffer: buffer_arc_2,
 			stream,
+			to_change: to_change_arc,
 		})
 	}
 
