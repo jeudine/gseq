@@ -3,6 +3,8 @@ use cpal::{
 	traits::{DeviceTrait, HostTrait, StreamTrait},
 	FromSample, Sample,
 };
+
+use realfft::{num_complex::Complex, RealFftPlanner, RealToComplex};
 use std::error::Error;
 use std::sync::{Arc, Mutex};
 
@@ -11,14 +13,16 @@ pub struct FFT {
 	nb_channels: u32,
 	freq_limits: Vec<u32>,
 	stream: Stream,
-	buffer: Arc<Mutex<Buffer>>,
-	pub to_change: Arc<Mutex<bool>>,
+	pub levels: Arc<Mutex<bool>>,
 }
 
 struct Buffer {
-	a: Vec<i16>,
+	input: Vec<f32>,
+	output: Vec<Complex<f32>>,
+	scratch: Vec<Complex<f32>>,
 	pos: usize,
 	len: usize,
+	r2c: Arc<dyn RealToComplex<f32>>,
 }
 
 impl FFT {
@@ -40,41 +44,51 @@ impl FFT {
 			.expect("Failed to get default input config");
 		println!("Default input config: {:?}", config);
 
-		let buffer = Buffer {
-			a: vec![0; chunck_size as usize],
+		let mut real_planner = RealFftPlanner::<f32>::new();
+		let r2c = real_planner.plan_fft_forward(chunck_size as usize);
+		let mut input = r2c.make_input_vec();
+		let mut output = r2c.make_output_vec();
+		let mut scratch = r2c.make_scratch_vec();
+
+		let mut buffer = Buffer {
+			input,
+			output,
+			scratch,
 			len: chunck_size as usize,
 			pos: 0,
+			r2c,
 		};
-
-		let buffer_arc = Arc::new(Mutex::new(buffer));
-		let buffer_arc_2 = buffer_arc.clone();
 
 		let err_fn = move |err| {
 			eprintln!("an error occurred on stream: {}", err);
 		};
 
+		let levels = false;
+		let levels_arc = Arc::new(Mutex::new(levels));
+		let levels_arc2 = levels_arc.clone();
+
 		let stream = match config.sample_format() {
 			cpal::SampleFormat::I8 => device.build_input_stream(
 				&config.into(),
-				move |data, _: &_| write_input_data::<i8>(data, &buffer_arc),
+				move |data, _: &_| write_input_data::<i8>(data, &mut buffer, &levels_arc2),
 				err_fn,
 				None,
 			)?,
 			cpal::SampleFormat::I16 => device.build_input_stream(
 				&config.into(),
-				move |data, _: &_| write_input_data::<i16>(data, &buffer_arc),
+				move |data, _: &_| write_input_data::<i16>(data, &mut buffer, &levels_arc2),
 				err_fn,
 				None,
 			)?,
 			cpal::SampleFormat::I32 => device.build_input_stream(
 				&config.into(),
-				move |data, _: &_| write_input_data::<i32>(data, &buffer_arc),
+				move |data, _: &_| write_input_data::<i32>(data, &mut buffer, &levels_arc2),
 				err_fn,
 				None,
 			)?,
 			cpal::SampleFormat::F32 => device.build_input_stream(
 				&config.into(),
-				move |data, _: &_| write_input_data::<f32>(data, &buffer_arc),
+				move |data, _: &_| write_input_data::<f32>(data, &mut buffer, &levels_arc2),
 				err_fn,
 				None,
 			)?,
@@ -83,15 +97,11 @@ impl FFT {
 
 		stream.play()?;
 
-		let to_change = false;
-		let to_change_arc = Arc::new(Mutex::new(to_change));
-
 		Ok(Self {
 			nb_channels,
 			freq_limits: Self::calculate_channel_frequency(min_freq, max_freq, nb_channels),
-			buffer: buffer_arc_2,
 			stream,
-			to_change: to_change_arc,
+			levels: levels_arc,
 		})
 	}
 
@@ -113,21 +123,29 @@ fn log_2(x: u32) -> u32 {
 	num_bits::<u32>() as u32 - x.leading_zeros() - 1
 }
 
-type BufferHandle = Arc<Mutex<Buffer>>;
-
-fn write_input_data<T>(input: &[T], buffer: &BufferHandle)
+fn write_input_data<T>(input: &[T], buffer: &mut Buffer, levels: &Arc<Mutex<bool>>)
 where
 	T: Sample,
-	i16: FromSample<T>,
+	f32: FromSample<T>,
 {
-	if let Ok(mut buffer) = buffer.try_lock() {
-		for &sample in input.iter() {
-			let pos = buffer.pos;
-			buffer.a[pos] = i16::from_sample(sample);
-			buffer.pos = pos + 1;
-			if buffer.pos == buffer.len {
-				buffer.pos = 0;
+	// every 2 because stereo
+	for &sample in input.iter().step_by(2) {
+		let pos = buffer.pos;
+		buffer.input[pos] = f32::from_sample(sample);
+		buffer.pos = pos + 1;
+		if buffer.pos == buffer.len {
+			buffer.pos = 0;
+			let mut real_planner = RealFftPlanner::<f32>::new();
+			let r2c = real_planner.plan_fft_forward(buffer.len);
+			r2c.process_with_scratch(&mut buffer.input, &mut buffer.output, &mut buffer.scratch);
+			/*
+			for (i, el) in buffer.output.iter().enumerate() {
+				println!("{}: {}", i, el.norm());
 			}
+			*/
+			// update stats
+			// compute levels
+			break;
 		}
 	}
 }

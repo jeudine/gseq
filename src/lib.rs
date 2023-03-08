@@ -308,7 +308,8 @@ impl State {
 	}
 
 	fn update(&mut self) {
-		let mut to_change = self.fft.to_change.lock().unwrap();
+		//TODO
+		let mut to_change = self.fft.levels.lock().unwrap();
 		if *to_change {
 			*to_change = false;
 			//TODO

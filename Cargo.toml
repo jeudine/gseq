@@ -15,5 +15,6 @@ bytemuck = { version = "1.12", features = [ "derive" ] }
 cgmath = "0.18"
 # Load the .obj
 tobj = "3.2"
-rustfft = "6.1.0"
 cpal = "0.15.0"
+realfft = "3.2.0"
+
