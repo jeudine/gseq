@@ -23,6 +23,9 @@ struct Buffer {
 	pos: usize,
 	len: usize,
 	r2c: Arc<dyn RealToComplex<f32>>,
+	mean: Vec<f32>,
+	var: Vec<f32>,
+	count: u64,
 }
 
 impl FFT {
@@ -46,9 +49,11 @@ impl FFT {
 
 		let mut real_planner = RealFftPlanner::<f32>::new();
 		let r2c = real_planner.plan_fft_forward(chunck_size as usize);
-		let mut input = r2c.make_input_vec();
-		let mut output = r2c.make_output_vec();
-		let mut scratch = r2c.make_scratch_vec();
+		let input = r2c.make_input_vec();
+		let output = r2c.make_output_vec();
+		let scratch = r2c.make_scratch_vec();
+		let mean = vec![0.0; output.len()];
+		let var = vec![0.0; output.len()];
 
 		let mut buffer = Buffer {
 			input,
@@ -57,6 +62,9 @@ impl FFT {
 			len: chunck_size as usize,
 			pos: 0,
 			r2c,
+			mean,
+			var,
+			count: 0,
 		};
 
 		let err_fn = move |err| {
@@ -123,6 +131,7 @@ fn log_2(x: u32) -> u32 {
 	num_bits::<u32>() as u32 - x.leading_zeros() - 1
 }
 
+// TODO: maybe devide the buffer by 2
 fn write_input_data<T>(input: &[T], buffer: &mut Buffer, levels: &Arc<Mutex<bool>>)
 where
 	T: Sample,
@@ -135,16 +144,32 @@ where
 		buffer.pos = pos + 1;
 		if buffer.pos == buffer.len {
 			buffer.pos = 0;
+			buffer.count += 1;
 			let mut real_planner = RealFftPlanner::<f32>::new();
 			let r2c = real_planner.plan_fft_forward(buffer.len);
 			r2c.process_with_scratch(&mut buffer.input, &mut buffer.output, &mut buffer.scratch);
+			//TODO: apply window
+			//TODO: check if there is at least one value over a threshold
+			//TODO: compute levels
+			// update mean and var
+			if buffer.count == 1 {
+				for i in 0..buffer.output.len() {
+					let norm = buffer.output[i].norm();
+					buffer.mean[i] = norm;
+				}
+			} else {
+				for i in 0..buffer.output.len() {
+					let norm = buffer.output[i].norm();
+					let old_mean = buffer.mean[i];
+					buffer.mean[i] = buffer.mean[i] + (norm - buffer.mean[i]) / buffer.count as f32;
+					buffer.var[i] = buffer.var[i] + (norm - old_mean) * (norm + buffer.mean[i]);
+				}
+			}
 			/*
 			for (i, el) in buffer.output.iter().enumerate() {
 				println!("{}: {}", i, el.norm());
 			}
 			*/
-			// update stats
-			// compute levels
 			break;
 		}
 	}
