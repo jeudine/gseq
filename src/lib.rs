@@ -309,11 +309,15 @@ impl State {
 
 	fn update(&mut self) {
 		//TODO
-		let mut to_change = self.fft.levels.lock().unwrap();
+		{
+			let mut to_change = self.fft.gain.lock().unwrap();
+		}
+		/*
 		if *to_change {
 			*to_change = false;
 			//TODO
 		}
+		*/
 		let mut count_fft_instance = 0;
 		let time = self.start_time.elapsed().as_secs_f32();
 		for g in &mut self.groups {
