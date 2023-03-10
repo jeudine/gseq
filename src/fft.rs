@@ -11,7 +11,7 @@ use std::sync::{Arc, Mutex};
 
 pub struct FFT {
 	stream: Stream,
-	pub gain: Arc<Mutex<Vec<f32>>>,
+	pub level: Arc<Mutex<Vec<Level>>>,
 }
 
 struct Buffer {
@@ -23,10 +23,15 @@ struct Buffer {
 	len: usize,
 	r2c: Arc<dyn RealToComplex<f32>>,
 	mean: Vec<f32>,
-	var: Vec<f32>,
 	count: u64,
 	nb_channels: u32,
 	index_limits: Vec<usize>,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct Level {
+	pub val: f32,
+	pub mean: f32,
 }
 
 impl FFT {
@@ -67,7 +72,6 @@ impl FFT {
 			pos: 0,
 			r2c,
 			mean,
-			var,
 			count: 0,
 			window: hanning_window,
 			nb_channels,
@@ -84,32 +88,38 @@ impl FFT {
 			eprintln!("an error occurred on stream: {}", err);
 		};
 
-		let gain = vec![0.0; nb_channels as usize];
-		let gain_arc = Arc::new(Mutex::new(gain));
-		let gain_arc2 = gain_arc.clone();
+		let gain = vec![
+			Level {
+				val: 0.0,
+				mean: 0.0
+			};
+			nb_channels as usize
+		];
+		let level_arc = Arc::new(Mutex::new(gain));
+		let level_arc2 = level_arc.clone();
 
 		let stream = match config.sample_format() {
 			cpal::SampleFormat::I8 => device.build_input_stream(
 				&config.into(),
-				move |data, _: &_| write_input_data::<i8>(data, &mut buffer, &gain_arc2),
+				move |data, _: &_| write_input_data::<i8>(data, &mut buffer, &level_arc2),
 				err_fn,
 				None,
 			)?,
 			cpal::SampleFormat::I16 => device.build_input_stream(
 				&config.into(),
-				move |data, _: &_| write_input_data::<i16>(data, &mut buffer, &gain_arc2),
+				move |data, _: &_| write_input_data::<i16>(data, &mut buffer, &level_arc2),
 				err_fn,
 				None,
 			)?,
 			cpal::SampleFormat::I32 => device.build_input_stream(
 				&config.into(),
-				move |data, _: &_| write_input_data::<i32>(data, &mut buffer, &gain_arc2),
+				move |data, _: &_| write_input_data::<i32>(data, &mut buffer, &level_arc2),
 				err_fn,
 				None,
 			)?,
 			cpal::SampleFormat::F32 => device.build_input_stream(
 				&config.into(),
-				move |data, _: &_| write_input_data::<f32>(data, &mut buffer, &gain_arc2),
+				move |data, _: &_| write_input_data::<f32>(data, &mut buffer, &level_arc2),
 				err_fn,
 				None,
 			)?,
@@ -120,7 +130,7 @@ impl FFT {
 
 		Ok(Self {
 			stream,
-			gain: gain_arc,
+			level: level_arc,
 		})
 	}
 
@@ -152,7 +162,7 @@ impl FFT {
 }
 
 // TODO: maybe devide size of the buffer by 2
-fn write_input_data<T>(input: &[T], buffer: &mut Buffer, gain: &Arc<Mutex<Vec<f32>>>)
+fn write_input_data<T>(input: &[T], buffer: &mut Buffer, level: &Arc<Mutex<Vec<Level>>>)
 where
 	T: Sample,
 	f32: FromSample<T>,
@@ -176,9 +186,29 @@ where
 			}
 			*/
 
-			//TODO: check if there is at least one value over a threshold
+			//check if there is at least one value over the threshold
+			let threshold = 10.0;
+			let mut over = false;
+			for x in &buffer.output {
+				if x.norm() > threshold {
+					over = true;
+					break;
+				}
+			}
+
+			if !over {
+				let new_level: Vec<_> = (0..buffer.nb_channels as usize)
+					.map(|i| Level {
+						val: 0.0,
+						mean: buffer.mean[i],
+					})
+					.collect();
+				let mut level = level.lock().unwrap();
+				*level = new_level;
+				return;
+			}
+
 			// compute levels
-			//TODO: maybe squared
 			let levels: Vec<_> = (0..buffer.nb_channels as usize)
 				.map(|x| {
 					(buffer.index_limits[x] + 1..buffer.index_limits[x + 1])
@@ -186,18 +216,22 @@ where
 				})
 				.collect();
 
-			// update mean and var
+			let stat_mem = 100;
+
+			// update mean
 			if buffer.count == 1 {
 				for i in 0..buffer.nb_channels as usize {
 					buffer.mean[i] = levels[i];
 				}
-			} else {
+			} else if buffer.count < stat_mem {
 				for i in 0..buffer.nb_channels as usize {
-					let old_mean = buffer.mean[i];
 					buffer.mean[i] =
 						buffer.mean[i] + (levels[i] - buffer.mean[i]) / buffer.count as f32;
-					buffer.var[i] =
-						buffer.var[i] + (levels[i] - old_mean) * (levels[i] + buffer.mean[i]);
+				}
+			} else {
+				for i in 0..buffer.nb_channels as usize {
+					buffer.mean[i] =
+						buffer.mean[i] + (levels[i] - buffer.mean[i]) / stat_mem as f32;
 				}
 			}
 			/*
@@ -206,23 +240,10 @@ where
 			}
 			*/
 
-			// compute gain
-			let sd_low = 0.25;
-			let sd_high = 0.75;
-
-			let new_gain: Vec<_> = (0..buffer.nb_channels as usize)
-				.map(|i| {
-					let std = buffer.var[i].sqrt();
-					/*
-					let val =
-						(levels[i] - buffer.mean[i] + std * sd_low) / (std * (sd_low + sd_high));
-					*/
-					let val: f32 = if levels[i] < buffer.mean[i] { 0.0 } else { 1.0 };
-					if val.is_nan() {
-						0.0
-					} else {
-						val
-					}
+			let new_level: Vec<_> = (0..buffer.nb_channels as usize)
+				.map(|i| Level {
+					val: levels[i],
+					mean: buffer.mean[i],
 				})
 				.collect();
 			/*
@@ -233,9 +254,9 @@ where
 			}
 			*/
 
-			let mut gain = gain.lock().unwrap();
-			*gain = new_gain;
-			break;
+			let mut level = level.lock().unwrap();
+			*level = new_level;
+			return;
 		}
 	}
 }

@@ -310,16 +310,31 @@ impl State {
 	}
 
 	fn update(&mut self) {
-		let gain = {
-			let gain = self.fft.gain.lock().unwrap();
-			gain[0]
+		let gain: Vec<_> = {
+			let level = self.fft.level.lock().unwrap();
+			level
+				.iter()
+				.map(|x| {
+					if x.mean == 0.0 {
+						(0.0, 0.0)
+					} else {
+						(x.val, x.val / x.mean)
+					}
+				})
+				.collect()
 		};
-		/*
-		if *to_change {
-			*to_change = false;
-			//TODO
+
+		// Where the magi appends
+		if gain[0].1 < 0.2 {
+			self.cur_fft_instance += 1;
+			if self.cur_fft_instance == self.nb_fft_instances {
+				self.cur_fft_instance = 0;
+			}
 		}
-		*/
+
+		let rot_speed = cgmath::Rad(0.8);
+		let rot_vector = cgmath::Vector3::new(0.0, 1.0, 0.0);
+
 		let mut count_fft_instance = 0;
 		let time = self.start_time.elapsed().as_secs_f32();
 		for g in &mut self.groups {
@@ -331,11 +346,13 @@ impl State {
 					Action::Rotate(v, s) => {
 						let a = s * time;
 						let rotation = cgmath::Basis3::from_axis_angle(v, a);
-						p.0.to_raw_scale_rotate(gain, &rotation)
+						p.0.to_raw_rotate(&rotation)
 					}
 					Action::FFT => {
 						let i = if count_fft_instance == self.cur_fft_instance {
-							p.0.to_raw()
+							let a = rot_speed * time;
+							let rotation = cgmath::Basis3::from_axis_angle(rot_vector, a);
+							p.0.to_raw_scale_rotate(gain[0].1, &rotation)
 						} else {
 							Instance::raw_zero()
 						};
