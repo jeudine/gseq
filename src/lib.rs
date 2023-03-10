@@ -54,6 +54,7 @@ struct State {
 	fft: FFT,
 	nb_fft_instances: u32,
 	cur_fft_instance: u32,
+	c0_fft: f32,
 }
 
 impl State {
@@ -284,6 +285,7 @@ impl State {
 			fft,
 			nb_fft_instances,
 			cur_fft_instance: 0,
+			c0_fft: 0.0,
 		}
 	}
 
@@ -308,10 +310,10 @@ impl State {
 	}
 
 	fn update(&mut self) {
-		//TODO
-		{
-			let mut to_change = self.fft.gain.lock().unwrap();
-		}
+		let gain = {
+			let gain = self.fft.gain.lock().unwrap();
+			gain[0]
+		};
 		/*
 		if *to_change {
 			*to_change = false;
@@ -329,7 +331,7 @@ impl State {
 					Action::Rotate(v, s) => {
 						let a = s * time;
 						let rotation = cgmath::Basis3::from_axis_angle(v, a);
-						p.0.to_raw_rotate(&rotation)
+						p.0.to_raw_scale_rotate(gain, &rotation)
 					}
 					Action::FFT => {
 						let i = if count_fft_instance == self.cur_fft_instance {

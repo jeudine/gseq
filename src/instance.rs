@@ -46,6 +46,16 @@ impl Instance {
 			normal: cgmath::Matrix3::from(rotation).into(),
 		}
 	}
+	pub fn to_raw_scale_rotate(&self, scale: f32, rotation: &cgmath::Basis3<f32>) -> InstanceRaw {
+		let rotation = cgmath::Matrix3::from(self.rotation * rotation);
+		InstanceRaw {
+			model: (cgmath::Matrix4::from_translation(self.position)
+				* cgmath::Matrix4::from(rotation)
+				* cgmath::Matrix4::from_scale(self.scale * scale))
+			.into(),
+			normal: cgmath::Matrix3::from(rotation).into(),
+		}
+	}
 
 	pub fn raw_zero() -> InstanceRaw {
 		InstanceRaw {

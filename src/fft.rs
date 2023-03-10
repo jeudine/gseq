@@ -213,8 +213,11 @@ where
 			let new_gain: Vec<_> = (0..buffer.nb_channels as usize)
 				.map(|i| {
 					let std = buffer.var[i].sqrt();
+					/*
 					let val =
 						(levels[i] - buffer.mean[i] + std * sd_low) / (std * (sd_low + sd_high));
+					*/
+					let val: f32 = if levels[i] < buffer.mean[i] { 0.0 } else { 1.0 };
 					if val.is_nan() {
 						0.0
 					} else {
