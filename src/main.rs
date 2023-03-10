@@ -41,7 +41,7 @@ fn main() {
 		file_name: "res/elephant.obj".to_string(),
 		params: vec![(
 			Instance {
-				position: cgmath::Vector3::new(0.0, -4.0, -10.0),
+				position: cgmath::Vector3::new(0.0, 0.0, -10.0),
 				rotation: Basis3::from(rotation),
 				//rotation: Basis3::one(),
 				scale: 6.0,
@@ -55,7 +55,7 @@ fn main() {
 		file_name: "res/male.obj".to_string(),
 		params: vec![(
 			Instance {
-				position: cgmath::Vector3::new(0.0, 3.0, -10.0),
+				position: cgmath::Vector3::new(0.0, 0.0, -10.0),
 				rotation: Basis3::from(rotation),
 				//rotation: Basis3::one(),
 				scale: 2.0,
