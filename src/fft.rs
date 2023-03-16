@@ -9,10 +9,7 @@ use realfft::{num_complex::Complex, RealFftPlanner, RealToComplex};
 use std::error::Error;
 use std::sync::{Arc, Mutex};
 
-pub struct FFT {
-	stream: Stream,
-	pub level: Arc<Mutex<Vec<Level>>>,
-}
+pub type Levels = Arc<Mutex<Vec<Level>>>;
 
 struct Buffer {
 	input: Vec<f32>,
@@ -34,134 +31,129 @@ pub struct Level {
 	pub mean: f32,
 }
 
-impl FFT {
-	pub fn init(
-		chunck_size: u32,
-		nb_channels: u32,
-		min_freq: u32,
-		max_freq: u32,
-	) -> Result<FFT, Box<dyn Error>> {
-		let host = cpal::default_host();
-		let device = host
-			.default_input_device()
-			.expect("failed to find input device");
+pub fn init(
+	chunck_size: u32,
+	nb_channels: u32,
+	min_freq: u32,
+	max_freq: u32,
+) -> Result<(Levels, Stream), Box<dyn Error>> {
+	let host = cpal::default_host();
+	let device = host
+		.default_input_device()
+		.expect("failed to find input device");
 
-		println!("Input device: {}", device.name()?);
+	println!("Input device: {}", device.name()?);
 
-		let config = device
-			.default_input_config()
-			.expect("Failed to get default input config");
-		println!("Default input config: {:?}", config);
+	let config = device
+		.default_input_config()
+		.expect("Failed to get default input config");
+	println!("Default input config: {:?}", config);
 
-		let mut real_planner = RealFftPlanner::<f32>::new();
-		let r2c = real_planner.plan_fft_forward(chunck_size as usize);
-		let input = r2c.make_input_vec();
-		let output = r2c.make_output_vec();
-		let scratch = r2c.make_scratch_vec();
-		let mean = vec![0.0; nb_channels as usize];
-		let var = vec![0.0; nb_channels as usize];
-		let hanning_window = (0..input.len())
-			.map(|i| 0.5 * (1.0 - ((2.0 * PI * i as f32) / (input.len() - 1) as f32).cos()))
-			.collect();
+	let mut real_planner = RealFftPlanner::<f32>::new();
+	let r2c = real_planner.plan_fft_forward(chunck_size as usize);
+	let input = r2c.make_input_vec();
+	let output = r2c.make_output_vec();
+	let scratch = r2c.make_scratch_vec();
+	let mean = vec![0.0; nb_channels as usize];
+	let hanning_window = (0..input.len())
+		.map(|i| 0.5 * (1.0 - ((2.0 * PI * i as f32) / (input.len() - 1) as f32).cos()))
+		.collect();
 
-		let mut buffer = Buffer {
-			input,
-			output,
-			scratch,
-			len: chunck_size as usize,
-			pos: 0,
-			r2c,
-			mean,
-			count: 0,
-			window: hanning_window,
+	let mut buffer = Buffer {
+		input,
+		output,
+		scratch,
+		len: chunck_size as usize,
+		pos: 0,
+		r2c,
+		mean,
+		count: 0,
+		window: hanning_window,
+		nb_channels,
+		index_limits: calculate_channel_index(
+			min_freq,
+			max_freq,
 			nb_channels,
-			index_limits: Self::calculate_channel_index(
-				min_freq,
-				max_freq,
-				nb_channels,
-				config.sample_rate().0,
-				chunck_size,
-			),
+			config.sample_rate().0,
+			chunck_size,
+		),
+	};
+
+	let err_fn = move |err| {
+		eprintln!("an error occurred on stream: {}", err);
+	};
+
+	let gain = vec![
+		Level {
+			val: 0.0,
+			mean: 0.0
 		};
+		nb_channels as usize
+	];
+	let level_arc = Arc::new(Mutex::new(gain));
+	let level_arc2 = level_arc.clone();
 
-		let err_fn = move |err| {
-			eprintln!("an error occurred on stream: {}", err);
-		};
+	let stream = match config.sample_format() {
+		cpal::SampleFormat::I8 => device.build_input_stream(
+			&config.into(),
+			move |data, _: &_| write_input_data::<i8>(data, &mut buffer, &level_arc2),
+			err_fn,
+			None,
+		)?,
+		cpal::SampleFormat::I16 => device.build_input_stream(
+			&config.into(),
+			move |data, _: &_| write_input_data::<i16>(data, &mut buffer, &level_arc2),
+			err_fn,
+			None,
+		)?,
+		cpal::SampleFormat::I32 => device.build_input_stream(
+			&config.into(),
+			move |data, _: &_| write_input_data::<i32>(data, &mut buffer, &level_arc2),
+			err_fn,
+			None,
+		)?,
+		cpal::SampleFormat::F32 => device.build_input_stream(
+			&config.into(),
+			move |data, _: &_| write_input_data::<f32>(data, &mut buffer, &level_arc2),
+			err_fn,
+			None,
+		)?,
+		_ => return Err(Box::from("Unsupported sample format")),
+	};
 
-		let gain = vec![
-			Level {
-				val: 0.0,
-				mean: 0.0
-			};
-			nb_channels as usize
-		];
-		let level_arc = Arc::new(Mutex::new(gain));
-		let level_arc2 = level_arc.clone();
-
-		let stream = match config.sample_format() {
-			cpal::SampleFormat::I8 => device.build_input_stream(
-				&config.into(),
-				move |data, _: &_| write_input_data::<i8>(data, &mut buffer, &level_arc2),
-				err_fn,
-				None,
-			)?,
-			cpal::SampleFormat::I16 => device.build_input_stream(
-				&config.into(),
-				move |data, _: &_| write_input_data::<i16>(data, &mut buffer, &level_arc2),
-				err_fn,
-				None,
-			)?,
-			cpal::SampleFormat::I32 => device.build_input_stream(
-				&config.into(),
-				move |data, _: &_| write_input_data::<i32>(data, &mut buffer, &level_arc2),
-				err_fn,
-				None,
-			)?,
-			cpal::SampleFormat::F32 => device.build_input_stream(
-				&config.into(),
-				move |data, _: &_| write_input_data::<f32>(data, &mut buffer, &level_arc2),
-				err_fn,
-				None,
-			)?,
-			_ => return Err(Box::from("Unsupported sample format")),
-		};
-
-		stream.play()?;
-
-		Ok(Self {
-			stream,
-			level: level_arc,
-		})
-	}
-
-	fn calculate_channel_index(
-		min_freq: u32,
-		max_freq: u32,
-		nb_channels: u32,
-		sample_rate: u32,
-		chunck_size: u32,
-	) -> Vec<usize> {
-		let nb_octaves = (max_freq as f32 / min_freq as f32).log2();
-		let nb_octaves_per_channel = nb_octaves / nb_channels as f32;
-		let index_limits = (0..nb_channels + 1)
-			.map(|i| {
-				(min_freq * 2_f32.powf(nb_octaves_per_channel * i as f32) as u32 * chunck_size
-					/ sample_rate) as usize
-			})
-			.collect();
-
-		for i in &index_limits {
-			println!(
-				"index: {}, freq: {}",
-				i,
-				i * sample_rate as usize / chunck_size as usize
-			);
-		}
-		index_limits
-	}
+	stream.play()?;
+	Ok((level_arc, stream))
 }
 
-// TODO: maybe devide size of the buffer by 2
+fn calculate_channel_index(
+	min_freq: u32,
+	max_freq: u32,
+	nb_channels: u32,
+	sample_rate: u32,
+	chunck_size: u32,
+) -> Vec<usize> {
+	let nb_octaves = (max_freq as f32 / min_freq as f32).log2();
+	let nb_octaves_per_channel = nb_octaves / nb_channels as f32;
+	let index_limits = (0..nb_channels + 1)
+		.map(|i| {
+			(min_freq * 2_f32.powf(nb_octaves_per_channel * i as f32) as u32 * chunck_size
+				/ sample_rate) as usize
+		})
+		.collect();
+
+	/*
+	for i in &index_limits {
+		println!(
+			"index: {}, freq: {}",
+			i,
+			i * sample_rate as usize / chunck_size as usize
+		);
+	}
+	*/
+
+	index_limits
+}
+
 fn write_input_data<T>(input: &[T], buffer: &mut Buffer, level: &Arc<Mutex<Vec<Level>>>)
 where
 	T: Sample,

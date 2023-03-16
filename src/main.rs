@@ -23,31 +23,21 @@ fn main() {
 			(
 				instance0,
 				Action::Rotate(cgmath::Vector3::new(0.0, 1.0, 0.0), cgmath::Rad(-0.8)),
-				//Action::Still,
 			),
 			(
 				instance1,
-				//Action::Still,
 				Action::Rotate(cgmath::Vector3::new(0.0, 1.0, 0.0), cgmath::Rad(0.8)),
 			),
 		],
-	};
-	let rotation = cgmath::Euler {
-		x: cgmath::Deg(0.0),
-		y: cgmath::Deg(0.0),
-		z: cgmath::Deg(0.0),
 	};
 	let elephant = Item {
 		file_name: "res/elephant.obj".to_string(),
 		params: vec![(
 			Instance {
 				position: cgmath::Vector3::new(0.0, 0.0, -10.0),
-				rotation: Basis3::from(rotation),
-				//rotation: Basis3::one(),
-				scale: 6.0,
+				rotation: Basis3::one(),
+				scale: 8.0,
 			},
-			//Action::Rotate(cgmath::Vector3::new(0.0, 1.0, 0.0), cgmath::Rad(-0.8)),
-			//Action::Still,
 			Action::FFT,
 		)],
 	};
@@ -56,15 +46,45 @@ fn main() {
 		params: vec![(
 			Instance {
 				position: cgmath::Vector3::new(0.0, 0.0, -10.0),
-				rotation: Basis3::from(rotation),
-				//rotation: Basis3::one(),
-				scale: 2.0,
+				rotation: Basis3::one(),
+				scale: 8.0,
 			},
 			Action::FFT,
-			//Action::Still,
+		)],
+	};
+	let mushroom = Item {
+		file_name: "res/mushroom.obj".to_string(),
+		params: vec![(
+			Instance {
+				position: cgmath::Vector3::new(0.0, 0.0, -10.0),
+				rotation: Basis3::one(),
+				scale: 8.0,
+			},
+			Action::FFT,
+		)],
+	};
+	let hammerhead = Item {
+		file_name: "res/hammerhead.obj".to_string(),
+		params: vec![(
+			Instance {
+				position: cgmath::Vector3::new(0.0, 0.0, -10.0),
+				rotation: Basis3::one(),
+				scale: 8.0,
+			},
+			Action::FFT,
+		)],
+	};
+	let flower = Item {
+		file_name: "res/flower.obj".to_string(),
+		params: vec![(
+			Instance {
+				position: cgmath::Vector3::new(0.0, 0.0, -10.0),
+				rotation: Basis3::one(),
+				scale: 8.0,
+			},
+			Action::FFT,
 		)],
 	};
 
-	pollster::block_on(run(vec![dna, elephant, male]));
-	//pollster::block_on(run("res/cube.obj"));
+	pollster::block_on(run(vec![dna, elephant, male, mushroom, hammerhead, flower]));
 }

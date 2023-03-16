@@ -1,6 +1,6 @@
 pub mod action;
 mod camera;
-pub mod fft;
+mod fft;
 mod group;
 pub mod instance;
 pub mod item;
@@ -13,7 +13,6 @@ use crate::light::Light;
 use crate::model::Model;
 pub use action::Action;
 use cgmath::Rotation3;
-pub use fft::FFT;
 pub use instance::Instance;
 pub use item::Item;
 use std::iter;
@@ -46,15 +45,18 @@ struct State {
 	depth_texture: Texture,
 	pub groups: Vec<Group>,
 	pub lights: Light,
+	#[allow(dead_code)]
 	camera: Camera,
+	#[allow(dead_code)]
 	view_proj_buffer: wgpu::Buffer,
 	bind_group: wgpu::BindGroup,
 	window: Window,
 	start_time: Instant,
-	fft: FFT,
 	nb_fft_instances: u32,
 	cur_fft_instance: u32,
-	c0_fft: f32,
+	fft_levels: fft::Levels,
+	#[allow(dead_code)]
+	audio_stream: cpal::platform::Stream,
 }
 
 impl State {
@@ -265,7 +267,7 @@ impl State {
 				}
 			}
 		}
-		let fft = FFT::init(2048, 4, 20, 15000).unwrap();
+		let (levels, stream) = fft::init(2048, 4, 20, 15000).unwrap();
 
 		Self {
 			surface,
@@ -282,10 +284,10 @@ impl State {
 			bind_group,
 			window,
 			start_time: Instant::now(),
-			fft,
 			nb_fft_instances,
 			cur_fft_instance: 0,
-			c0_fft: 0.0,
+			fft_levels: levels,
+			audio_stream: stream,
 		}
 	}
 
@@ -310,8 +312,8 @@ impl State {
 	}
 
 	fn update(&mut self) {
-		let gain: Vec<_> = {
-			let level = self.fft.level.lock().unwrap();
+		let mut gain: Vec<_> = {
+			let level = self.fft_levels.lock().unwrap();
 			level
 				.iter()
 				.map(|x| {
@@ -330,6 +332,9 @@ impl State {
 			if self.cur_fft_instance == self.nb_fft_instances {
 				self.cur_fft_instance = 0;
 			}
+			gain[0].1 = 0.0;
+		} else if gain[0].1 > 3.0 {
+			gain[0].1 = 3.0;
 		}
 
 		let rot_speed = cgmath::Rad(0.8);
@@ -385,10 +390,11 @@ impl State {
 					view: &view,
 					resolve_target: None,
 					ops: wgpu::Operations {
+						//load: wgpu::LoadOp::Load,
 						load: wgpu::LoadOp::Clear(wgpu::Color {
-							r: 0.01,
-							g: 0.01,
-							b: 0.01,
+							r: 0.0,
+							g: 0.0,
+							b: 0.0,
 							a: 1.0,
 						}),
 						store: true,
