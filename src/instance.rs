@@ -5,12 +5,14 @@ pub struct Instance {
 	pub scale: f32,
 	pub rotation: cgmath::Basis3<f32>,
 	pub position: cgmath::Vector3<f32>,
+	pub color: cgmath::Vector4<f32>,
 }
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
 #[allow(dead_code)]
 pub struct InstanceRaw {
+	color: [f32; 4],
 	model: [[f32; 4]; 4],
 	normal: [[f32; 3]; 3],
 }
@@ -19,15 +21,19 @@ impl Instance {
 	pub fn new() -> Self {
 		let position = cgmath::Vector3::zero();
 		let rotation = cgmath::Basis3::one();
+		let color = cgmath::Vector4::new(1.0, 1.0, 1.0, 1.0);
+
 		Instance {
 			position,
 			rotation,
 			scale: 1.0,
+			color,
 		}
 	}
 
 	pub fn to_raw(&self) -> InstanceRaw {
 		InstanceRaw {
+			color: self.color.into(),
 			model: (cgmath::Matrix4::from_translation(self.position)
 				* cgmath::Matrix4::from(cgmath::Matrix3::from(self.rotation))
 				* cgmath::Matrix4::from_scale(self.scale))
@@ -39,6 +45,7 @@ impl Instance {
 	pub fn to_raw_rotate(&self, rotation: &cgmath::Basis3<f32>) -> InstanceRaw {
 		let rotation = cgmath::Matrix3::from(self.rotation * rotation);
 		InstanceRaw {
+			color: self.color.into(),
 			model: (cgmath::Matrix4::from_translation(self.position)
 				* cgmath::Matrix4::from(rotation)
 				* cgmath::Matrix4::from_scale(self.scale))
@@ -49,6 +56,7 @@ impl Instance {
 	pub fn to_raw_scale_rotate(&self, scale: f32, rotation: &cgmath::Basis3<f32>) -> InstanceRaw {
 		let rotation = cgmath::Matrix3::from(self.rotation * rotation);
 		InstanceRaw {
+			color: self.color.into(),
 			model: (cgmath::Matrix4::from_translation(self.position)
 				* cgmath::Matrix4::from(rotation)
 				* cgmath::Matrix4::from_scale(self.scale * scale))
@@ -59,6 +67,7 @@ impl Instance {
 
 	pub fn raw_zero() -> InstanceRaw {
 		InstanceRaw {
+			color: [1.0, 1.0, 1.0, 1.0],
 			model: cgmath::Matrix4::zero().into(),
 			normal: cgmath::Matrix3::zero().into(),
 		}
@@ -93,16 +102,21 @@ impl Instance {
 				wgpu::VertexAttribute {
 					offset: mem::size_of::<[f32; 16]>() as wgpu::BufferAddress,
 					shader_location: 6,
-					format: wgpu::VertexFormat::Float32x3,
+					format: wgpu::VertexFormat::Float32x4,
 				},
 				wgpu::VertexAttribute {
-					offset: mem::size_of::<[f32; 19]>() as wgpu::BufferAddress,
+					offset: mem::size_of::<[f32; 20]>() as wgpu::BufferAddress,
 					shader_location: 7,
 					format: wgpu::VertexFormat::Float32x3,
 				},
 				wgpu::VertexAttribute {
-					offset: mem::size_of::<[f32; 22]>() as wgpu::BufferAddress,
+					offset: mem::size_of::<[f32; 23]>() as wgpu::BufferAddress,
 					shader_location: 8,
+					format: wgpu::VertexFormat::Float32x3,
+				},
+				wgpu::VertexAttribute {
+					offset: mem::size_of::<[f32; 26]>() as wgpu::BufferAddress,
+					shader_location: 9,
 					format: wgpu::VertexFormat::Float32x3,
 				},
 			],

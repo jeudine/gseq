@@ -26,13 +26,14 @@ struct VertexInput {
 }
 
 struct InstanceInput {
-	@location(2) model_matrix_0: vec4<f32>,
-	@location(3) model_matrix_1: vec4<f32>,
-	@location(4) model_matrix_2: vec4<f32>,
-	@location(5) model_matrix_3: vec4<f32>,
-	@location(6) normal_matrix_0: vec3<f32>,
-	@location(7) normal_matrix_1: vec3<f32>,
-	@location(8) normal_matrix_2: vec3<f32>,
+	@location(2) color: vec4<f32>,
+	@location(3) model_matrix_0: vec4<f32>,
+	@location(4) model_matrix_1: vec4<f32>,
+	@location(5) model_matrix_2: vec4<f32>,
+	@location(6) model_matrix_3: vec4<f32>,
+	@location(7) normal_matrix_0: vec3<f32>,
+	@location(8) normal_matrix_1: vec3<f32>,
+	@location(9) normal_matrix_2: vec3<f32>,
 }
 
 struct VertexOutput {
@@ -59,7 +60,7 @@ fn vs_main(
 		instance.normal_matrix_2,
 	);
 	var out: VertexOutput;
-	out.color = vec3<f32>(0.6, 0.6, 0.6);
+	out.color = instance.color.xyz;
 	out.world_normal = normal_matrix * model.normal;
 	var world_position: vec4<f32> = model_matrix * vec4<f32>(model.position, 1.0);
 	out.world_position = world_position.xyz;

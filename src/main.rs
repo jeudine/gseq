@@ -10,11 +10,13 @@ fn main() {
 		position: cgmath::Vector3::new(15.0, 0.0, -30.0),
 		rotation: cgmath::Basis3::one(),
 		scale: 0.05,
+		color: cgmath::Vector4::new(0.0, 1.0, 1.0, 1.0),
 	};
 	let instance1 = Instance {
 		position: cgmath::Vector3::new(-15.0, 0.0, -30.0),
 		rotation: cgmath::Basis3::one(),
 		scale: 0.05,
+		color: cgmath::Vector4::new(1.0, 1.0, 1.0, 1.0),
 	};
 
 	let dna = Item {
@@ -37,6 +39,7 @@ fn main() {
 				position: cgmath::Vector3::new(0.0, 0.0, -10.0),
 				rotation: Basis3::one(),
 				scale: 8.0,
+				color: cgmath::Vector4::new(1.0, 1.0, 1.0, 1.0),
 			},
 			Action::FFT,
 		)],
@@ -48,6 +51,7 @@ fn main() {
 				position: cgmath::Vector3::new(0.0, 0.0, -10.0),
 				rotation: Basis3::one(),
 				scale: 8.0,
+				color: cgmath::Vector4::new(1.0, 1.0, 1.0, 1.0),
 			},
 			Action::FFT,
 		)],
@@ -59,6 +63,7 @@ fn main() {
 				position: cgmath::Vector3::new(0.0, 0.0, -10.0),
 				rotation: Basis3::one(),
 				scale: 8.0,
+				color: cgmath::Vector4::new(1.0, 1.0, 1.0, 1.0),
 			},
 			Action::FFT,
 		)],
@@ -70,6 +75,7 @@ fn main() {
 				position: cgmath::Vector3::new(0.0, 0.0, -10.0),
 				rotation: Basis3::one(),
 				scale: 8.0,
+				color: cgmath::Vector4::new(1.0, 1.0, 1.0, 1.0),
 			},
 			Action::FFT,
 		)],
@@ -81,6 +87,7 @@ fn main() {
 				position: cgmath::Vector3::new(0.0, 0.0, -10.0),
 				rotation: Basis3::one(),
 				scale: 8.0,
+				color: cgmath::Vector4::new(1.0, 1.0, 1.0, 1.0),
 			},
 			Action::FFT,
 		)],
