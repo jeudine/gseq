@@ -314,19 +314,11 @@ impl State {
 	fn update(&mut self) {
 		let mut gain: Vec<_> = {
 			let level = self.fft_levels.lock().unwrap();
-			level
-				.iter()
-				.map(|x| {
-					if x.mean == 0.0 {
-						(0.0, 0.0)
-					} else {
-						(x.val, x.val / x.mean)
-					}
-				})
-				.collect()
+			level.iter().map(|x| (x.val - x.mean) / x.sd).collect()
 		};
 
 		// Where the magi appends
+		/*
 		if gain[0].1 < 0.2 {
 			self.cur_fft_instance += 1;
 			if self.cur_fft_instance == self.nb_fft_instances {
@@ -336,6 +328,7 @@ impl State {
 		} else if gain[0].1 > 3.0 {
 			gain[0].1 = 3.0;
 		}
+		*/
 
 		let rot_speed = cgmath::Rad(0.8);
 		let rot_vector = cgmath::Vector3::new(0.0, 1.0, 0.0);
@@ -357,7 +350,7 @@ impl State {
 						let i = if count_fft_instance == self.cur_fft_instance {
 							let a = rot_speed * time;
 							let rotation = cgmath::Basis3::from_axis_angle(rot_vector, a);
-							p.0.to_raw_scale_rotate(gain[0].1, &rotation)
+							p.0.to_raw_scale_rotate(gain[0].exp(), &rotation)
 						} else {
 							Instance::raw_zero()
 						};
