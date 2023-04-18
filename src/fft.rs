@@ -23,12 +23,14 @@ struct Buffer {
 	count: u64,
 	nb_channels: u32,
 	index_limits: Vec<usize>,
+	last_val: f32,
 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct Level {
 	pub val: f32,
 	pub mean: f32,
+	pub sd: f32,
 }
 
 pub fn init(
@@ -86,7 +88,8 @@ pub fn init(
 	let gain = vec![
 		Level {
 			val: 0.0,
-			mean: 0.0
+			mean: 0.0,
+			sd: 0.0,
 		};
 		nb_channels as usize
 	];
@@ -178,28 +181,6 @@ where
 			}
 			*/
 
-			//check if there is at least one value over the threshold
-			let threshold = 10.0;
-			let mut over = false;
-			for x in &buffer.output {
-				if x.norm() > threshold {
-					over = true;
-					break;
-				}
-			}
-
-			if !over {
-				let new_level: Vec<_> = (0..buffer.nb_channels as usize)
-					.map(|i| Level {
-						val: 0.0,
-						mean: buffer.mean[i],
-					})
-					.collect();
-				let mut level = level.lock().unwrap();
-				*level = new_level;
-				return;
-			}
-
 			// compute levels
 			let levels: Vec<_> = (0..buffer.nb_channels as usize)
 				.map(|x| {
@@ -210,7 +191,8 @@ where
 
 			let stat_mem = 100;
 
-			// update mean
+			// update mean and sd
+			// TODO
 			if buffer.count == 1 {
 				for i in 0..buffer.nb_channels as usize {
 					buffer.mean[i] = levels[i];
@@ -226,6 +208,30 @@ where
 						buffer.mean[i] + (levels[i] - buffer.mean[i]) / stat_mem as f32;
 				}
 			}
+
+			//check if there is at least one value over the threshold
+			let threshold = 10.0;
+			let mut over = false;
+			for x in &buffer.output {
+				if x.norm() > threshold {
+					over = true;
+					break;
+				}
+			}
+
+			if !over {
+				let new_level: Vec<_> = (0..buffer.nb_channels as usize)
+					.map(|i| Level {
+						val: 0.0,
+						// TODO: update mean before
+						mean: buffer.mean[i],
+					})
+					.collect();
+				let mut level = level.lock().unwrap();
+				*level = new_level;
+				return;
+			}
+
 			/*
 			for (i, &l) in levels.iter().enumerate() {
 				println! {"c: {}, l: {}", i, l};
