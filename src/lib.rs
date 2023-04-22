@@ -35,6 +35,93 @@ pub struct Matrix4 {
 	m: [[f32; 4]; 4],
 }
 
+struct Monitors {
+	states: Vec<State>,
+}
+
+impl Monitors {
+	async fn new(mut items: Vec<Vec<Item>>, event_loop: &EventLoop<()>) -> Self {
+		let mut states = vec![];
+		while !items.is_empty() {
+			let window = WindowBuilder::new().build(&event_loop).unwrap();
+			let state = State::new(window, items.pop().ok_or(()).unwrap()).await;
+			states.push(state);
+		}
+		Monitors { states }
+	}
+	fn handle_event(self, event: Event<()>, control_flow: &mut ControlFlow) -> Self {
+		match event {
+			Event::WindowEvent {
+				ref event,
+				window_id,
+			} => {
+				for mut s in &self.states {
+					if window_id == s.window().id() {
+						//TODO: remove input
+						if !s.input(event) {
+							match event {
+								WindowEvent::CloseRequested
+								| WindowEvent::KeyboardInput {
+									input:
+										KeyboardInput {
+											state: ElementState::Pressed,
+											virtual_keycode: Some(VirtualKeyCode::Escape),
+											..
+										},
+									..
+								} => *control_flow = ControlFlow::Exit,
+								WindowEvent::Resized(physical_size) => {
+									s.resize(*physical_size);
+								}
+								WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
+									// new_inner_size is &mut so w have to dereference it twice
+									s.resize(**new_inner_size);
+								}
+								_ => {}
+							}
+						}
+						return self;
+					}
+				}
+				return self;
+			}
+
+			Event::RedrawRequested(window_id) => {
+				for mut s in self.states {
+					if window_id == s.window().id() {
+						s.update();
+						match s.render() {
+							Ok(_) => {}
+							// Reconfigure the surface if it's lost or outdated
+							Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {
+								s.resize(s.size)
+							}
+							// The system is out of memory, we should probably quit
+							Err(wgpu::SurfaceError::OutOfMemory) => {
+								*control_flow = ControlFlow::Exit
+							}
+							// We're ignoring timeouts
+							Err(wgpu::SurfaceError::Timeout) => log::warn!("Surface timeout"),
+						}
+						break;
+					}
+				}
+				return self;
+			}
+
+			Event::MainEventsCleared => {
+				// RedrawRequested will only trigger once, unless we manually
+				// request it.
+				for s in self.states {
+					s.window().request_redraw();
+				}
+				self
+			}
+			_ => self,
+		}
+	}
+}
+
 struct State {
 	surface: wgpu::Surface,
 	device: wgpu::Device,
