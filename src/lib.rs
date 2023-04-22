@@ -350,7 +350,7 @@ impl State {
 						let i = if count_fft_instance == self.cur_fft_instance {
 							let a = rot_speed * time;
 							let rotation = cgmath::Basis3::from_axis_angle(rot_vector, a);
-							p.0.to_raw_scale_rotate(gain[0].exp(), &rotation)
+							p.0.to_raw_scale_rotate((gain[0] / 3.0).exp(), &rotation)
 						} else {
 							Instance::raw_zero()
 						};
@@ -425,19 +425,23 @@ impl State {
 	}
 }
 
-pub async fn run(items: Vec<Item>) {
+pub async fn run(items1: Vec<Item>, items2: Vec<Item>) {
 	let event_loop = EventLoop::new();
-	let window = WindowBuilder::new().build(&event_loop).unwrap();
+	let window1 = WindowBuilder::new().build(&event_loop).unwrap();
+	let window2 = WindowBuilder::new().build(&event_loop).unwrap();
 
-	let mut state = State::new(window, items).await;
+	//TODO: Do a single update function for both states
+
+	let mut state1 = State::new(window1, items1).await;
+	let mut state2 = State::new(window2, items2).await;
 
 	event_loop.run(move |event, _, control_flow| {
 		match event {
 			Event::WindowEvent {
 				ref event,
 				window_id,
-			} if window_id == state.window().id() => {
-				if !state.input(event) {
+			} if window_id == state1.window().id() => {
+				if !state1.input(event) {
 					match event {
 						WindowEvent::CloseRequested
 						| WindowEvent::KeyboardInput {
@@ -450,23 +454,51 @@ pub async fn run(items: Vec<Item>) {
 							..
 						} => *control_flow = ControlFlow::Exit,
 						WindowEvent::Resized(physical_size) => {
-							state.resize(*physical_size);
+							state1.resize(*physical_size);
 						}
 						WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
 							// new_inner_size is &mut so w have to dereference it twice
-							state.resize(**new_inner_size);
+							state1.resize(**new_inner_size);
 						}
 						_ => {}
 					}
 				}
 			}
-			Event::RedrawRequested(window_id) if window_id == state.window().id() => {
-				state.update();
-				match state.render() {
+			Event::WindowEvent {
+				ref event,
+				window_id,
+			} if window_id == state2.window().id() => {
+				if !state2.input(event) {
+					match event {
+						WindowEvent::CloseRequested
+						| WindowEvent::KeyboardInput {
+							input:
+								KeyboardInput {
+									state: ElementState::Pressed,
+									virtual_keycode: Some(VirtualKeyCode::Escape),
+									..
+								},
+							..
+						} => *control_flow = ControlFlow::Exit,
+						WindowEvent::Resized(physical_size) => {
+							state2.resize(*physical_size);
+						}
+						WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
+							// new_inner_size is &mut so w have to dereference it twice
+							state2.resize(**new_inner_size);
+						}
+						_ => {}
+					}
+				}
+			}
+
+			Event::RedrawRequested(window_id) if window_id == state1.window().id() => {
+				state1.update();
+				match state1.render() {
 					Ok(_) => {}
 					// Reconfigure the surface if it's lost or outdated
 					Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {
-						state.resize(state.size)
+						state1.resize(state1.size)
 					}
 					// The system is out of memory, we should probably quit
 					Err(wgpu::SurfaceError::OutOfMemory) => *control_flow = ControlFlow::Exit,
@@ -474,10 +506,26 @@ pub async fn run(items: Vec<Item>) {
 					Err(wgpu::SurfaceError::Timeout) => log::warn!("Surface timeout"),
 				}
 			}
+			Event::RedrawRequested(window_id) if window_id == state2.window().id() => {
+				state2.update();
+				match state2.render() {
+					Ok(_) => {}
+					// Reconfigure the surface if it's lost or outdated
+					Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {
+						state2.resize(state2.size)
+					}
+					// The system is out of memory, we should probably quit
+					Err(wgpu::SurfaceError::OutOfMemory) => *control_flow = ControlFlow::Exit,
+					// We're ignoring timeouts
+					Err(wgpu::SurfaceError::Timeout) => log::warn!("Surface timeout"),
+				}
+			}
+
 			Event::MainEventsCleared => {
 				// RedrawRequested will only trigger once, unless we manually
 				// request it.
-				state.window().request_redraw();
+				state1.window().request_redraw();
+				state2.window().request_redraw();
 			}
 			_ => {}
 		}
