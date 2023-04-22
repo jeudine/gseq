@@ -20,7 +20,7 @@ fn main() {
 	};
 
 	let dna = Item {
-		file_name: "res/DNA.obj".to_string(),
+		file_name: "res/cube.obj".to_string(),
 		params: vec![
 			(
 				instance0,
@@ -33,7 +33,7 @@ fn main() {
 		],
 	};
 	let elephant = Item {
-		file_name: "res/elephant.obj".to_string(),
+		file_name: "res/cube.obj".to_string(),
 		params: vec![(
 			Instance {
 				position: cgmath::Vector3::new(0.0, 0.0, -10.0),
@@ -45,7 +45,7 @@ fn main() {
 		)],
 	};
 	let male = Item {
-		file_name: "res/male.obj".to_string(),
+		file_name: "res/cube.obj".to_string(),
 		params: vec![(
 			Instance {
 				position: cgmath::Vector3::new(0.0, 0.0, -10.0),
@@ -57,7 +57,7 @@ fn main() {
 		)],
 	};
 	let mushroom = Item {
-		file_name: "res/mushroom.obj".to_string(),
+		file_name: "res/cube.obj".to_string(),
 		params: vec![(
 			Instance {
 				position: cgmath::Vector3::new(0.0, 0.0, -10.0),
@@ -69,7 +69,7 @@ fn main() {
 		)],
 	};
 	let hammerhead = Item {
-		file_name: "res/hammerhead.obj".to_string(),
+		file_name: "res/cube.obj".to_string(),
 		params: vec![(
 			Instance {
 				position: cgmath::Vector3::new(0.0, 0.0, -10.0),
@@ -81,7 +81,7 @@ fn main() {
 		)],
 	};
 	let flower = Item {
-		file_name: "res/flower.obj".to_string(),
+		file_name: "res/cube.obj".to_string(),
 		params: vec![(
 			Instance {
 				position: cgmath::Vector3::new(0.0, 0.0, -10.0),
