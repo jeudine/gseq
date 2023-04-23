@@ -93,8 +93,8 @@ fn main() {
 		)],
 	};
 
-	pollster::block_on(run(
+	pollster::block_on(run(vec![
 		vec![dna, elephant, male, mushroom, hammerhead],
 		vec![flower],
-	));
+	]));
 }

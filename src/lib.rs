@@ -22,7 +22,7 @@ use texture::Texture;
 use wgpu::util::DeviceExt;
 use winit::{
 	event::*,
-	event_loop::{ControlFlow, EventLoop},
+	event_loop::{ControlFlow, EventLoop, EventLoopWindowTarget},
 	window::{Window, WindowBuilder},
 };
 
@@ -33,93 +33,6 @@ pub struct Matrix4 {
 	// We can't use cgmath with bytemuck directly so we'll have
 	// to convert the Matrix4 into a 4x4 f32 array
 	m: [[f32; 4]; 4],
-}
-
-struct Monitors {
-	states: Vec<State>,
-}
-
-impl Monitors {
-	async fn new(mut items: Vec<Vec<Item>>, event_loop: &EventLoop<()>) -> Self {
-		let mut states = vec![];
-		while !items.is_empty() {
-			let window = WindowBuilder::new().build(&event_loop).unwrap();
-			let state = State::new(window, items.pop().ok_or(()).unwrap()).await;
-			states.push(state);
-		}
-		Monitors { states }
-	}
-	fn handle_event(self, event: Event<()>, control_flow: &mut ControlFlow) -> Self {
-		match event {
-			Event::WindowEvent {
-				ref event,
-				window_id,
-			} => {
-				for mut s in &self.states {
-					if window_id == s.window().id() {
-						//TODO: remove input
-						if !s.input(event) {
-							match event {
-								WindowEvent::CloseRequested
-								| WindowEvent::KeyboardInput {
-									input:
-										KeyboardInput {
-											state: ElementState::Pressed,
-											virtual_keycode: Some(VirtualKeyCode::Escape),
-											..
-										},
-									..
-								} => *control_flow = ControlFlow::Exit,
-								WindowEvent::Resized(physical_size) => {
-									s.resize(*physical_size);
-								}
-								WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
-									// new_inner_size is &mut so w have to dereference it twice
-									s.resize(**new_inner_size);
-								}
-								_ => {}
-							}
-						}
-						return self;
-					}
-				}
-				return self;
-			}
-
-			Event::RedrawRequested(window_id) => {
-				for mut s in self.states {
-					if window_id == s.window().id() {
-						s.update();
-						match s.render() {
-							Ok(_) => {}
-							// Reconfigure the surface if it's lost or outdated
-							Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {
-								s.resize(s.size)
-							}
-							// The system is out of memory, we should probably quit
-							Err(wgpu::SurfaceError::OutOfMemory) => {
-								*control_flow = ControlFlow::Exit
-							}
-							// We're ignoring timeouts
-							Err(wgpu::SurfaceError::Timeout) => log::warn!("Surface timeout"),
-						}
-						break;
-					}
-				}
-				return self;
-			}
-
-			Event::MainEventsCleared => {
-				// RedrawRequested will only trigger once, unless we manually
-				// request it.
-				for s in self.states {
-					s.window().request_redraw();
-				}
-				self
-			}
-			_ => self,
-		}
-	}
 }
 
 struct State {
@@ -512,109 +425,81 @@ impl State {
 	}
 }
 
-pub async fn run(items1: Vec<Item>, items2: Vec<Item>) {
+pub async fn run(mut items: Vec<Vec<Item>>) {
 	let event_loop = EventLoop::new();
-	let window1 = WindowBuilder::new().build(&event_loop).unwrap();
-	let window2 = WindowBuilder::new().build(&event_loop).unwrap();
 
-	//TODO: Do a single update function for both states
-
-	let mut state1 = State::new(window1, items1).await;
-	let mut state2 = State::new(window2, items2).await;
+	// Create one state for each display
+	let mut states = vec![];
+	while !items.is_empty() {
+		let window = WindowBuilder::new().build(&event_loop).unwrap();
+		let state = State::new(window, items.pop().ok_or(()).unwrap()).await;
+		states.push(state);
+	}
 
 	event_loop.run(move |event, _, control_flow| {
 		match event {
 			Event::WindowEvent {
 				ref event,
 				window_id,
-			} if window_id == state1.window().id() => {
-				if !state1.input(event) {
-					match event {
-						WindowEvent::CloseRequested
-						| WindowEvent::KeyboardInput {
-							input:
-								KeyboardInput {
-									state: ElementState::Pressed,
-									virtual_keycode: Some(VirtualKeyCode::Escape),
-									..
-								},
-							..
-						} => *control_flow = ControlFlow::Exit,
-						WindowEvent::Resized(physical_size) => {
-							state1.resize(*physical_size);
+			} => {
+				for s in &mut states {
+					if window_id == s.window().id() {
+						//TODO: remove input
+						match event {
+							WindowEvent::CloseRequested
+							| WindowEvent::KeyboardInput {
+								input:
+									KeyboardInput {
+										state: ElementState::Pressed,
+										virtual_keycode: Some(VirtualKeyCode::Escape),
+										..
+									},
+								..
+							} => *control_flow = ControlFlow::Exit,
+							WindowEvent::Resized(physical_size) => {
+								s.resize(*physical_size);
+							}
+							WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
+								// new_inner_size is &mut so w have to dereference it twice
+								s.resize(**new_inner_size);
+							}
+							_ => {}
 						}
-						WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
-							// new_inner_size is &mut so w have to dereference it twice
-							state1.resize(**new_inner_size);
-						}
-						_ => {}
-					}
-				}
-			}
-			Event::WindowEvent {
-				ref event,
-				window_id,
-			} if window_id == state2.window().id() => {
-				if !state2.input(event) {
-					match event {
-						WindowEvent::CloseRequested
-						| WindowEvent::KeyboardInput {
-							input:
-								KeyboardInput {
-									state: ElementState::Pressed,
-									virtual_keycode: Some(VirtualKeyCode::Escape),
-									..
-								},
-							..
-						} => *control_flow = ControlFlow::Exit,
-						WindowEvent::Resized(physical_size) => {
-							state2.resize(*physical_size);
-						}
-						WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
-							// new_inner_size is &mut so w have to dereference it twice
-							state2.resize(**new_inner_size);
-						}
-						_ => {}
+						break;
 					}
 				}
 			}
 
-			Event::RedrawRequested(window_id) if window_id == state1.window().id() => {
-				state1.update();
-				match state1.render() {
-					Ok(_) => {}
-					// Reconfigure the surface if it's lost or outdated
-					Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {
-						state1.resize(state1.size)
+			Event::RedrawRequested(window_id) => {
+				for s in &mut states {
+					if window_id == s.window().id() {
+						s.update();
+						match s.render() {
+							Ok(_) => {}
+							// Reconfigure the surface if it's lost or outdated
+							Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {
+								s.resize(s.size)
+							}
+							// The system is out of memory, we should probably quit
+							Err(wgpu::SurfaceError::OutOfMemory) => {
+								*control_flow = ControlFlow::Exit
+							}
+							// We're ignoring timeouts
+							Err(wgpu::SurfaceError::Timeout) => log::warn!("Surface timeout"),
+						}
+						break;
 					}
-					// The system is out of memory, we should probably quit
-					Err(wgpu::SurfaceError::OutOfMemory) => *control_flow = ControlFlow::Exit,
-					// We're ignoring timeouts
-					Err(wgpu::SurfaceError::Timeout) => log::warn!("Surface timeout"),
-				}
-			}
-			Event::RedrawRequested(window_id) if window_id == state2.window().id() => {
-				state2.update();
-				match state2.render() {
-					Ok(_) => {}
-					// Reconfigure the surface if it's lost or outdated
-					Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {
-						state2.resize(state2.size)
-					}
-					// The system is out of memory, we should probably quit
-					Err(wgpu::SurfaceError::OutOfMemory) => *control_flow = ControlFlow::Exit,
-					// We're ignoring timeouts
-					Err(wgpu::SurfaceError::Timeout) => log::warn!("Surface timeout"),
 				}
 			}
 
 			Event::MainEventsCleared => {
 				// RedrawRequested will only trigger once, unless we manually
 				// request it.
-				state1.window().request_redraw();
-				state2.window().request_redraw();
+				for s in &mut states {
+					s.window().request_redraw();
+				}
 			}
-			_ => {}
+			_ => (),
 		}
 	});
 }
