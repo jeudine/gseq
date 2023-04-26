@@ -54,7 +54,7 @@ pub fn init(
 		.expect("Failed to get default input config");
 	println!("Default input config: {:?}", config);
 
-	let stat_window_size = 100;
+	let stat_window_size = 50;
 
 	let mut real_planner = RealFftPlanner::<f32>::new();
 	let r2c = real_planner.plan_fft_forward(chunck_size as usize);

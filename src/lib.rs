@@ -5,6 +5,7 @@ mod fft;
 mod group;
 pub mod instance;
 pub mod item;
+mod led;
 mod light;
 mod model;
 mod texture;
@@ -34,6 +35,10 @@ pub struct Matrix4 {
 pub async fn run(mut items: Vec<Vec<Item>>) {
 	let event_loop = EventLoop::new();
 
+	// Init fft
+	#[allow(unused)]
+	let (levels, stream) = fft::init(2048, 4, 20, 15000).unwrap();
+
 	// Create one state for each display
 	let mut displays = vec![];
 	while !items.is_empty() {
@@ -42,8 +47,11 @@ pub async fn run(mut items: Vec<Vec<Item>>) {
 		displays.push(display);
 	}
 
-	#[allow(unused)]
-	let (levels, stream) = fft::init(2048, 4, 20, 15000).unwrap();
+	//Init the LED controller
+	match led::init(&levels) {
+		Ok(_) => {}
+		Err(e) => println!("[ERROR] {}", e),
+	};
 
 	event_loop.run(move |event, _, control_flow| {
 		match event {
