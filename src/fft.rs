@@ -12,6 +12,12 @@ use std::sync::{Arc, Mutex};
 
 pub type Levels = Arc<Mutex<Vec<Level>>>;
 
+enum Drop {}
+
+enum State {
+	Break,
+}
+
 struct Buffer {
 	input: Vec<f32>,
 	output: Vec<Complex<f32>>,
