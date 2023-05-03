@@ -13,6 +13,12 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 pub type Levels = Arc<Mutex<Vec<Level>>>;
 
+enum Drop {}
+
+enum State {
+	Break,
+}
+
 struct Buffer {
 	input: Vec<f32>,
 	output: Vec<Complex<f32>>,
@@ -23,6 +29,8 @@ struct Buffer {
 	r2c: Arc<dyn RealToComplex<f32>>,
 	mean: Vec<f32>,
 	var: Vec<f32>,
+	global_mean: Vec<f32>,
+	global_var: Vec<f32>,
 	count: u64,
 	nb_channels: u32,
 	index_limits: Vec<usize>,
@@ -35,6 +43,8 @@ pub struct Level {
 	pub val: f32,
 	pub mean: f32,
 	pub sd: f32,
+	pub global_mean: f32,
+	pub global_sd: f32,
 }
 
 pub fn init(
@@ -78,6 +88,8 @@ pub fn init(
 		r2c,
 		mean,
 		var,
+		global_mean: vec![0.0; nb_channels as usize],
+		global_var: vec![0.0; nb_channels as usize],
 		count: 0,
 		window: hanning_window,
 		nb_channels,
@@ -101,6 +113,8 @@ pub fn init(
 			val: 0.0,
 			mean: 0.0,
 			sd: 0.0,
+			global_mean: 0.0,
+			global_sd: 0.0,
 		};
 		nb_channels as usize
 	];
@@ -203,6 +217,20 @@ where
 			// update mean, sd and stat_window
 			let tmp_inv = 1.0 / (buffer.stat_window_size) as f32;
 
+			if buffer.count == 1 {
+				for i in 0..buffer.nb_channels as usize {
+					buffer.global_mean[i] = levels[i];
+				}
+			} else {
+				for i in 0..buffer.nb_channels as usize {
+					let tmp_0: f32 = buffer.count as f32;
+					let tmp_1: f32 = (tmp_0 - 1.0) / tmp_0;
+					buffer.global_mean[i] = tmp_1 * buffer.global_mean[i] + levels[i] / tmp_0;
+					buffer.global_var[i] = tmp_1 * buffer.global_var[i]
+						+ (levels[i] - buffer.global_mean[i]).powi(2) / tmp_0;
+				}
+			}
+
 			// Initialization
 			if buffer.count <= buffer.stat_window_size as u64 {
 				for i in 0..buffer.nb_channels as usize {
@@ -267,6 +295,8 @@ where
 					val: levels[i],
 					mean: buffer.mean[i],
 					sd: buffer.var[i].sqrt(),
+					global_mean: buffer.global_mean[i],
+					global_sd: buffer.global_var[i].sqrt(),
 				})
 				.collect();
 			/*

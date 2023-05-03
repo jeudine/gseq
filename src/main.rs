@@ -6,6 +6,7 @@ use gseq::Instance;
 use gseq::Item;
 
 fn main() {
+	/*
 	let instance0 = Instance {
 		position: cgmath::Vector3::new(15.0, 0.0, -30.0),
 		rotation: cgmath::Basis3::one(),
@@ -92,9 +93,75 @@ fn main() {
 			Action::FFT,
 		)],
 	};
+	*/
+	/*
+	let eye_background = Item {
+		file_name: "res_eye/eye_background.obj".to_string(),
+		params: vec![(
+			Instance {
+				position: cgmath::Vector3::new(0.0, 0.0, -10.0),
+				rotation: Basis3::one(),
+				scale: 8.0,
+				color: cgmath::Vector4::new(1.0, 1.0, 1.0, 1.0),
+			},
+			Action::Still,
+		)],
+	};
+		*/
 
-	pollster::block_on(run(vec![
-		vec![dna, elephant, male, mushroom, hammerhead],
-		vec![flower],
-	]));
+	let eye_ball_black_middle = Item {
+		file_name: "res_eye/eye_ball_black_middle.obj".to_string(),
+		params: vec![(
+			Instance {
+				position: cgmath::Vector3::new(0.0, 0.0, -10.0),
+				rotation: Basis3::one(),
+				scale: 8.0,
+				color: cgmath::Vector4::new(1.0, 1.0, 1.0, 1.0),
+			},
+			Action::Rotate(cgmath::Vector3::new(0.0, 1.0, 0.0), cgmath::Rad(-0.8)),
+		)],
+	};
+
+	/*
+	let eye_background = Item {
+		file_name: "res_eye/eye_background.obj".to_string(),
+		params: vec![(
+			Instance {
+				position: cgmath::Vector3::new(0.0, 0.0, -10.0),
+				rotation: Basis3::one(),
+				scale: 8.0,
+				color: cgmath::Vector4::new(1.0, 1.0, 1.0, 1.0),
+			},
+			Action::Still,
+		)],
+	};
+
+	let eye_background = Item {
+		file_name: "res_eye/eye_background.obj".to_string(),
+		params: vec![(
+			Instance {
+				position: cgmath::Vector3::new(0.0, 0.0, -10.0),
+				rotation: Basis3::one(),
+				scale: 8.0,
+				color: cgmath::Vector4::new(1.0, 1.0, 1.0, 1.0),
+			},
+			Action::Still,
+		)],
+	};
+
+	let eye_background = Item {
+		file_name: "res_eye/eye_background.obj".to_string(),
+		params: vec![(
+			Instance {
+				position: cgmath::Vector3::new(0.0, 0.0, -10.0),
+				rotation: Basis3::one(),
+				scale: 8.0,
+				color: cgmath::Vector4::new(1.0, 1.0, 1.0, 1.0),
+			},
+			Action::Still,
+		)],
+	};
+	*/
+
+	pollster::block_on(run(vec![vec![eye_ball_black_middle]]));
 }
