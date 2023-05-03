@@ -1,14 +1,15 @@
+use core::f32::consts::PI;
 use cpal::{
 	platform::Stream,
 	traits::{DeviceTrait, HostTrait, StreamTrait},
 	FromSample, Sample,
 };
-
-use core::f32::consts::PI;
 use realfft::{num_complex::Complex, RealFftPlanner, RealToComplex};
 use std::collections::VecDeque;
 use std::error::Error;
 use std::sync::{Arc, Mutex};
+#[cfg(feature = "profile")]
+use std::time::{SystemTime, UNIX_EPOCH};
 
 pub type Levels = Arc<Mutex<Vec<Level>>>;
 
@@ -223,6 +224,10 @@ where
 					buffer.var[i] = buffer.var[i]
 						+ tmp_inv * (levels[i].powi(2) - last_val.powi(2))
 						+ (cur_mean.powi(2) - buffer.mean[i].powi(2));
+
+					if buffer.var[i] < 0.0 {
+						buffer.var[i] = 0.0;
+					}
 				}
 			}
 
@@ -273,8 +278,35 @@ where
 			*/
 
 			let mut level = level.lock().unwrap();
+			#[cfg(feature = "profile")]
+			profile(&new_level);
 			*level = new_level;
 			return;
 		}
 	}
+}
+
+#[cfg(feature = "profile")]
+fn profile(level: &Vec<Level>) {
+	let start = SystemTime::now();
+	let since_the_epoch: f64 = start
+		.duration_since(UNIX_EPOCH)
+		.expect("Time went backwards")
+		.as_secs_f64();
+	println!(
+		"{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
+		since_the_epoch,
+		level[0].val,
+		level[0].mean,
+		level[0].sd,
+		level[1].val,
+		level[1].mean,
+		level[1].sd,
+		level[2].val,
+		level[2].mean,
+		level[2].sd,
+		level[3].val,
+		level[3].mean,
+		level[3].sd
+	);
 }
