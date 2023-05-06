@@ -11,11 +11,13 @@ pub fn init(phase: &Arc<Mutex<fft::Phase>>) -> Result<(), Box<dyn std::error::Er
 	ft232h.write_all(cmd.as_slice())?;
 	let phase = phase.clone();
 	thread::spawn(move || loop {
-		let phase = phase.lock().unwrap();
-		let cmd = if phase.gains[0] > 1.0 {
-			MpsseCmdBuilder::new().set_gpio_lower(0xFF, 0xFF)
-		} else {
-			MpsseCmdBuilder::new().set_gpio_lower(0x0, 0xFF)
+		let phase = {
+			let p = phase.lock().unwrap();
+			p.clone()
+		};
+		let cmd = match phase.state {
+			fft::State::Break(_) => MpsseCmdBuilder::new().set_gpio_lower(0x0, 0xFF),
+			fft::State::Drop(_) => MpsseCmdBuilder::new().set_gpio_lower(0xFF, 0xFF),
 		};
 		ft232h.write_all(cmd.as_slice()).unwrap();
 	});
