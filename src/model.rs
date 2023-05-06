@@ -17,7 +17,7 @@ pub struct Mesh {
 
 impl Model {
 	pub fn new(file_name: &str, device: &wgpu::Device) -> Result<Model, Box<dyn Error>> {
-		let (models, material) = load_obj(
+		let (models, _) = load_obj(
 			file_name,
 			&tobj::LoadOptions {
 				triangulate: true,
@@ -27,7 +27,7 @@ impl Model {
 		)?;
 
 		//TODO: default case
-		let material = material.unwrap();
+		//let material = material.unwrap();
 
 		let meshes = models
 			.into_iter()
