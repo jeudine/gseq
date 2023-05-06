@@ -1,5 +1,6 @@
 use cgmath::Basis3;
 use cgmath::One;
+use cgmath::{Deg, Euler};
 use gseq::run;
 use gseq::Action;
 use gseq::Instance;
@@ -109,8 +110,44 @@ fn main() {
 	};
 		*/
 
-	let eye_ball_black_middle = Item {
-		file_name: "res_eye/eye_ball_black_middle.obj".to_string(),
+	let base = Item {
+		file_name: "res/eye/base.obj".to_string(),
+		params: vec![(
+			Instance {
+				position: cgmath::Vector3::new(0.0, 0.0, -10.0),
+				rotation: Basis3::from(Euler {
+					x: Deg(0.0),
+					y: Deg(0.0),
+					z: Deg(0.0),
+				}),
+				scale: 8.0,
+				color: cgmath::Vector4::new(1.0, 1.0, 1.0, 1.0),
+			},
+			Action::Still,
+		)],
+	};
+
+	let eye_lid = Item {
+		file_name: "res/eye/eyelid.obj".to_string(),
+		params: vec![(
+			Instance {
+				position: cgmath::Vector3::new(0.0, 0.0, -10.0),
+				rotation: Basis3::from(Euler {
+					x: Deg(0.0),
+					y: Deg(0.0),
+					z: Deg(0.0),
+				}),
+
+				scale: 8.0,
+				color: cgmath::Vector4::new(1.0, 1.0, 1.0, 1.0),
+			},
+			//Action::Rotate(cgmath::Vector3::new(1.0, 0.0, 0.0), cgmath::Rad(0.8)),
+			Action::Still,
+		)],
+	};
+
+	let eye_ball = Item {
+		file_name: "res/eye/eyeball.obj".to_string(),
 		params: vec![(
 			Instance {
 				position: cgmath::Vector3::new(0.0, 0.0, -10.0),
@@ -118,7 +155,7 @@ fn main() {
 				scale: 8.0,
 				color: cgmath::Vector4::new(1.0, 1.0, 1.0, 1.0),
 			},
-			Action::Rotate(cgmath::Vector3::new(0.0, 1.0, 0.0), cgmath::Rad(-0.8)),
+			Action::Rotate(cgmath::Vector3::new(0.0, 1.0, 0.0), cgmath::Rad(0.8)),
 		)],
 	};
 
@@ -163,5 +200,5 @@ fn main() {
 	};
 	*/
 
-	pollster::block_on(run(vec![vec![eye_ball_black_middle]]));
+	pollster::block_on(run(vec![vec![base, eye_lid, eye_ball]]));
 }

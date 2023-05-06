@@ -11,12 +11,20 @@ use std::sync::{Arc, Mutex};
 #[cfg(feature = "profile")]
 use std::time::{SystemTime, UNIX_EPOCH};
 
-pub type Levels = Arc<Mutex<Vec<Level>>>;
+#[derive(Debug, Clone, Copy)]
+pub enum Drop {
+	State0,
+}
 
-enum Drop {}
+#[derive(Debug, Clone, Copy)]
+pub enum Break {
+	State0,
+}
 
-enum State {
-	Break,
+#[derive(Debug, Clone, Copy)]
+pub enum State {
+	Break(Break),
+	Drop(Drop),
 }
 
 struct Buffer {
@@ -36,15 +44,22 @@ struct Buffer {
 	index_limits: Vec<usize>,
 	stat_window: Vec<VecDeque<f32>>,
 	stat_window_size: u32,
+	state: State,
 }
 
+/*
 #[derive(Debug, Clone, Copy)]
 pub struct Level {
 	pub val: f32,
 	pub mean: f32,
 	pub sd: f32,
-	pub global_mean: f32,
-	pub global_sd: f32,
+}
+*/
+
+#[derive(Debug, Clone)]
+pub struct Phase {
+	pub gains: Vec<f32>,
+	pub state: State,
 }
 
 pub fn init(
@@ -52,7 +67,7 @@ pub fn init(
 	nb_channels: u32,
 	min_freq: u32,
 	max_freq: u32,
-) -> Result<(Levels, Stream), Box<dyn Error>> {
+) -> Result<(Arc<Mutex<Phase>>, Stream), Box<dyn Error>> {
 	let host = cpal::default_host();
 	let device = host
 		.default_input_device()
@@ -102,47 +117,43 @@ pub fn init(
 		),
 		stat_window,
 		stat_window_size,
+		state: State::Break(Break::State0),
 	};
 
 	let err_fn = move |err| {
 		eprintln!("an error occurred on stream: {}", err);
 	};
 
-	let gain = vec![
-		Level {
-			val: 0.0,
-			mean: 0.0,
-			sd: 0.0,
-			global_mean: 0.0,
-			global_sd: 0.0,
-		};
-		nb_channels as usize
-	];
-	let level_arc = Arc::new(Mutex::new(gain));
-	let level_arc2 = level_arc.clone();
+	let phase = Phase {
+		gains: vec![0.0; nb_channels as usize],
+		state: State::Break(Break::State0),
+	};
+
+	let phase_arc = Arc::new(Mutex::new(phase));
+	let phase_arc2 = phase_arc.clone();
 
 	let stream = match config.sample_format() {
 		cpal::SampleFormat::I8 => device.build_input_stream(
 			&config.into(),
-			move |data, _: &_| handle_input::<i8>(data, &mut buffer, &level_arc2),
+			move |data, _: &_| handle_input::<i8>(data, &mut buffer, &phase_arc2),
 			err_fn,
 			None,
 		)?,
 		cpal::SampleFormat::I16 => device.build_input_stream(
 			&config.into(),
-			move |data, _: &_| handle_input::<i16>(data, &mut buffer, &level_arc2),
+			move |data, _: &_| handle_input::<i16>(data, &mut buffer, &phase_arc2),
 			err_fn,
 			None,
 		)?,
 		cpal::SampleFormat::I32 => device.build_input_stream(
 			&config.into(),
-			move |data, _: &_| handle_input::<i32>(data, &mut buffer, &level_arc2),
+			move |data, _: &_| handle_input::<i32>(data, &mut buffer, &phase_arc2),
 			err_fn,
 			None,
 		)?,
 		cpal::SampleFormat::F32 => device.build_input_stream(
 			&config.into(),
-			move |data, _: &_| handle_input::<f32>(data, &mut buffer, &level_arc2),
+			move |data, _: &_| handle_input::<f32>(data, &mut buffer, &phase_arc2),
 			err_fn,
 			None,
 		)?,
@@ -150,7 +161,7 @@ pub fn init(
 	};
 
 	stream.play()?;
-	Ok((level_arc, stream))
+	Ok((phase_arc, stream))
 }
 
 fn calculate_channel_index(
@@ -182,7 +193,7 @@ fn calculate_channel_index(
 	index_limits
 }
 
-fn handle_input<T>(input: &[T], buffer: &mut Buffer, level: &Arc<Mutex<Vec<Level>>>)
+fn handle_input<T>(input: &[T], buffer: &mut Buffer, phase: &Arc<Mutex<Phase>>)
 where
 	T: Sample,
 	f32: FromSample<T>,
@@ -290,14 +301,22 @@ where
 			}
 			*/
 
-			let new_level: Vec<_> = (0..buffer.nb_channels as usize)
-				.map(|i| Level {
-					val: levels[i],
-					mean: buffer.mean[i],
-					sd: buffer.var[i].sqrt(),
-					global_mean: buffer.global_mean[i],
-					global_sd: buffer.global_var[i].sqrt(),
-				})
+			// Update State
+			let mean_low = buffer.mean[0];
+			let global_mean_low = buffer.global_mean[0];
+			let global_sd_low = buffer.global_var[0].sqrt();
+			let val = (mean_low - global_mean_low) / global_sd_low;
+
+			buffer.state = if val > 0.2 {
+				State::Drop(Drop::State0)
+			} else if val < 0.2 {
+				State::Break(Break::State0)
+			} else {
+				buffer.state
+			};
+
+			let gains: Vec<_> = (0..buffer.nb_channels as usize)
+				.map(|i| (levels[i] - buffer.mean[i]) / buffer.var[i].sqrt())
 				.collect();
 			/*
 			for (i, g) in gain.into_iter().enumerate() {
@@ -307,10 +326,14 @@ where
 			}
 			*/
 
-			let mut level = level.lock().unwrap();
+			let mut phase = phase.lock().unwrap();
 			#[cfg(feature = "profile")]
 			profile(&new_level);
-			*level = new_level;
+
+			*phase = Phase {
+				gains,
+				state: buffer.state,
+			};
 			return;
 		}
 	}

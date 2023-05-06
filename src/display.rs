@@ -9,6 +9,7 @@ use crate::model::Model;
 use crate::texture::Texture;
 use cgmath::Rotation3;
 use std::iter;
+use std::sync::{Arc, Mutex};
 use std::time::Instant;
 use wgpu::util::DeviceExt;
 use winit::window::Window;
@@ -278,11 +279,8 @@ impl Display {
 		}
 	}
 
-	pub fn update(&mut self, levels: &fft::Levels) {
-		let gain: Vec<_> = {
-			let level = levels.lock().unwrap();
-			level.iter().map(|x| (x.val - x.mean) / x.sd).collect()
-		};
+	pub fn update(&mut self, phase: &Arc<Mutex<fft::Phase>>) {
+		let phase = phase.lock().unwrap();
 
 		// Where the magi appends
 		/*
@@ -317,7 +315,7 @@ impl Display {
 						let i = if count_fft_instance == self.cur_fft_instance {
 							let a = rot_speed * time;
 							let rotation = cgmath::Basis3::from_axis_angle(rot_vector, a);
-							p.0.to_raw_scale_rotate((gain[0] / 3.0).exp(), &rotation)
+							p.0.to_raw_scale_rotate((phase.gains[0] / 3.0).exp(), &rotation)
 						} else {
 							Instance::raw_zero()
 						};
