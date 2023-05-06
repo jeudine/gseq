@@ -26,21 +26,27 @@ struct VertexInput {
 }
 
 struct InstanceInput {
-	@location(2) color: vec4<f32>,
-	@location(3) model_matrix_0: vec4<f32>,
-	@location(4) model_matrix_1: vec4<f32>,
-	@location(5) model_matrix_2: vec4<f32>,
-	@location(6) model_matrix_3: vec4<f32>,
-	@location(7) normal_matrix_0: vec3<f32>,
-	@location(8) normal_matrix_1: vec3<f32>,
-	@location(9) normal_matrix_2: vec3<f32>,
+	@location(2) ambient: vec3<f32>,
+	@location(3) diffuse: vec3<f32>,
+	@location(4) spec: vec3<f32>,
+	@location(5) shin: f32,
+	@location(6) model_matrix_0: vec4<f32>,
+	@location(7) model_matrix_1: vec4<f32>,
+	@location(8) model_matrix_2: vec4<f32>,
+	@location(9) model_matrix_3: vec4<f32>,
+	@location(10) normal_matrix_0: vec3<f32>,
+	@location(11) normal_matrix_1: vec3<f32>,
+	@location(12) normal_matrix_2: vec3<f32>,
 }
 
 struct VertexOutput {
 	@builtin(position) clip_position: vec4<f32>,
-	@location(0) color: vec3<f32>,
-	@location(1) world_normal: vec3<f32>,
-	@location(2) world_position: vec3<f32>,
+	@location(0) ambient: vec3<f32>,
+	@location(1) diffuse: vec3<f32>,
+	@location(2) spec: vec3<f32>,
+	@location(3) shin: f32,
+	@location(4) world_normal: vec3<f32>,
+	@location(5) world_position: vec3<f32>,
 }
 
 @vertex
@@ -60,7 +66,10 @@ fn vs_main(
 		instance.normal_matrix_2,
 	);
 	var out: VertexOutput;
-	out.color = instance.color.xyz;
+	out.ambient = instance.ambient;
+	out.diffuse = instance.diffuse;
+	out.spec = instance.spec;
+	out.shin = instance.shin;
 	out.world_normal = normal_matrix * model.normal;
 	var world_position: vec4<f32> = model_matrix * vec4<f32>(model.position, 1.0);
 	out.world_position = world_position.xyz;
@@ -70,10 +79,8 @@ fn vs_main(
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-	let object_color: vec4<f32> = vec4<f32>(in.color, 1.0);
 
-	let ambient_strength = 0.1;
-	let ambient_color = (light_0.color + light_1.color + light_2.color) * ambient_strength;
+	let ambient_color = in.ambient;
 
 	let light_dir_0 = normalize(light_0.position - in.world_position);
 	let diffuse_strength_0 = max(dot(in.world_normal, light_dir_0), 0.0);
@@ -87,23 +94,23 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 	let diffuse_strength_2 = max(dot(in.world_normal, light_dir_2), 0.0);
 	let diffuse_color_2 = light_2.color * diffuse_strength_2;
 
-	let diffuse_color = diffuse_color_0 + diffuse_color_1 + diffuse_color_2;
+	let diffuse_color = in.diffuse * (diffuse_color_0 + diffuse_color_1 + diffuse_color_2);
 	
 	let view_dir = normalize(camera.view_pos.xyz - in.world_position);
 	let half_dir_0 = normalize(view_dir + light_dir_0);
 	let half_dir_1 = normalize(view_dir + light_dir_1);
 	let half_dir_2 = normalize(view_dir + light_dir_2);
 	
-	let specular_strength_0 = pow(max(dot(in.world_normal, half_dir_0), 0.0), 256.0);
-	let specular_strength_1 = pow(max(dot(in.world_normal, half_dir_1), 0.0), 256.0);
-	let specular_strength_2 = pow(max(dot(in.world_normal, half_dir_2), 0.0), 256.0);
+	let specular_strength_0 = pow(max(dot(in.world_normal, half_dir_0), 0.0), in.shin);
+	let specular_strength_1 = pow(max(dot(in.world_normal, half_dir_1), 0.0), in.shin);
+	let specular_strength_2 = pow(max(dot(in.world_normal, half_dir_2), 0.0), in.shin);
 	let specular_color_0 = specular_strength_0 * light_0.color;
 	let specular_color_1 = specular_strength_1 * light_1.color;
 	let specular_color_2 = specular_strength_2 * light_2.color;
 
-	let specular_color = specular_color_0 + specular_color_1 + specular_color_2;
+	let specular_color = in.spec * (specular_color_0 + specular_color_1 + specular_color_2);
 
-	let result = (ambient_color + diffuse_color + specular_color) * object_color.xyz;
+	let result = ambient_color + diffuse_color + specular_color;
 
-	return vec4<f32>(result, object_color.a);
+	return vec4<f32>(result, 1.0);
 }

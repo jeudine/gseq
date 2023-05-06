@@ -111,7 +111,7 @@ fn main() {
 		*/
 
 	let base = Item {
-		file_name: "res/eye/base.obj".to_string(),
+		file_name: "res/eye_0/base.obj".to_string(),
 		params: vec![(
 			Instance {
 				position: cgmath::Vector3::new(0.0, 0.0, -10.0),
@@ -121,14 +121,18 @@ fn main() {
 					z: Deg(0.0),
 				}),
 				scale: 8.0,
-				color: cgmath::Vector4::new(1.0, 1.0, 1.0, 1.0),
+				ambient: cgmath::Vector3::new(0.1, 0.0, 0.0),
+				diffuse: cgmath::Vector3::new(0.5, 0.0, 0.0),
+				spec: cgmath::Vector3::new(1.0, 1.0, 1.0),
+				shin: 16.0,
 			},
 			Action::Still,
 		)],
 	};
 
+	/*
 	let eye_lid = Item {
-		file_name: "res/eye/eyelid.obj".to_string(),
+		file_name: "res/eye_0/eyelid.obj".to_string(),
 		params: vec![(
 			Instance {
 				position: cgmath::Vector3::new(0.0, 0.0, -10.0),
@@ -145,9 +149,11 @@ fn main() {
 			Action::Still,
 		)],
 	};
+	*/
 
+	/*
 	let eye_ball = Item {
-		file_name: "res/eye/eyeball.obj".to_string(),
+		file_name: "res/eye_0/eyeball.obj".to_string(),
 		params: vec![(
 			Instance {
 				position: cgmath::Vector3::new(0.0, 0.0, -10.0),
@@ -158,6 +164,7 @@ fn main() {
 			Action::Rotate(cgmath::Vector3::new(0.0, 1.0, 0.0), cgmath::Rad(0.8)),
 		)],
 	};
+	*/
 
 	/*
 	let eye_background = Item {
@@ -200,5 +207,5 @@ fn main() {
 	};
 	*/
 
-	pollster::block_on(run(vec![vec![base, eye_lid, eye_ball]]));
+	pollster::block_on(run(vec![vec![base]]));
 }
