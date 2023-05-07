@@ -15,21 +15,57 @@ pub fn init(phase: &Arc<Mutex<fft::Phase>>) -> Result<(), Box<dyn std::error::Er
 			let p = phase.lock().unwrap();
 			p.clone()
 		};
-		let cmd = match phase.state {
-			fft::State::Break(_) => MpsseCmdBuilder::new().set_gpio_lower(0x0, 0xFF),
+		let mut val = 0;
+		match phase.state {
+			fft::State::Break(b) => match b {
+				fft::Break::State0 => {
+					if phase.gains[0] > 3.0 {
+						val |= 0x0F;
+					}
+				}
+			},
 			fft::State::Drop(d) => match d {
 				fft::Drop::State0 => {
-					let mut val = 0;
 					if phase.gains[0] > 0.5 {
 						val |= 0x03;
 					}
 					if phase.gains[3] > 0.5 {
 						val |= 0x0C;
 					}
-					MpsseCmdBuilder::new().set_gpio_lower(val, 0xFF)
+				}
+				fft::Drop::State1 => {
+					if phase.gains[0] > 0.5 {
+						val |= 0x03;
+					}
+					if phase.gains[2] > 0.5 {
+						val |= 0x0C;
+					}
+				}
+				fft::Drop::State2 => {
+					if phase.gains[0] > 0.5 {
+						val |= 0x03;
+					}
+					if phase.gains[2] > 0.5 {
+						val |= 0x04;
+					}
+					if phase.gains[3] > 0.5 {
+						val |= 0x08;
+					}
+				}
+				fft::Drop::State3 => {
+					if phase.gains[0] > 0.5 {
+						val |= 0x0C;
+					}
+					if phase.gains[2] > 0.5 {
+						val |= 0x01;
+					}
+					if phase.gains[3] > 0.5 {
+						val |= 0x02;
+					}
 				}
 			},
 		};
+		let cmd = MpsseCmdBuilder::new().set_gpio_lower(val, 0xFF);
 		ft232h.write_all(cmd.as_slice()).unwrap();
 	});
 	Ok(())

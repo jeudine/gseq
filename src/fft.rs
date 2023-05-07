@@ -4,6 +4,8 @@ use cpal::{
 	traits::{DeviceTrait, HostTrait, StreamTrait},
 	FromSample, Sample,
 };
+use rand::distributions::{Distribution, Standard};
+use rand::Rng;
 use realfft::{num_complex::Complex, RealFftPlanner, RealToComplex};
 use std::collections::VecDeque;
 use std::error::Error;
@@ -14,6 +16,20 @@ use std::time::{SystemTime, UNIX_EPOCH};
 #[derive(Debug, Clone, Copy)]
 pub enum Drop {
 	State0,
+	State1,
+	State2,
+	State3,
+}
+
+impl Distribution<Drop> for Standard {
+	fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Drop {
+		match rng.gen_range(0..=3) {
+			0 => Drop::State0,
+			1 => Drop::State1,
+			2 => Drop::State2,
+			_ => Drop::State3,
+		}
+	}
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -308,7 +324,13 @@ where
 			let val = (mean_low - global_mean_low) / global_sd_low;
 
 			buffer.state = if val > 0.2 {
-				State::Drop(Drop::State0)
+				if let State::Break(_) = buffer.state {
+					let state = State::Drop(rand::random());
+					println!("{:?}", state);
+					state
+				} else {
+					buffer.state
+				}
 			} else if val < 0.2 {
 				State::Break(Break::State0)
 			} else {
