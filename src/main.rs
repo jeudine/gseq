@@ -130,6 +130,10 @@ fn main() {
 		)],
 	};
 
+	// eye_lid
+	// eye_background
+	// eye_ball
+
 	/*
 	let eye_lid = Item {
 		file_name: "res/eye_0/eyelid.obj".to_string(),

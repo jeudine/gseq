@@ -3,8 +3,6 @@ use std::mem;
 use tobj::load_obj;
 use wgpu::util::DeviceExt;
 
-//TODO Normals
-
 pub struct Model {
 	pub meshes: Vec<Mesh>,
 }
