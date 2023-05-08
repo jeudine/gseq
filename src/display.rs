@@ -301,31 +301,33 @@ impl Display {
 		let mut count_fft_instance = 0;
 		let time = self.start_time.elapsed().as_secs_f32();
 		for g in &mut self.groups {
-			let instance_data = g
-				.params
-				.iter()
-				.map(|p| match p.1 {
-					Action::Still => p.0.to_raw(),
-					Action::Rotate(v, s) => {
-						let a = s * time;
-						let rotation = cgmath::Basis3::from_axis_angle(v, a);
-						p.0.to_raw_rotate(&rotation)
-					}
-					Action::FFT => {
-						let i = if count_fft_instance == self.cur_fft_instance {
-							let a = rot_speed * time;
-							let rotation = cgmath::Basis3::from_axis_angle(rot_vector, a);
-							p.0.to_raw_scale_rotate((phase.gains[0] / 3.0).exp(), &rotation)
-						} else {
-							Instance::raw_zero()
-						};
-						count_fft_instance += 1;
-						i
-					}
-				})
-				.collect::<Vec<_>>();
-			self.queue
-				.write_buffer(&g.instance_buffer, 0, bytemuck::cast_slice(&instance_data));
+			for (m, b) in &mut g.model {
+				let instance_data = g
+					.params
+					.iter()
+					.map(|p| match p.1 {
+						Action::Still => p.0.to_raw(),
+						Action::Rotate(v, s) => {
+							let a = s * time;
+							let rotation = cgmath::Basis3::from_axis_angle(v, a);
+							p.0.to_raw_rotate(&rotation)
+						}
+						Action::FFT => {
+							let i = if count_fft_instance == self.cur_fft_instance {
+								let a = rot_speed * time;
+								let rotation = cgmath::Basis3::from_axis_angle(rot_vector, a);
+								p.0.to_raw_scale_rotate((phase.gains[0] / 3.0).exp(), &rotation)
+							} else {
+								Instance::raw_zero()
+							};
+							count_fft_instance += 1;
+							i
+						}
+					})
+					.collect::<Vec<_>>();
+				self.queue
+					.write_buffer(&b, 0, bytemuck::cast_slice(&instance_data));
+			}
 		}
 	}
 
@@ -371,8 +373,8 @@ impl Display {
 			render_pass.set_pipeline(&self.render_pipeline);
 
 			for g in &self.groups {
-				for m in &g.model.meshes {
-					render_pass.set_vertex_buffer(1, g.instance_buffer.slice(..));
+				for (m, b) in &g.model {
+					render_pass.set_vertex_buffer(1, b.slice(..));
 					render_pass.set_vertex_buffer(0, m.vertex_buffer.slice(..));
 					render_pass
 						.set_index_buffer(m.index_buffer.slice(..), wgpu::IndexFormat::Uint32);

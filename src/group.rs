@@ -15,7 +15,7 @@ impl Group {
 		let params = params.clone();
 		let model = model
 			.meshes
-			.iter()
+			.into_iter()
 			.map(|mesh| {
 				let instance_data = params.iter().map(|x| x.0.to_raw()).collect::<Vec<_>>();
 				let instance_buffer =
