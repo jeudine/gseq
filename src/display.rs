@@ -371,8 +371,8 @@ impl Display {
 			render_pass.set_pipeline(&self.render_pipeline);
 
 			for g in &self.groups {
-				render_pass.set_vertex_buffer(1, g.instance_buffer.slice(..));
 				for m in &g.model.meshes {
+					render_pass.set_vertex_buffer(1, g.instance_buffer.slice(..));
 					render_pass.set_vertex_buffer(0, m.vertex_buffer.slice(..));
 					render_pass
 						.set_index_buffer(m.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
