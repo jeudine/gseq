@@ -1,10 +1,11 @@
+use crate::instance::Material;
 use std::error::Error;
 use std::mem;
 use tobj::load_obj;
 use wgpu::util::DeviceExt;
 
 pub struct Model {
-	pub meshes: Vec<Mesh>,
+	pub meshes: Vec<(Mesh, Material)>,
 }
 
 pub struct Mesh {
@@ -15,7 +16,7 @@ pub struct Mesh {
 
 impl Model {
 	pub fn new(file_name: &str, device: &wgpu::Device) -> Result<Model, Box<dyn Error>> {
-		let (models, _) = load_obj(
+		let (model, materials) = load_obj(
 			file_name,
 			&tobj::LoadOptions {
 				triangulate: true,
@@ -25,9 +26,9 @@ impl Model {
 		)?;
 
 		//TODO: default case
-		//let material = material.unwrap();
+		let materials = materials.unwrap();
 
-		let meshes = models
+		let meshes = model
 			.into_iter()
 			.map(|m| {
 				let vertices = if m.mesh.normals.len() == m.mesh.positions.len() {
@@ -69,11 +70,31 @@ impl Model {
 					contents: bytemuck::cast_slice(&m.mesh.indices),
 					usage: wgpu::BufferUsages::INDEX,
 				});
-				Mesh {
+				let mesh = Mesh {
 					vertex_buffer,
 					index_buffer,
 					num_elements: m.mesh.indices.len() as u32,
-				}
+				};
+
+				let id = match m.mesh.material_id {
+					Some(x) => x,
+					None => 0,
+				};
+
+				let material = &materials[id];
+
+				println!(
+					"{:?}, {:?}, {:?}, {:?}",
+					material.ambient, material.diffuse, material.specular, material.shininess
+				);
+
+				let material = Material {
+					ambient: [0.0, 0.0, 0.0].into(),
+					diffuse: material.diffuse.into(),
+					spec: material.specular.into(),
+					shin: material.shininess.into(),
+				};
+				(mesh, material)
 			})
 			.collect::<Vec<_>>();
 

@@ -301,22 +301,22 @@ impl Display {
 		let mut count_fft_instance = 0;
 		let time = self.start_time.elapsed().as_secs_f32();
 		for g in &mut self.groups {
-			for (m, b) in &mut g.model {
+			for (_, m, b) in &mut g.model {
 				let instance_data = g
 					.params
 					.iter()
 					.map(|p| match p.1 {
-						Action::Still => p.0.to_raw(),
+						Action::Still => p.0.to_raw(m),
 						Action::Rotate(v, s) => {
 							let a = s * time;
 							let rotation = cgmath::Basis3::from_axis_angle(v, a);
-							p.0.to_raw_rotate(&rotation)
+							p.0.to_raw_rotate(&m, &rotation)
 						}
 						Action::FFT => {
 							let i = if count_fft_instance == self.cur_fft_instance {
 								let a = rot_speed * time;
 								let rotation = cgmath::Basis3::from_axis_angle(rot_vector, a);
-								p.0.to_raw_scale_rotate((phase.gains[0] / 3.0).exp(), &rotation)
+								p.0.to_raw_scale_rotate(&m, (phase.gains[0] / 3.0).exp(), &rotation)
 							} else {
 								Instance::raw_zero()
 							};
@@ -373,14 +373,14 @@ impl Display {
 			render_pass.set_pipeline(&self.render_pipeline);
 
 			for g in &self.groups {
-				for (m, b) in &g.model {
+				for (me, _, b) in &g.model {
 					render_pass.set_vertex_buffer(1, b.slice(..));
-					render_pass.set_vertex_buffer(0, m.vertex_buffer.slice(..));
+					render_pass.set_vertex_buffer(0, me.vertex_buffer.slice(..));
 					render_pass
-						.set_index_buffer(m.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
+						.set_index_buffer(me.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
 					render_pass.set_bind_group(0, &self.bind_group, &[]);
 					render_pass.set_bind_group(1, &self.lights.bind_group, &[]);
-					render_pass.draw_indexed(0..m.num_elements, 0, 0..g.params.len() as _);
+					render_pass.draw_indexed(0..me.num_elements, 0, 0..g.params.len() as _);
 				}
 			}
 		}

@@ -5,6 +5,10 @@ pub struct Instance {
 	pub scale: f32,
 	pub rotation: cgmath::Basis3<f32>,
 	pub position: cgmath::Vector3<f32>,
+}
+
+#[derive(Copy, Clone)]
+pub struct Material {
 	pub ambient: cgmath::Vector3<f32>,
 	pub diffuse: cgmath::Vector3<f32>,
 	pub spec: cgmath::Vector3<f32>,
@@ -36,19 +40,15 @@ impl Instance {
 			position,
 			rotation,
 			scale: 1.0,
-			ambient,
-			diffuse,
-			spec,
-			shin,
 		}
 	}
 
-	pub fn to_raw(&self) -> InstanceRaw {
+	pub fn to_raw(&self, m: &Material) -> InstanceRaw {
 		InstanceRaw {
-			ambient: self.ambient.into(),
-			diffuse: self.diffuse.into(),
-			spec: self.spec.into(),
-			shin: self.shin,
+			ambient: m.ambient.into(),
+			diffuse: m.diffuse.into(),
+			spec: m.spec.into(),
+			shin: m.shin,
 			model: (cgmath::Matrix4::from_translation(self.position)
 				* cgmath::Matrix4::from(cgmath::Matrix3::from(self.rotation))
 				* cgmath::Matrix4::from_scale(self.scale))
@@ -57,13 +57,13 @@ impl Instance {
 		}
 	}
 
-	pub fn to_raw_rotate(&self, rotation: &cgmath::Basis3<f32>) -> InstanceRaw {
+	pub fn to_raw_rotate(&self, m: &Material, rotation: &cgmath::Basis3<f32>) -> InstanceRaw {
 		let rotation = cgmath::Matrix3::from(self.rotation * rotation);
 		InstanceRaw {
-			ambient: self.ambient.into(),
-			diffuse: self.diffuse.into(),
-			spec: self.spec.into(),
-			shin: self.shin,
+			ambient: m.ambient.into(),
+			diffuse: m.diffuse.into(),
+			spec: m.spec.into(),
+			shin: m.shin,
 			model: (cgmath::Matrix4::from_translation(self.position)
 				* cgmath::Matrix4::from(rotation)
 				* cgmath::Matrix4::from_scale(self.scale))
@@ -71,13 +71,18 @@ impl Instance {
 			normal: cgmath::Matrix3::from(rotation).into(),
 		}
 	}
-	pub fn to_raw_scale_rotate(&self, scale: f32, rotation: &cgmath::Basis3<f32>) -> InstanceRaw {
+	pub fn to_raw_scale_rotate(
+		&self,
+		m: &Material,
+		scale: f32,
+		rotation: &cgmath::Basis3<f32>,
+	) -> InstanceRaw {
 		let rotation = cgmath::Matrix3::from(self.rotation * rotation);
 		InstanceRaw {
-			ambient: self.ambient.into(),
-			diffuse: self.diffuse.into(),
-			spec: self.spec.into(),
-			shin: self.shin,
+			ambient: m.ambient.into(),
+			diffuse: m.diffuse.into(),
+			spec: m.spec.into(),
+			shin: m.shin,
 			model: (cgmath::Matrix4::from_translation(self.position)
 				* cgmath::Matrix4::from(rotation)
 				* cgmath::Matrix4::from_scale(self.scale * scale))
