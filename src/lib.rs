@@ -37,7 +37,7 @@ pub async fn run(mut items: Vec<Vec<Item>>) {
 
 	// Init fft
 	#[allow(unused)]
-	let (levels, stream) = fft::init(2048, 4, 20, 15000).unwrap();
+	let (phase, stream) = fft::init(2048, 4, 20, 15000).unwrap();
 
 	// Create one state for each display
 	let mut displays = vec![];
@@ -48,7 +48,7 @@ pub async fn run(mut items: Vec<Vec<Item>>) {
 	}
 
 	//Init the LED controller
-	match led::init(&levels) {
+	match led::init(&phase) {
 		Ok(_) => {}
 		Err(e) => println!("[ERROR] {}", e),
 	};
@@ -61,7 +61,6 @@ pub async fn run(mut items: Vec<Vec<Item>>) {
 			} => {
 				for s in &mut displays {
 					if window_id == s.window().id() {
-						//TODO: remove input
 						match event {
 							WindowEvent::KeyboardInput {
 								input:
@@ -71,7 +70,7 @@ pub async fn run(mut items: Vec<Vec<Item>>) {
 										..
 									},
 								..
-							} => println!("Reset"),
+							} => fft::reset_global(&phase),
 							WindowEvent::CloseRequested
 							| WindowEvent::KeyboardInput {
 								input:
@@ -99,7 +98,7 @@ pub async fn run(mut items: Vec<Vec<Item>>) {
 			Event::RedrawRequested(window_id) => {
 				for d in &mut displays {
 					if window_id == d.window().id() {
-						d.update(&levels);
+						d.update(&phase);
 						match d.render() {
 							Ok(_) => {}
 							// Reconfigure the surface if it's lost or outdated

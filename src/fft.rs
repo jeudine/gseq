@@ -90,6 +90,7 @@ pub struct Level {
 pub struct Phase {
 	pub gains: Vec<f32>,
 	pub state: State,
+	pub reset: bool,
 }
 
 pub fn init(
@@ -157,6 +158,7 @@ pub fn init(
 	let phase = Phase {
 		gains: vec![0.0; nb_channels as usize],
 		state: State::Break(Break::State0),
+		reset: false,
 	};
 
 	let phase_arc = Arc::new(Mutex::new(phase));
@@ -369,16 +371,28 @@ where
 			*/
 
 			let mut phase = phase.lock().unwrap();
+			if phase.reset {
+				buffer.global_mean = buffer.mean.clone();
+				buffer.global_var = buffer.var.clone();
+				buffer.state = State::Break(Break::State0);
+				println!("Global man and var reset");
+			}
 			#[cfg(feature = "profile")]
 			profile(&new_level);
 
 			*phase = Phase {
 				gains,
 				state: buffer.state,
+				reset: false,
 			};
 			return;
 		}
 	}
+}
+
+pub fn reset_global(phase: &Arc<Mutex<Phase>>) {
+	let mut phase = phase.lock().unwrap();
+	phase.reset = true;
 }
 
 #[cfg(feature = "profile")]
