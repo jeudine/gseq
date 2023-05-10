@@ -295,9 +295,20 @@ impl Display {
 		}
 		*/
 
+		let eye_lid = &mut self.groups[0];
+		let (instance, _) = &eye_lid.params[0];
+
+		for (mesh, material, buffer) in &mut eye_lid.model {
+			let instance_data = vec![instance.to_raw(material)];
+			todo!();
+			self.queue
+				.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
+		}
+
+		/*
+
 		let rot_speed = cgmath::Rad(0.8);
 		let rot_vector = cgmath::Vector3::new(0.0, 1.0, 0.0);
-
 		let mut count_fft_instance = 0;
 		let time = self.start_time.elapsed().as_secs_f32();
 		for g in &mut self.groups {
@@ -329,6 +340,7 @@ impl Display {
 					.write_buffer(&b, 0, bytemuck::cast_slice(&instance_data));
 			}
 		}
+		*/
 	}
 
 	pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
