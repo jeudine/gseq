@@ -35,6 +35,20 @@ impl Distribution<Drop> for Standard {
 #[derive(Debug, Clone, Copy)]
 pub enum Break {
 	State0,
+	State1,
+	State2,
+	State3,
+}
+
+impl Distribution<Break> for Standard {
+	fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Break {
+		match rng.gen_range(0..=3) {
+			0 => Break::State0,
+			1 => Break::State1,
+			2 => Break::State2,
+			_ => Break::State3,
+		}
+	}
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -332,7 +346,13 @@ where
 					buffer.state
 				}
 			} else if val < 0.2 {
-				State::Break(Break::State0)
+				if let State::Drop(_) = buffer.state {
+					let state = State::Break(rand::random());
+					println!("{:?}", state);
+					state
+				} else {
+					buffer.state
+				}
 			} else {
 				buffer.state
 			};

@@ -17,13 +17,17 @@ pub fn init(phase: &Arc<Mutex<fft::Phase>>) -> Result<(), Box<dyn std::error::Er
 		};
 		let mut val = 0;
 		match phase.state {
-			fft::State::Break(b) => match b {
-				fft::Break::State0 => {
-					if phase.gains[0] > 3.0 {
-						val |= 0x0F;
-					}
+			fft::State::Break(b) => {
+				if phase.gains[0] > 3.0 {
+					val |= 0x0F;
 				}
-			},
+				match b {
+					fft::Break::State0 => {}
+					fft::Break::State1 => {}
+					fft::Break::State2 => {}
+					fft::Break::State3 => {}
+				}
+			}
 			fft::State::Drop(d) => match d {
 				fft::Drop::State0 => {
 					if phase.gains[0] > 0.5 {

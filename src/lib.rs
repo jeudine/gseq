@@ -63,6 +63,15 @@ pub async fn run(mut items: Vec<Vec<Item>>) {
 					if window_id == s.window().id() {
 						//TODO: remove input
 						match event {
+							WindowEvent::KeyboardInput {
+								input:
+									KeyboardInput {
+										state: ElementState::Pressed,
+										virtual_keycode: Some(VirtualKeyCode::R),
+										..
+									},
+								..
+							} => println!("Reset"),
 							WindowEvent::CloseRequested
 							| WindowEvent::KeyboardInput {
 								input:
