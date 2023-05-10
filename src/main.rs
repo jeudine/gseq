@@ -110,8 +110,8 @@ fn main() {
 	};
 		*/
 
-	let base0 = Item {
-		file_name: "res/eye_0/base.obj".to_string(),
+	let lid_r = Item {
+		file_name: "/home/julien/Desktop/GSeq/res/eye_r/lid.obj".to_string(),
 		params: vec![(
 			Instance {
 				position: cgmath::Vector3::new(0.0, 0.0, -10.0),
@@ -126,8 +126,24 @@ fn main() {
 		)],
 	};
 
-	let base1 = Item {
-		file_name: "res/eye_0/base.obj".to_string(),
+	let base_r = Item {
+		file_name: "/home/julien/Desktop/GSeq/res/eye_r/base.obj".to_string(),
+		params: vec![(
+			Instance {
+				position: cgmath::Vector3::new(0.0, 0.0, -10.0),
+				rotation: Basis3::from(Euler {
+					x: Deg(0.0),
+					y: Deg(0.0),
+					z: Deg(0.0),
+				}),
+				scale: 8.0,
+			},
+			Action::Still,
+		)],
+	};
+
+	let ball_r = Item {
+		file_name: "/home/julien/Desktop/GSeq/res/eye_r/ball.obj".to_string(),
 		params: vec![(
 			Instance {
 				position: cgmath::Vector3::new(0.0, 0.0, -10.0),
@@ -223,5 +239,5 @@ fn main() {
 	};
 	*/
 
-	pollster::block_on(run(vec![vec![base0], vec![base1]]));
+	pollster::block_on(run(vec![vec![lid_r, base_r, ball_r]]));
 }

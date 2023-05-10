@@ -84,7 +84,7 @@ impl Model {
 				let material = &materials[id];
 
 				println!(
-					"{:?}, {:?}, {:?}, {:?}",
+					"a:{:?}, d:{:?}, s:{:?}, s{:?}",
 					material.ambient, material.diffuse, material.specular, material.shininess
 				);
 

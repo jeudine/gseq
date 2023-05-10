@@ -7,7 +7,7 @@ use crate::item::Item;
 use crate::light::Light;
 use crate::model::Model;
 use crate::texture::Texture;
-use cgmath::Rotation3;
+use cgmath::{Deg, Euler};
 use std::iter;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
@@ -280,9 +280,6 @@ impl Display {
 	}
 
 	pub fn update(&mut self, phase: &Arc<Mutex<fft::Phase>>) {
-		let phase = phase.lock().unwrap();
-
-		// Where the magi appends
 		/*
 		if gain[0].1 < 0.2 {
 			self.cur_fft_instance += 1;
@@ -296,14 +293,64 @@ impl Display {
 		*/
 
 		let eye_lid = &mut self.groups[0];
-		let (instance, _) = &eye_lid.params[0];
+		let (eye_lid_instance, _) = &eye_lid.params[0];
 
+		let phase = phase.lock().unwrap();
 		for (mesh, material, buffer) in &mut eye_lid.model {
-			let instance_data = vec![instance.to_raw(material)];
-			todo!();
+			let x = activation_func(phase.gains[0], -0.5, 0.5, 46.0, -50.0);
+			let instance_data = vec![eye_lid_instance.to_raw_rotate(
+				material,
+				&cgmath::Basis3::from(Euler {
+					x: Deg(x),
+					y: Deg(0.0),
+					z: Deg(0.0),
+				}),
+			)];
 			self.queue
 				.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
 		}
+
+		/*
+		match phase.state {
+			fft::State::Break(b) => match b {
+				//TODO
+				_ => {}
+			},
+			fft::State::Drop(d) => match d {
+				fft::Drop::State0 => {
+					// eye_lid
+					for (mesh, material, buffer) in &mut eye_lid.model {
+						let x = activation_func(phase.gains[0], -0.5, 0.5, 0.0, -100.0);
+						let instance_data = vec![eye_lid_instance.to_raw_rotate(
+							material,
+							&cgmath::Basis3::from(Euler {
+								x: Deg(x),
+								y: Deg(0.0),
+								z: Deg(0.0),
+							}),
+						)];
+						self.queue
+							.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
+					}
+				}
+				_ => {
+					for (mesh, material, buffer) in &mut eye_lid.model {
+						let x = activation_func(phase.gains[0], -0.5, 0.5, 46.0, -125.0);
+						let instance_data = vec![eye_lid_instance.to_raw_rotate(
+							material,
+							&cgmath::Basis3::from(Euler {
+								x: Deg(x),
+								y: Deg(0.0),
+								z: Deg(0.0),
+							}),
+						)];
+						self.queue
+							.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
+					}
+				}
+			},
+		}
+		*/
 
 		/*
 
@@ -401,5 +448,17 @@ impl Display {
 		output.present();
 
 		Ok(())
+	}
+}
+
+fn activation_func(x: f32, min_x: f32, max_x: f32, min_y: f32, max_y: f32) -> f32 {
+	if x < min_x {
+		min_y
+	} else if x > max_x {
+		max_y
+	} else {
+		let a = (max_y - min_y) / (max_x - min_x);
+		let b = min_y - a * min_x;
+		a * x + b
 	}
 }
