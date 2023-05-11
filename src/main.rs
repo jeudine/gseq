@@ -240,6 +240,60 @@ fn main() {
 	};
 	*/
 
+	let pupil_r = Item {
+		file_name: "res/eye/pupil.obj".to_string(),
+		params: vec![(
+			Instance {
+				position: cgmath::Vector3::new(0.0, 0.0, 0.0),
+				rotation: Basis3::one(),
+				scale: 1.0,
+			},
+			Action::FFT,
+		)],
+	};
+
+	let pupil_l = Item {
+		file_name: "res/eye/pupil.obj".to_string(),
+		params: vec![(
+			Instance {
+				position: cgmath::Vector3::new(0.0, 0.0, 0.0),
+				rotation: Basis3::one(),
+				scale: 1.0,
+			},
+			Action::FFT,
+		)],
+	};
+
+	let pupil_ring_r = Item {
+		file_name: "res/eye/pupil_ring.obj".to_string(),
+		params: vec![(
+			Instance {
+				position: cgmath::Vector3::new(0.0, 0.0, 0.0),
+				rotation: Basis3::one(),
+				scale: 1.0,
+			},
+			Action::FFT,
+		)],
+	};
+
+	let pupil_ring_l = Item {
+		file_name: "res/eye/pupil_ring.obj".to_string(),
+		params: vec![(
+			Instance {
+				position: cgmath::Vector3::new(0.0, 0.0, 0.0),
+				rotation: Basis3::one(),
+				scale: 1.0,
+			},
+			Action::FFT,
+		)],
+	};
+
+	pollster::block_on(run(vec![
+		vec![pupil_r, pupil_ring_r],
+		vec![pupil_l, pupil_ring_l],
+	]));
+
+	/*
 	let cube = Item {
 		file_name: "res/cube.obj".to_string(),
 		params: vec![(
@@ -253,5 +307,5 @@ fn main() {
 	};
 
 	pollster::block_on(run(vec![vec![cube]]));
-	//pollster::block_on(run(vec![vec![lid_r, base_r, ball_r]]));
+	*/
 }
