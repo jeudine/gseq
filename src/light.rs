@@ -14,6 +14,10 @@ pub struct Light {
 	pub light_buffer_0: wgpu::Buffer,
 	pub light_buffer_1: wgpu::Buffer,
 	pub light_buffer_2: wgpu::Buffer,
+	pub light_buffer_3: wgpu::Buffer,
+	pub light_buffer_4: wgpu::Buffer,
+	pub light_buffer_5: wgpu::Buffer,
+	pub light_buffer_6: wgpu::Buffer,
 	pub bind_group: BindGroup,
 }
 
@@ -32,6 +36,30 @@ impl Light {
 			_padding2: 0,
 		};
 		let light_uniform_2 = LightUniform {
+			position: [0.0, -8.66, 10.0],
+			_padding: 0,
+			color: [0.0, 0.0, 1.0],
+			_padding2: 0,
+		};
+		let light_uniform_3 = LightUniform {
+			position: [-10.0, 8.66, 10.0],
+			_padding: 0,
+			color: [1.0, 0.0, 0.0],
+			_padding2: 0,
+		};
+		let light_uniform_4 = LightUniform {
+			position: [10.0, 8.66, 10.0],
+			_padding: 0,
+			color: [0.0, 1.0, 0.0],
+			_padding2: 0,
+		};
+		let light_uniform_5 = LightUniform {
+			position: [0.0, -8.66, 10.0],
+			_padding: 0,
+			color: [0.0, 0.0, 1.0],
+			_padding2: 0,
+		};
+		let light_uniform_6 = LightUniform {
 			position: [0.0, -8.66, 10.0],
 			_padding: 0,
 			color: [0.0, 0.0, 1.0],
@@ -56,6 +84,30 @@ impl Light {
 			usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
 		});
 
+		let light_buffer_3 = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+			label: Some("Light VB"),
+			contents: bytemuck::cast_slice(&[light_uniform_3]),
+			usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+		});
+
+		let light_buffer_4 = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+			label: Some("Light VB"),
+			contents: bytemuck::cast_slice(&[light_uniform_4]),
+			usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+		});
+
+		let light_buffer_5 = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+			label: Some("Light VB"),
+			contents: bytemuck::cast_slice(&[light_uniform_5]),
+			usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+		});
+
+		let light_buffer_6 = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+			label: Some("Light VB"),
+			contents: bytemuck::cast_slice(&[light_uniform_6]),
+			usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+		});
+
 		let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
 			layout: &bind_group_layout,
 			entries: &[
@@ -71,6 +123,22 @@ impl Light {
 					binding: 2,
 					resource: light_buffer_2.as_entire_binding(),
 				},
+				wgpu::BindGroupEntry {
+					binding: 3,
+					resource: light_buffer_3.as_entire_binding(),
+				},
+				wgpu::BindGroupEntry {
+					binding: 4,
+					resource: light_buffer_4.as_entire_binding(),
+				},
+				wgpu::BindGroupEntry {
+					binding: 5,
+					resource: light_buffer_5.as_entire_binding(),
+				},
+				wgpu::BindGroupEntry {
+					binding: 6,
+					resource: light_buffer_6.as_entire_binding(),
+				},
 			],
 			label: None,
 		});
@@ -79,6 +147,10 @@ impl Light {
 			light_buffer_0,
 			light_buffer_1,
 			light_buffer_2,
+			light_buffer_3,
+			light_buffer_4,
+			light_buffer_5,
+			light_buffer_6,
 			bind_group,
 		}
 	}

@@ -19,6 +19,15 @@ var<uniform> light_0: Light;
 var<uniform> light_1: Light;
 @group(1) @binding(2)
 var<uniform> light_2: Light;
+@group(1) @binding(3)
+var<uniform> light_3: Light;
+@group(1) @binding(4)
+var<uniform> light_4: Light;
+@group(1) @binding(5)
+var<uniform> light_5: Light;
+@group(1) @binding(6)
+var<uniform> light_6: Light;
+
 
 struct VertexInput {
 	@location(0) position: vec3<f32>,

@@ -34,6 +34,7 @@ fn main() {
 			),
 		],
 	};
+
 	let elephant = Item {
 		file_name: "res/cube.obj".to_string(),
 		params: vec![(
@@ -239,5 +240,18 @@ fn main() {
 	};
 	*/
 
-	pollster::block_on(run(vec![vec![lid_r, base_r, ball_r]]));
+	let cube = Item {
+		file_name: "res/cube.obj".to_string(),
+		params: vec![(
+			Instance {
+				position: cgmath::Vector3::new(0.0, 0.0, -5.0),
+				rotation: Basis3::one(),
+				scale: 1.0,
+			},
+			Action::FFT,
+		)],
+	};
+
+	pollster::block_on(run(vec![vec![cube]]));
+	//pollster::block_on(run(vec![vec![lid_r, base_r, ball_r]]));
 }
