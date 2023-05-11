@@ -332,6 +332,7 @@ impl Display {
 		}
 		*/
 
+		/*
 		let eye_lid = &mut self.groups[0];
 		let (eye_lid_instance, _) = &eye_lid.params[0];
 
@@ -349,6 +350,7 @@ impl Display {
 			self.queue
 				.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
 		}
+		*/
 
 		/*
 		match phase.state {
