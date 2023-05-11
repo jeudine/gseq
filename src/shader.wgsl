@@ -103,21 +103,51 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 	let diffuse_strength_2 = max(dot(in.world_normal, light_dir_2), 0.0);
 	let diffuse_color_2 = light_2.color * diffuse_strength_2;
 
-	let diffuse_color = in.diffuse * (diffuse_color_0 + diffuse_color_1 + diffuse_color_2);
+	let light_dir_3 = normalize(light_3.position - in.world_position);
+	let diffuse_strength_3 = max(dot(in.world_normal, light_dir_3), 0.0);
+	let diffuse_color_3 = light_3.color * diffuse_strength_3;
+
+	let light_dir_4 = normalize(light_4.position - in.world_position);
+	let diffuse_strength_4 = max(dot(in.world_normal, light_dir_4), 0.0);
+	let diffuse_color_4 = light_4.color * diffuse_strength_4;
+
+	let light_dir_5 = normalize(light_5.position - in.world_position);
+	let diffuse_strength_5 = max(dot(in.world_normal, light_dir_5), 0.0);
+	let diffuse_color_5 = light_5.color * diffuse_strength_5;
+
+	let light_dir_6 = normalize(light_6.position - in.world_position);
+	let diffuse_strength_6 = max(dot(in.world_normal, light_dir_6), 0.0);
+	let diffuse_color_6 = light_6.color * diffuse_strength_6;
+
+
+	let diffuse_color = in.diffuse * (diffuse_color_0 + diffuse_color_1 + diffuse_color_2 + diffuse_color_3 + diffuse_color_4 + diffuse_color_5 + diffuse_color_6);
 	
 	let view_dir = normalize(camera.view_pos.xyz - in.world_position);
 	let half_dir_0 = normalize(view_dir + light_dir_0);
 	let half_dir_1 = normalize(view_dir + light_dir_1);
 	let half_dir_2 = normalize(view_dir + light_dir_2);
+	let half_dir_3 = normalize(view_dir + light_dir_3);
+	let half_dir_4 = normalize(view_dir + light_dir_4);
+	let half_dir_5 = normalize(view_dir + light_dir_5);
+	let half_dir_6 = normalize(view_dir + light_dir_6);
 	
 	let specular_strength_0 = pow(max(dot(in.world_normal, half_dir_0), 0.0), in.shin);
 	let specular_strength_1 = pow(max(dot(in.world_normal, half_dir_1), 0.0), in.shin);
 	let specular_strength_2 = pow(max(dot(in.world_normal, half_dir_2), 0.0), in.shin);
+	let specular_strength_3 = pow(max(dot(in.world_normal, half_dir_3), 0.0), in.shin);
+	let specular_strength_4 = pow(max(dot(in.world_normal, half_dir_4), 0.0), in.shin);
+	let specular_strength_5 = pow(max(dot(in.world_normal, half_dir_5), 0.0), in.shin);
+	let specular_strength_6 = pow(max(dot(in.world_normal, half_dir_6), 0.0), in.shin);
+
 	let specular_color_0 = specular_strength_0 * light_0.color;
 	let specular_color_1 = specular_strength_1 * light_1.color;
 	let specular_color_2 = specular_strength_2 * light_2.color;
+	let specular_color_3 = specular_strength_3 * light_3.color;
+	let specular_color_4 = specular_strength_4 * light_4.color;
+	let specular_color_5 = specular_strength_4 * light_5.color;
+	let specular_color_6 = specular_strength_6 * light_6.color;
 
-	let specular_color = in.spec * (specular_color_0 + specular_color_1 + specular_color_2);
+	let specular_color = in.spec * (specular_color_0 + specular_color_1 + specular_color_2 + specular_color_3 + specular_color_4 + specular_color_5 + specular_color_6);
 
 	let result = ambient_color + diffuse_color + specular_color;
 
