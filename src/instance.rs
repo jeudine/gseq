@@ -31,10 +31,6 @@ impl Instance {
 	pub fn new() -> Self {
 		let position = cgmath::Vector3::zero();
 		let rotation = cgmath::Basis3::one();
-		let ambient = cgmath::Vector3::new(0.1, 0.0, 0.0);
-		let diffuse = cgmath::Vector3::new(0.5, 0.0, 0.0);
-		let spec = cgmath::Vector3::new(1.0, 1.0, 1.0);
-		let shin = 16.0;
 
 		Instance {
 			position,
@@ -122,6 +118,20 @@ impl Instance {
 				* cgmath::Matrix4::from_scale(self.scale * scale))
 			.into(),
 			normal: cgmath::Matrix3::from(rotation).into(),
+		}
+	}
+
+	pub fn to_raw_scale(&self, m: &Material, scale: f32) -> InstanceRaw {
+		InstanceRaw {
+			ambient: m.ambient.into(),
+			diffuse: m.diffuse.into(),
+			spec: m.spec.into(),
+			shin: m.shin,
+			model: (cgmath::Matrix4::from_translation(self.position)
+				* cgmath::Matrix4::from(cgmath::Matrix3::from(self.rotation))
+				* cgmath::Matrix4::from_scale(self.scale * scale))
+			.into(),
+			normal: cgmath::Matrix3::from(self.rotation).into(),
 		}
 	}
 

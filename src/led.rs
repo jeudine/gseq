@@ -22,10 +22,38 @@ pub fn init(phase: &Arc<Mutex<fft::Phase>>) -> Result<(), Box<dyn std::error::Er
 					val |= 0x0F;
 				}
 				match b {
-					fft::Break::State0 => {}
-					fft::Break::State1 => {}
-					fft::Break::State2 => {}
-					fft::Break::State3 => {}
+					fft::Break::State0 => {
+						if phase.gains[2] > 0.5 {
+							val |= 0x04;
+						}
+						if phase.gains[3] > 0.5 {
+							val |= 0x01;
+						}
+					}
+					fft::Break::State1 => {
+						if phase.gains[2] > 1.0 {
+							val |= 0x04;
+						}
+						if phase.gains[3] > 2.0 {
+							val |= 0x08;
+						}
+					}
+					fft::Break::State2 => {
+						if phase.gains[3] > 1.0 {
+							val |= 0x02;
+						}
+						if phase.gains[2] > 2.0 {
+							val |= 0x08;
+						}
+					}
+					fft::Break::State3 => {
+						if phase.gains[3] > 4.0 {
+							val |= 0x03;
+						}
+						if phase.gains[3] > 4.0 {
+							val |= 0x0A;
+						}
+					}
 				}
 			}
 			fft::State::Drop(d) => match d {

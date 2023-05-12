@@ -343,9 +343,7 @@ where
 			let val = (mean_low - global_mean_low) / global_sd_low;
 
 			//TODO: testing
-			buffer.state = State::Break(Break::State0);
-
-			/*
+			//buffer.state = State::Drop(Drop::State3);
 
 			buffer.state = if val > 0.2 {
 				if let State::Break(_) = buffer.state {
@@ -372,7 +370,6 @@ where
 			} else {
 				buffer.state
 			};
-			*/
 
 			let gains: Vec<_> = (0..buffer.nb_channels as usize)
 				.map(|i| (levels[i] - buffer.mean[i]) / buffer.var[i].sqrt())
