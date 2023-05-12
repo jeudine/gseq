@@ -38,7 +38,7 @@ impl Light {
 		let light_uniform_2 = LightUniform {
 			position: [-1.8, 0.5, 1.0],
 			_padding: 0,
-			color: [0.0, 1.0, 0.0],
+			color: [0.6, 0.6, 0.1],
 			_padding2: 0,
 		};
 		let light_uniform_3 = LightUniform {

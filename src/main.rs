@@ -221,7 +221,11 @@ fn main() {
 		params: vec![(
 			Instance {
 				position: cgmath::Vector3::new(0.0, 0.0, 0.0),
-				rotation: Basis3::one(),
+				rotation: Basis3::from(Euler {
+					x: Deg(110.0),
+					y: Deg(0.0),
+					z: Deg(0.0),
+				}),
 				scale: 1.0,
 			},
 			Action::FFT,
@@ -296,7 +300,7 @@ fn main() {
 				rotation: Basis3::one(),
 				scale: 1.0,
 			},
-			Action::Rotate(cgmath::Vector3::new(0.0, 1.0, 0.3), cgmath::Rad(0.3)),
+			Action::Rotate(cgmath::Vector3::new(0.0, 0.7, 0.714), cgmath::Rad(0.3)),
 		)],
 	};
 
@@ -308,7 +312,7 @@ fn main() {
 				rotation: Basis3::one(),
 				scale: 1.0,
 			},
-			Action::Rotate(cgmath::Vector3::new(0.0, 0.3, 0.7), cgmath::Rad(0.5)),
+			Action::Rotate(cgmath::Vector3::new(0.0, 0.5, 0.866), cgmath::Rad(0.2)),
 		)],
 	};
 
@@ -320,7 +324,7 @@ fn main() {
 				rotation: Basis3::one(),
 				scale: 1.0,
 			},
-			Action::Rotate(cgmath::Vector3::new(0.0, 0.1, 0.9), cgmath::Rad(0.5)),
+			Action::Rotate(cgmath::Vector3::new(0.0, 0.2, 0.98), cgmath::Rad(-0.3)),
 		)],
 	};
 
@@ -332,7 +336,7 @@ fn main() {
 				rotation: Basis3::one(),
 				scale: 1.0,
 			},
-			Action::Rotate(cgmath::Vector3::new(0.0, 0.4, 0.2), cgmath::Rad(0.1)),
+			Action::Rotate(cgmath::Vector3::new(0.0, 0.98, 0.2), cgmath::Rad(0.3)),
 		)],
 	};
 
@@ -342,14 +346,14 @@ fn main() {
 			Instance {
 				position: cgmath::Vector3::new(0.0, 0.0, 0.0),
 				rotation: Basis3::from(Euler {
-					x: Deg(90.0),
-					y: Deg(90.0),
-					z: Deg(90.0),
+					x: Deg(0.0),
+					y: Deg(0.0),
+					z: Deg(0.0),
 				}),
 
 				scale: 1.0,
 			},
-			Action::Rotate(cgmath::Vector3::new(0.3, 0.3, 0.9055), cgmath::Rad(0.8)),
+			Action::Rotate(cgmath::Vector3::new(0.0, 0.0, 1.0), cgmath::Rad(0.3)),
 		)],
 	};
 
@@ -421,8 +425,8 @@ fn main() {
 			iris1_r,
 			iris2_r,
 			iris3_r,
-			pupil_cage_r,
-			wireframe_r,
+			//pupil_cage_r,
+			//wireframe_r,
 			ball_cube_r,
 			ball_coral_r,
 			ball_pikes_r,
