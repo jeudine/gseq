@@ -36,6 +36,7 @@ pub struct Display {
 	cur_pupil_pos: cgmath::Vector3<f32>,
 	cur_pupil_rot: cgmath::Euler<cgmath::Deg<f32>>,
 	above_05: bool,
+	was_in_drop: bool,
 }
 
 impl Display {
@@ -307,6 +308,7 @@ impl Display {
 			cur_pupil_pos: cgmath::Vector3::new(0.0, 0.0, 0.0),
 			cur_pupil_rot: cgmath::Euler::new(Deg(0.0), Deg(0.0), Deg(0.0)),
 			above_05: false,
+			was_in_drop: true,
 		}
 	}
 
@@ -354,8 +356,6 @@ impl Display {
 
 		let pupil = &self.groups[0];
 		let (pupil_instance, _) = pupil.params[0];
-		use cgmath::Deg;
-		use cgmath::Euler;
 		use cgmath::Vector3;
 		let pupil_pos = vec![
 			Vector3::new(0.0, 0.0, 0.0),
@@ -389,10 +389,7 @@ impl Display {
 
 		match phase.state {
 			fft::State::Break(b) => match b {
-				_ => {}
-			},
-			fft::State::Drop(d) => match d {
-				fft::Drop::State0 => {
+				fft::Break::State0 | fft::Break::State1 => {
 					for (_mesh, material, buffer) in &pupil.model {
 						let instance_data = vec![pupil_instance.to_raw(material)];
 						self.queue
@@ -406,22 +403,41 @@ impl Display {
 					}
 
 					for (_mesh, material, buffer) in &outside.model {
-						let x = activation_func(phase.gains[0], -0.5, 0.5, 0.0, 110.0);
-						let instance_data = vec![outside_instance.to_raw_rotate(
-							material,
-							&cgmath::Basis3::from(Euler {
-								x: Deg(x),
-								y: Deg(0.0),
-								z: Deg(0.0),
-							}),
-						)];
-						self.queue
-							.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
+						if self.was_in_drop {
+							let instance_data = vec![outside_instance.to_raw_rotate(
+								material,
+								&cgmath::Basis3::from(Euler {
+									x: Deg(110.0),
+									y: Deg(0.0),
+									z: Deg(0.0),
+								}),
+							)];
+							self.queue.write_buffer(
+								&buffer,
+								0,
+								bytemuck::cast_slice(&instance_data),
+							);
+							self.was_in_drop = false;
+						} else if phase.gains[0] > 3.5 {
+							let instance_data = vec![outside_instance.to_raw_rotate(
+								material,
+								&cgmath::Basis3::from(Euler {
+									x: Deg(0.0),
+									y: Deg(0.0),
+									z: Deg(0.0),
+								}),
+							)];
+							self.queue.write_buffer(
+								&buffer,
+								0,
+								bytemuck::cast_slice(&instance_data),
+							);
+						}
 					}
 					for (_mesh, material, buffer) in &iris2.model {
 						let color = activation_func(phase.gains[3], -0.5, 0.5, 0.0, 1.0);
 						let mut new_material = material.clone();
-						new_material.diffuse.y = color;
+						new_material.diffuse.x = color;
 						new_material.spec.y = color;
 						let instance_data = vec![iris2_instance.to_raw(&new_material)];
 						self.queue
@@ -431,7 +447,7 @@ impl Display {
 					for (_mesh, material, buffer) in &iris3.model {
 						let color = activation_func(phase.gains[2], -0.5, 0.5, 0.0, 1.0);
 						let mut new_material = material.clone();
-						new_material.diffuse.x = color;
+						new_material.diffuse.z = color;
 						new_material.spec.x = color;
 						let instance_data = vec![iris3_instance
 							.to_raw_translate(&new_material, cgmath::Vector3::new(0.0, 0.0, -0.3))];
@@ -439,115 +455,218 @@ impl Display {
 							.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
 					}
 				}
-				fft::Drop::State1 => {
-					if phase.gains[0] > 0.5 && !self.above_05 {
-						let mut rng = rand::thread_rng();
-						let i = rng.gen_range(0..5);
-						self.cur_pupil_pos = pupil_pos[i];
-					}
-					for (_mesh, material, buffer) in &pupil.model {
-						let instance_data =
-							vec![pupil_instance.to_raw_translate(material, self.cur_pupil_pos)];
-						self.queue
-							.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
-					}
 
-					for (_mesh, _material, buffer) in &pupil_ring.model {
-						let instance_data = vec![Instance::raw_zero()];
-						self.queue
-							.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
-					}
-
-					for (_mesh, material, buffer) in &outside.model {
-						let instance_data = vec![outside_instance.to_raw_rotate(
-							material,
-							&cgmath::Basis3::from(cgmath::Euler {
-								x: cgmath::Deg(20.0),
-								y: cgmath::Deg(0.0),
-								z: cgmath::Deg(0.0),
-							}),
-						)];
-						self.queue
-							.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
-					}
-
-					for (_mesh, material, buffer) in &iris2.model {
-						let color = activation_func(phase.gains[3], -0.5, 0.5, 0.0, 1.0);
-						let mut new_material = material.clone();
-						new_material.diffuse.x = color;
-						new_material.spec.x = color;
-						let instance_data = vec![iris2_instance.to_raw(&new_material)];
-						self.queue
-							.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
-					}
-
-					for (_mesh, material, buffer) in &iris3.model {
-						let color = activation_func(phase.gains[2], -0.5, 0.5, 0.0, 1.0);
-						let mut new_material = material.clone();
-						new_material.diffuse.z = color;
-						new_material.spec.z = color;
-						let instance_data = vec![iris3_instance
-							.to_raw_translate(&new_material, cgmath::Vector3::new(0.0, 0.0, -0.3))];
-						self.queue
-							.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
-					}
-				}
-				fft::Drop::State2 => {
-					if phase.gains[0] > 0.5 && !self.above_05 {
-						let mut rng = rand::thread_rng();
-						let i = rng.gen_range(0..5);
-						self.cur_pupil_rot = pupil_rot[i];
-					}
-
-					for (_mesh, material, buffer) in &pupil.model {
-						let instance_data = vec![pupil_instance.to_raw(material)];
-						self.queue
-							.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
-					}
-
-					for (_mesh, _material, buffer) in &pupil_ring.model {
-						let instance_data = vec![Instance::raw_zero()];
-						self.queue
-							.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
-					}
-
-					for (_mesh, material, buffer) in &outside.model {
-						let instance_data = vec![outside_instance.to_raw_rotate(
-							material,
-							&cgmath::Basis3::from(cgmath::Euler {
-								x: cgmath::Deg(20.0),
-								y: cgmath::Deg(0.0),
-								z: cgmath::Deg(0.0),
-							}),
-						)];
-						self.queue
-							.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
-					}
-
-					for (_mesh, material, buffer) in &iris2.model {
-						let color = activation_func(phase.gains[3], -0.5, 0.5, 0.0, 1.0);
-						let mut new_material = material.clone();
-						new_material.diffuse.x = color;
-						new_material.spec.x = color;
-						let instance_data = vec![iris2_instance.to_raw(&new_material)];
-						self.queue
-							.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
-					}
-
-					for (_mesh, material, buffer) in &iris3.model {
-						let color = activation_func(phase.gains[2], -0.5, 0.5, 0.0, 1.0);
-						let mut new_material = material.clone();
-						new_material.diffuse.z = color;
-						new_material.spec.z = color;
-						let instance_data = vec![iris3_instance
-							.to_raw_rotate(&new_material, &Basis3::from(self.cur_pupil_rot))];
-						self.queue
-							.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
-					}
-				}
-
-				_ => {}
+				fft::Break::State2 | fft::Break::State3 => {}
 			},
+			fft::State::Drop(d) => {
+				self.was_in_drop = true;
+				match d {
+					fft::Drop::State0 => {
+						for (_mesh, material, buffer) in &pupil.model {
+							let instance_data = vec![pupil_instance.to_raw(material)];
+							self.queue.write_buffer(
+								&buffer,
+								0,
+								bytemuck::cast_slice(&instance_data),
+							);
+						}
+
+						for (_mesh, material, buffer) in &pupil_ring.model {
+							let instance_data = vec![pupil_ring_instance.to_raw(material)];
+							self.queue.write_buffer(
+								&buffer,
+								0,
+								bytemuck::cast_slice(&instance_data),
+							);
+						}
+
+						for (_mesh, material, buffer) in &outside.model {
+							let x = activation_func(phase.gains[0], -0.5, 0.5, 0.0, 110.0);
+							let instance_data = vec![outside_instance.to_raw_rotate(
+								material,
+								&cgmath::Basis3::from(Euler {
+									x: Deg(x),
+									y: Deg(0.0),
+									z: Deg(0.0),
+								}),
+							)];
+							self.queue.write_buffer(
+								&buffer,
+								0,
+								bytemuck::cast_slice(&instance_data),
+							);
+						}
+						for (_mesh, material, buffer) in &iris2.model {
+							let color = activation_func(phase.gains[3], -0.5, 0.5, 0.0, 1.0);
+							let mut new_material = material.clone();
+							new_material.diffuse.y = color;
+							new_material.spec.y = color;
+							let instance_data = vec![iris2_instance.to_raw(&new_material)];
+							self.queue.write_buffer(
+								&buffer,
+								0,
+								bytemuck::cast_slice(&instance_data),
+							);
+						}
+
+						for (_mesh, material, buffer) in &iris3.model {
+							let color = activation_func(phase.gains[2], -0.5, 0.5, 0.0, 1.0);
+							let mut new_material = material.clone();
+							new_material.diffuse.x = color;
+							new_material.spec.x = color;
+							let instance_data = vec![iris3_instance.to_raw_translate(
+								&new_material,
+								cgmath::Vector3::new(0.0, 0.0, -0.3),
+							)];
+							self.queue.write_buffer(
+								&buffer,
+								0,
+								bytemuck::cast_slice(&instance_data),
+							);
+						}
+					}
+					fft::Drop::State1 => {
+						if phase.gains[0] > 0.5 && !self.above_05 {
+							let mut rng = rand::thread_rng();
+							let i = rng.gen_range(0..5);
+							self.cur_pupil_pos = pupil_pos[i];
+						}
+						for (_mesh, material, buffer) in &pupil.model {
+							let instance_data =
+								vec![pupil_instance.to_raw_translate(material, self.cur_pupil_pos)];
+							self.queue.write_buffer(
+								&buffer,
+								0,
+								bytemuck::cast_slice(&instance_data),
+							);
+						}
+
+						for (_mesh, _material, buffer) in &pupil_ring.model {
+							let instance_data = vec![Instance::raw_zero()];
+							self.queue.write_buffer(
+								&buffer,
+								0,
+								bytemuck::cast_slice(&instance_data),
+							);
+						}
+
+						for (_mesh, material, buffer) in &outside.model {
+							let instance_data = vec![outside_instance.to_raw_rotate(
+								material,
+								&cgmath::Basis3::from(cgmath::Euler {
+									x: cgmath::Deg(20.0),
+									y: cgmath::Deg(0.0),
+									z: cgmath::Deg(0.0),
+								}),
+							)];
+							self.queue.write_buffer(
+								&buffer,
+								0,
+								bytemuck::cast_slice(&instance_data),
+							);
+						}
+
+						for (_mesh, material, buffer) in &iris2.model {
+							let color = activation_func(phase.gains[3], -0.5, 0.5, 0.0, 1.0);
+							let mut new_material = material.clone();
+							new_material.diffuse.x = color;
+							new_material.spec.x = color;
+							let instance_data = vec![iris2_instance.to_raw(&new_material)];
+							self.queue.write_buffer(
+								&buffer,
+								0,
+								bytemuck::cast_slice(&instance_data),
+							);
+						}
+
+						for (_mesh, material, buffer) in &iris3.model {
+							let color = activation_func(phase.gains[2], -0.5, 0.5, 0.0, 1.0);
+							let mut new_material = material.clone();
+							new_material.diffuse.z = color;
+							new_material.spec.z = color;
+							let instance_data = vec![iris3_instance.to_raw_translate(
+								&new_material,
+								cgmath::Vector3::new(0.0, 0.0, -0.3),
+							)];
+							self.queue.write_buffer(
+								&buffer,
+								0,
+								bytemuck::cast_slice(&instance_data),
+							);
+						}
+					}
+					fft::Drop::State2 => {
+						if phase.gains[0] > 0.5 && !self.above_05 {
+							let mut rng = rand::thread_rng();
+							let i = rng.gen_range(0..5);
+							self.cur_pupil_rot = pupil_rot[i];
+						}
+
+						for (_mesh, material, buffer) in &pupil.model {
+							let instance_data = vec![pupil_instance.to_raw(material)];
+							self.queue.write_buffer(
+								&buffer,
+								0,
+								bytemuck::cast_slice(&instance_data),
+							);
+						}
+
+						for (_mesh, _material, buffer) in &pupil_ring.model {
+							let instance_data = vec![Instance::raw_zero()];
+							self.queue.write_buffer(
+								&buffer,
+								0,
+								bytemuck::cast_slice(&instance_data),
+							);
+						}
+
+						for (_mesh, material, buffer) in &outside.model {
+							let instance_data = vec![outside_instance.to_raw_rotate(
+								material,
+								&cgmath::Basis3::from(cgmath::Euler {
+									x: cgmath::Deg(20.0),
+									y: cgmath::Deg(0.0),
+									z: cgmath::Deg(0.0),
+								}),
+							)];
+							self.queue.write_buffer(
+								&buffer,
+								0,
+								bytemuck::cast_slice(&instance_data),
+							);
+						}
+
+						for (_mesh, material, buffer) in &iris2.model {
+							let color = activation_func(phase.gains[3], -0.5, 0.5, 0.0, 1.0);
+							let mut new_material = material.clone();
+							new_material.diffuse.x = color;
+							new_material.spec.x = color;
+							let instance_data = vec![iris2_instance.to_raw(&new_material)];
+							self.queue.write_buffer(
+								&buffer,
+								0,
+								bytemuck::cast_slice(&instance_data),
+							);
+						}
+
+						for (_mesh, material, buffer) in &iris3.model {
+							let color = activation_func(phase.gains[2], -0.5, 0.5, 0.0, 1.0);
+							let mut new_material = material.clone();
+							new_material.diffuse.z = color;
+							new_material.spec.z = color;
+							let instance_data = vec![iris3_instance
+								.to_raw_rotate(&new_material, &Basis3::from(self.cur_pupil_rot))];
+							self.queue.write_buffer(
+								&buffer,
+								0,
+								bytemuck::cast_slice(&instance_data),
+							);
+						}
+					}
+
+					_ => {}
+				}
+			}
 		}
 		self.above_05 = if phase.gains[0] > 0.5 { true } else { false };
 
