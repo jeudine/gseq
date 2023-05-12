@@ -8,6 +8,7 @@ use crate::light::Light;
 use crate::model::Model;
 use crate::texture::Texture;
 use cgmath::{Deg, Euler, Rotation3};
+use rand::Rng;
 use std::iter;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
@@ -31,8 +32,9 @@ pub struct Display {
 	bind_group: wgpu::BindGroup,
 	window: Window,
 	start_time: Instant,
-	//nb_fft_instances: u32,
 	cur_fft_instance: u32,
+	cur_pupil_pos: cgmath::Vector3<f32>,
+	above_05: bool,
 }
 
 impl Display {
@@ -301,6 +303,8 @@ impl Display {
 			start_time: Instant::now(),
 			//nb_fft_instances,
 			cur_fft_instance: 0,
+			cur_pupil_pos: cgmath::Vector3::new(0.0, 0.0, 0.0),
+			above_05: false,
 		}
 	}
 
@@ -346,11 +350,32 @@ impl Display {
 			}
 		}
 
+		let pupil = &self.groups[0];
+		let (pupil_instance, _) = pupil.params[0];
+		use cgmath::Vector3;
+		let pupil_pos = vec![
+			Vector3::new(0.0, 0.0, 0.0),
+			Vector3::new(-0.4, 0.0, 0.0),
+			Vector3::new(0.4, 0.0, 0.0),
+			Vector3::new(0.0, 0.4, 0.0),
+			Vector3::new(0.0, -0.4, 0.0),
+		];
+
+		let pupil_ring = &self.groups[1];
+		let (pupil_ring_instance, _) = pupil_ring.params[0];
+
 		let outside = &self.groups[2];
 		let (outside_instance, _) = outside.params[0];
 
+		let iris2 = &self.groups[4];
+		let (iris2_instance, _) = iris2.params[0];
+
+		let iris3 = &self.groups[5];
+		let (iris3_instance, _) = iris3.params[0];
+
 		//FFT elements
 		let phase = phase.lock().unwrap();
+
 		match phase.state {
 			fft::State::Break(b) => match b {
 				//TODO
@@ -358,6 +383,12 @@ impl Display {
 			},
 			fft::State::Drop(d) => match d {
 				fft::Drop::State0 => {
+					for (_mesh, material, buffer) in &pupil.model {
+						let instance_data = vec![pupil_instance.to_raw(material)];
+						self.queue
+							.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
+					}
+
 					for (_mesh, material, buffer) in &outside.model {
 						let x = activation_func(phase.gains[0], -0.5, 0.5, 0.0, 110.0);
 						let instance_data = vec![outside_instance.to_raw_rotate(
@@ -368,30 +399,65 @@ impl Display {
 								z: Deg(0.0),
 							}),
 						)];
+						self.queue
+							.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
+					}
+
+					for (_mesh, material, buffer) in &iris2.model {
+						let instance_data = vec![iris2_instance.to_raw(material)];
 						self.queue
 							.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
 					}
 				}
 				fft::Drop::State1 => {
-					// eye_lid
+					if phase.gains[0] > 0.5 && !self.above_05 {
+						let mut rng = rand::thread_rng();
+						let i = rng.gen_range(0..5);
+						self.cur_pupil_pos = pupil_pos[i];
+					}
+					for (_mesh, material, buffer) in &pupil.model {
+						let instance_data =
+							vec![pupil_instance.to_raw_translation(material, self.cur_pupil_pos)];
+						self.queue
+							.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
+					}
+
+					for (_mesh, _material, buffer) in &pupil_ring.model {
+						let instance_data = vec![Instance::raw_zero()];
+						self.queue
+							.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
+					}
+
 					for (_mesh, material, buffer) in &outside.model {
-						let x = activation_func(phase.gains[0], -0.5, 0.5, 0.0, 110.0);
-						let instance_data = vec![outside_instance.to_raw_rotate(
-							material,
-							&cgmath::Basis3::from(Euler {
-								x: Deg(x),
-								y: Deg(0.0),
-								z: Deg(0.0),
-							}),
-						)];
+						let instance_data = vec![pupil_instance.to_raw(material)];
+						self.queue
+							.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
+					}
+
+					for (_mesh, material, buffer) in &iris2.model {
+						let color = activation_func(phase.gains[3], -0.5, 0.5, 0.0, 1.0);
+						let mut new_material = material.clone();
+						new_material.diffuse.x = color;
+						new_material.spec.x = color;
+						let instance_data = vec![iris2_instance.to_raw(&new_material)];
+						self.queue
+							.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
+					}
+
+					for (_mesh, material, buffer) in &iris3.model {
+						let color = activation_func(phase.gains[2], -0.5, 0.5, 0.0, 1.0);
+						let mut new_material = material.clone();
+						new_material.diffuse.z = color;
+						new_material.spec.z = color;
+						let instance_data = vec![iris3_instance.to_raw(&new_material)];
 						self.queue
 							.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
 					}
 				}
-
 				_ => {}
 			},
 		}
+		self.above_05 = if phase.gains[0] > 0.5 { true } else { false };
 
 		/*
 		let eye_lid = &mut self.groups[0];

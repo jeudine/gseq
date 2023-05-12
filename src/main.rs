@@ -260,7 +260,7 @@ fn main() {
 		file_name: "res/eye/iris3.obj".to_string(),
 		params: vec![(
 			Instance {
-				position: cgmath::Vector3::new(0.0, 0.0, 0.0),
+				position: cgmath::Vector3::new(0.0, 0.0, -0.3),
 				rotation: Basis3::one(),
 				scale: 1.0,
 			},
@@ -419,9 +419,9 @@ fn main() {
 
 	pollster::block_on(run(vec![
 		vec![
-			pupil_r,
-			pupil_ring_r,
-			outside_r,
+			pupil_r,      //done
+			pupil_ring_r, //done
+			outside_r,    //done
 			iris1_r,
 			iris2_r,
 			iris3_r,
@@ -435,8 +435,8 @@ fn main() {
 			torus1_r,        //done
 			torus2_r,        //done
 			torus3_r,        //done
-			torus_inside_r,
-			torus_inside2_r,
+			                 //torus_inside_r,
+			                 //torus_inside2_r,
 		],
 		//vec![],
 	]));

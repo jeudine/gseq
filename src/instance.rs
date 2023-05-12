@@ -57,6 +57,20 @@ impl Instance {
 		}
 	}
 
+	pub fn to_raw_translation(&self, m: &Material, t: cgmath::Vector3<f32>) -> InstanceRaw {
+		InstanceRaw {
+			ambient: m.ambient.into(),
+			diffuse: m.diffuse.into(),
+			spec: m.spec.into(),
+			shin: m.shin,
+			model: (cgmath::Matrix4::from_translation(self.position + t)
+				* cgmath::Matrix4::from(cgmath::Matrix3::from(self.rotation))
+				* cgmath::Matrix4::from_scale(self.scale))
+			.into(),
+			normal: cgmath::Matrix3::from(self.rotation).into(),
+		}
+	}
+
 	pub fn to_raw_rotate(&self, m: &Material, rotation: &cgmath::Basis3<f32>) -> InstanceRaw {
 		let rotation = cgmath::Matrix3::from(self.rotation * rotation);
 		InstanceRaw {
