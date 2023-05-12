@@ -429,7 +429,14 @@ impl Display {
 					}
 
 					for (_mesh, material, buffer) in &outside.model {
-						let instance_data = vec![pupil_instance.to_raw(material)];
+						let instance_data = vec![outside_instance.to_raw_rotate(
+							material,
+							&cgmath::Basis3::from(cgmath::Euler {
+								x: cgmath::Deg(20.0),
+								y: cgmath::Deg(0.0),
+								z: cgmath::Deg(0.0),
+							}),
+						)];
 						self.queue
 							.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
 					}
@@ -454,6 +461,65 @@ impl Display {
 							.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
 					}
 				}
+				fft::Drop::State2 => {
+					if phase.gains[0] > 0.5 && !self.above_05 {
+						let mut rng = rand::thread_rng();
+						let i = rng.gen_range(0..5);
+						self.cur_pupil_pos = pupil_pos[i];
+					}
+
+					for (_mesh, material, buffer) in &pupil.model {
+						let instance_data = vec![pupil_instance.to_raw(material)];
+						self.queue
+							.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
+					}
+
+					for (_mesh, _material, buffer) in &pupil_ring.model {
+						let instance_data = vec![Instance::raw_zero()];
+						self.queue
+							.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
+					}
+
+					for (_mesh, material, buffer) in &outside.model {
+						let instance_data = vec![outside_instance.to_raw_rotate(
+							material,
+							&cgmath::Basis3::from(cgmath::Euler {
+								x: cgmath::Deg(20.0),
+								y: cgmath::Deg(0.0),
+								z: cgmath::Deg(0.0),
+							}),
+						)];
+						self.queue
+							.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
+					}
+
+					for (_mesh, material, buffer) in &iris2.model {
+						if phase.gains[0] > 0.5 && !self.above_05 {
+							let mut rng = rand::thread_rng();
+							let i = rng.gen_range(0..5);
+							self.cur_pupil_pos = pupil_pos[i];
+						}
+
+						let color = activation_func(phase.gains[3], -0.5, 0.5, 0.0, 1.0);
+						let mut new_material = material.clone();
+						new_material.diffuse.x = color;
+						new_material.spec.x = color;
+						let instance_data = vec![iris2_instance.to_raw(&new_material)];
+						self.queue
+							.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
+					}
+
+					for (_mesh, material, buffer) in &iris3.model {
+						let color = activation_func(phase.gains[2], -0.5, 0.5, 0.0, 1.0);
+						let mut new_material = material.clone();
+						new_material.diffuse.z = color;
+						new_material.spec.z = color;
+						let instance_data = vec![iris3_instance.to_raw(&new_material)];
+						self.queue
+							.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
+					}
+				}
+
 				_ => {}
 			},
 		}
