@@ -343,7 +343,7 @@ where
 			let val = (mean_low - global_mean_low) / global_sd_low;
 
 			//TODO: testing
-			buffer.state = State::Drop(Drop::State1);
+			buffer.state = State::Drop(Drop::State0);
 
 			/*
 

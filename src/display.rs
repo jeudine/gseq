@@ -378,10 +378,10 @@ impl Display {
 		let outside = &self.groups[2];
 		let (outside_instance, _) = outside.params[0];
 
-		let iris2 = &self.groups[4];
+		let iris2 = &self.groups[3];
 		let (iris2_instance, _) = iris2.params[0];
 
-		let iris3 = &self.groups[5];
+		let iris3 = &self.groups[4];
 		let (iris3_instance, _) = iris3.params[0];
 
 		//FFT elements
@@ -389,13 +389,18 @@ impl Display {
 
 		match phase.state {
 			fft::State::Break(b) => match b {
-				//TODO
 				_ => {}
 			},
 			fft::State::Drop(d) => match d {
 				fft::Drop::State0 => {
 					for (_mesh, material, buffer) in &pupil.model {
 						let instance_data = vec![pupil_instance.to_raw(material)];
+						self.queue
+							.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
+					}
+
+					for (_mesh, material, buffer) in &pupil_ring.model {
+						let instance_data = vec![pupil_ring_instance.to_raw(material)];
 						self.queue
 							.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
 					}
@@ -413,9 +418,23 @@ impl Display {
 						self.queue
 							.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
 					}
-
 					for (_mesh, material, buffer) in &iris2.model {
-						let instance_data = vec![iris2_instance.to_raw(material)];
+						let color = activation_func(phase.gains[3], -0.5, 0.5, 0.0, 1.0);
+						let mut new_material = material.clone();
+						new_material.diffuse.y = color;
+						new_material.spec.y = color;
+						let instance_data = vec![iris2_instance.to_raw(&new_material)];
+						self.queue
+							.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
+					}
+
+					for (_mesh, material, buffer) in &iris3.model {
+						let color = activation_func(phase.gains[2], -0.5, 0.5, 0.0, 1.0);
+						let mut new_material = material.clone();
+						new_material.diffuse.x = color;
+						new_material.spec.x = color;
+						let instance_data = vec![iris3_instance
+							.to_raw_translate(&new_material, cgmath::Vector3::new(0.0, 0.0, -0.3))];
 						self.queue
 							.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
 					}

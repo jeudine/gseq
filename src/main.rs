@@ -419,12 +419,11 @@ fn main() {
 
 	pollster::block_on(run(vec![
 		vec![
-			pupil_r,      //done
-			pupil_ring_r, //done
-			outside_r,    //done
-			iris1_r,
-			iris2_r,
-			iris3_r,
+			pupil_r,      //fft
+			pupil_ring_r, //fft
+			outside_r,    //fft
+			iris2_r,      //fft
+			iris3_r,      //fft
 			//pupil_cage_r,
 			//wireframe_r,
 			ball_cube_r,     //done
