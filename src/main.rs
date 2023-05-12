@@ -296,7 +296,7 @@ fn main() {
 				rotation: Basis3::one(),
 				scale: 1.0,
 			},
-			Action::FFT,
+			Action::Rotate(cgmath::Vector3::new(0.0, 1.0, 0.3), cgmath::Rad(0.3)),
 		)],
 	};
 
@@ -308,7 +308,7 @@ fn main() {
 				rotation: Basis3::one(),
 				scale: 1.0,
 			},
-			Action::FFT,
+			Action::Rotate(cgmath::Vector3::new(0.0, 0.3, 0.7), cgmath::Rad(0.5)),
 		)],
 	};
 
@@ -320,7 +320,7 @@ fn main() {
 				rotation: Basis3::one(),
 				scale: 1.0,
 			},
-			Action::FFT,
+			Action::Rotate(cgmath::Vector3::new(0.0, 0.1, 0.9), cgmath::Rad(0.5)),
 		)],
 	};
 
@@ -332,7 +332,7 @@ fn main() {
 				rotation: Basis3::one(),
 				scale: 1.0,
 			},
-			Action::FFT,
+			Action::Rotate(cgmath::Vector3::new(0.0, 0.4, 0.2), cgmath::Rad(0.1)),
 		)],
 	};
 
@@ -341,10 +341,15 @@ fn main() {
 		params: vec![(
 			Instance {
 				position: cgmath::Vector3::new(0.0, 0.0, 0.0),
-				rotation: Basis3::one(),
+				rotation: Basis3::from(Euler {
+					x: Deg(90.0),
+					y: Deg(90.0),
+					z: Deg(90.0),
+				}),
+
 				scale: 1.0,
 			},
-			Action::FFT,
+			Action::Rotate(cgmath::Vector3::new(0.3, 0.3, 0.9055), cgmath::Rad(0.8)),
 		)],
 	};
 
@@ -356,7 +361,7 @@ fn main() {
 				rotation: Basis3::one(),
 				scale: 1.0,
 			},
-			Action::FFT,
+			Action::Rotate(cgmath::Vector3::new(0.9055, 0.3, 0.3), cgmath::Rad(0.4)),
 		)],
 	};
 
@@ -429,7 +434,7 @@ fn main() {
 			torus_inside_r,
 			torus_inside2_r,
 		],
-		vec![],
+		//vec![],
 	]));
 
 	/*

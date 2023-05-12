@@ -89,7 +89,7 @@ impl Model {
 				);
 
 				let material = Material {
-					ambient: [0.0, 0.0, 0.0].into(),
+					ambient: material.ambient.into(),
 					diffuse: material.diffuse.into(),
 					spec: material.specular.into(),
 					shin: material.shininess.into(),

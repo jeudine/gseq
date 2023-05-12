@@ -7,7 +7,7 @@ use crate::item::Item;
 use crate::light::Light;
 use crate::model::Model;
 use crate::texture::Texture;
-use cgmath::{Deg, Euler};
+use cgmath::{Deg, Euler, Rotation3};
 use std::iter;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
@@ -320,15 +320,76 @@ impl Display {
 	}
 
 	pub fn update(&mut self, phase: &Arc<Mutex<fft::Phase>>) {
-		/*
-		if gain[0].1 < 0.2 {
-			self.cur_fft_instance += 1;
-			if self.cur_fft_instance == self.nb_fft_instances {
-				self.cur_fft_instance = 0;
+		let time = self.start_time.elapsed().as_secs_f32();
+
+		for g in &mut self.groups {
+			//TODO: only one group
+			let (instance, action) = g.params[0];
+			match action {
+				Action::Still => {
+					for (_mesh, material, buffer) in &mut g.model {
+						let instance_data = vec![instance.to_raw(material)];
+						self.queue
+							.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
+					}
+				}
+				Action::Rotate(v, s) => {
+					let a = s * time;
+					for (_mesh, material, buffer) in &mut g.model {
+						let rotation = cgmath::Basis3::from_axis_angle(v, a);
+						let instance_data = vec![instance.to_raw_rotate(material, &rotation)];
+						self.queue
+							.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
+					}
+				}
+				Action::FFT => {
+					/*
+					let i = if count_fft_instance == self.cur_fft_instance {
+						let a = rot_speed * time;
+						let rotation = cgmath::Basis3::from_axis_angle(rot_vector, a);
+						p.0.to_raw_scale_rotate(&m, (phase.gains[0] / 3.0).exp(), &rotation)
+					} else {
+						Instance::raw_zero()
+					};
+					count_fft_instance += 1;
+					i
+					*/
+				}
 			}
-			gain[0].1 = 0.0;
-		} else if gain[0].1 > 3.0 {
-			gain[0].1 = 3.0;
+		}
+		/*
+
+		let ball_cube = &mut self.groups[8];
+		let (ball_cube_instance, _) = &ball_cube.params[0];
+		for (_mesh, material, buffer) in &mut ball_cube.model {
+			let a = cgmath::Rad(0.3) * time;
+			let v = cgmath::Vector3::new(0.0, 1.0, 0.0);
+			let rotation = cgmath::Basis3::from_axis_angle(v, a);
+			let instance_data = vec![ball_cube_instance.to_raw_rotate(material, &rotation)];
+			self.queue
+				.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
+		}
+
+		let ball_coral = &mut self.groups[9];
+		let (ball_coral_instance, _) = &ball_coral.params[0];
+		for (_mesh, material, buffer) in &mut ball_coral.model {
+			let a = cgmath::Rad(0.4) * time;
+			let v = cgmath::Vector3::new(0.0, 0.0, 0.9);
+			let rotation = cgmath::Basis3::from_axis_angle(v, a);
+			let instance_data = vec![ball_coral_instance.to_raw_rotate(material, &rotation)];
+			self.queue
+				.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
+		}
+
+		let ball_pikes = &mut self.groups[10];
+		let (ball_pikes_instance, _) = &ball_pikes.params[0];
+		for (_mesh, material, buffer) in &mut ball_pikes.model {
+			let a = cgmath::Rad(0.4) * time;
+			let v = cgmath::Vector3::new(0.0, 0.0, 0.9);
+			let rotation = cgmath::Basis3::from_axis_angle(v, a);
+			let instance_data = vec![ball_coral_instance.to_raw_rotate(material, &rotation)];
+			self.queue
+				.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
 		}
 		*/
 
