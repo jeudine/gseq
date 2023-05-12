@@ -260,7 +260,7 @@ fn main() {
 		file_name: "res/eye/iris3.obj".to_string(),
 		params: vec![(
 			Instance {
-				position: cgmath::Vector3::new(0.0, 0.0, -0.3),
+				position: cgmath::Vector3::new(0.0, 0.0, 0.0),
 				rotation: Basis3::one(),
 				scale: 1.0,
 			},

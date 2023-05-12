@@ -7,7 +7,7 @@ use crate::item::Item;
 use crate::light::Light;
 use crate::model::Model;
 use crate::texture::Texture;
-use cgmath::{Deg, Euler, Rotation3};
+use cgmath::{Basis3, Deg, Euler, Rotation3};
 use rand::Rng;
 use std::iter;
 use std::sync::{Arc, Mutex};
@@ -34,6 +34,7 @@ pub struct Display {
 	start_time: Instant,
 	cur_fft_instance: u32,
 	cur_pupil_pos: cgmath::Vector3<f32>,
+	cur_pupil_rot: cgmath::Euler<cgmath::Deg<f32>>,
 	above_05: bool,
 }
 
@@ -304,6 +305,7 @@ impl Display {
 			//nb_fft_instances,
 			cur_fft_instance: 0,
 			cur_pupil_pos: cgmath::Vector3::new(0.0, 0.0, 0.0),
+			cur_pupil_rot: cgmath::Euler::new(Deg(0.0), Deg(0.0), Deg(0.0)),
 			above_05: false,
 		}
 	}
@@ -352,6 +354,8 @@ impl Display {
 
 		let pupil = &self.groups[0];
 		let (pupil_instance, _) = pupil.params[0];
+		use cgmath::Deg;
+		use cgmath::Euler;
 		use cgmath::Vector3;
 		let pupil_pos = vec![
 			Vector3::new(0.0, 0.0, 0.0),
@@ -359,6 +363,13 @@ impl Display {
 			Vector3::new(0.4, 0.0, 0.0),
 			Vector3::new(0.0, 0.4, 0.0),
 			Vector3::new(0.0, -0.4, 0.0),
+		];
+		let pupil_rot = vec![
+			Euler::new(Deg(0.0), Deg(0.0), Deg(0.0)),
+			Euler::new(Deg(30.0), Deg(0.0), Deg(0.0)),
+			Euler::new(Deg(-30.0), Deg(0.0), Deg(0.0)),
+			Euler::new(Deg(0.0), Deg(30.0), Deg(0.0)),
+			Euler::new(Deg(0.0), Deg(-30.0), Deg(0.0)),
 		];
 
 		let pupil_ring = &self.groups[1];
@@ -417,7 +428,7 @@ impl Display {
 					}
 					for (_mesh, material, buffer) in &pupil.model {
 						let instance_data =
-							vec![pupil_instance.to_raw_translation(material, self.cur_pupil_pos)];
+							vec![pupil_instance.to_raw_translate(material, self.cur_pupil_pos)];
 						self.queue
 							.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
 					}
@@ -456,7 +467,8 @@ impl Display {
 						let mut new_material = material.clone();
 						new_material.diffuse.z = color;
 						new_material.spec.z = color;
-						let instance_data = vec![iris3_instance.to_raw(&new_material)];
+						let instance_data = vec![iris3_instance
+							.to_raw_translate(&new_material, cgmath::Vector3::new(0.0, 0.0, -0.3))];
 						self.queue
 							.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
 					}
@@ -465,7 +477,7 @@ impl Display {
 					if phase.gains[0] > 0.5 && !self.above_05 {
 						let mut rng = rand::thread_rng();
 						let i = rng.gen_range(0..5);
-						self.cur_pupil_pos = pupil_pos[i];
+						self.cur_pupil_rot = pupil_rot[i];
 					}
 
 					for (_mesh, material, buffer) in &pupil.model {
@@ -494,12 +506,6 @@ impl Display {
 					}
 
 					for (_mesh, material, buffer) in &iris2.model {
-						if phase.gains[0] > 0.5 && !self.above_05 {
-							let mut rng = rand::thread_rng();
-							let i = rng.gen_range(0..5);
-							self.cur_pupil_pos = pupil_pos[i];
-						}
-
 						let color = activation_func(phase.gains[3], -0.5, 0.5, 0.0, 1.0);
 						let mut new_material = material.clone();
 						new_material.diffuse.x = color;
@@ -514,7 +520,8 @@ impl Display {
 						let mut new_material = material.clone();
 						new_material.diffuse.z = color;
 						new_material.spec.z = color;
-						let instance_data = vec![iris3_instance.to_raw(&new_material)];
+						let instance_data = vec![iris3_instance
+							.to_raw_rotate(&new_material, &Basis3::from(self.cur_pupil_rot))];
 						self.queue
 							.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
 					}
