@@ -342,62 +342,61 @@ impl Display {
 							.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
 					}
 				}
-				Action::FFT => {
-					/*
-					let i = if count_fft_instance == self.cur_fft_instance {
-						let a = rot_speed * time;
-						let rotation = cgmath::Basis3::from_axis_angle(rot_vector, a);
-						p.0.to_raw_scale_rotate(&m, (phase.gains[0] / 3.0).exp(), &rotation)
-					} else {
-						Instance::raw_zero()
-					};
-					count_fft_instance += 1;
-					i
-					*/
-				}
+				Action::FFT => {}
 			}
 		}
-		/*
 
-		let ball_cube = &mut self.groups[8];
-		let (ball_cube_instance, _) = &ball_cube.params[0];
-		for (_mesh, material, buffer) in &mut ball_cube.model {
-			let a = cgmath::Rad(0.3) * time;
-			let v = cgmath::Vector3::new(0.0, 1.0, 0.0);
-			let rotation = cgmath::Basis3::from_axis_angle(v, a);
-			let instance_data = vec![ball_cube_instance.to_raw_rotate(material, &rotation)];
-			self.queue
-				.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
-		}
+		let outside = &self.groups[2];
+		let (outside_instance, _) = outside.params[0];
 
-		let ball_coral = &mut self.groups[9];
-		let (ball_coral_instance, _) = &ball_coral.params[0];
-		for (_mesh, material, buffer) in &mut ball_coral.model {
-			let a = cgmath::Rad(0.4) * time;
-			let v = cgmath::Vector3::new(0.0, 0.0, 0.9);
-			let rotation = cgmath::Basis3::from_axis_angle(v, a);
-			let instance_data = vec![ball_coral_instance.to_raw_rotate(material, &rotation)];
-			self.queue
-				.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
-		}
+		//FFT elements
+		let phase = phase.lock().unwrap();
+		match phase.state {
+			fft::State::Break(b) => match b {
+				//TODO
+				_ => {}
+			},
+			fft::State::Drop(d) => match d {
+				fft::Drop::State0 => {
+					for (_mesh, material, buffer) in &outside.model {
+						let x = activation_func(phase.gains[0], -0.5, 0.5, 0.0, 110.0);
+						let instance_data = vec![outside_instance.to_raw_rotate(
+							material,
+							&cgmath::Basis3::from(Euler {
+								x: Deg(x),
+								y: Deg(0.0),
+								z: Deg(0.0),
+							}),
+						)];
+						self.queue
+							.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
+					}
+				}
+				fft::Drop::State1 => {
+					// eye_lid
+					for (_mesh, material, buffer) in &outside.model {
+						let x = activation_func(phase.gains[0], -0.5, 0.5, 0.0, 110.0);
+						let instance_data = vec![outside_instance.to_raw_rotate(
+							material,
+							&cgmath::Basis3::from(Euler {
+								x: Deg(x),
+								y: Deg(0.0),
+								z: Deg(0.0),
+							}),
+						)];
+						self.queue
+							.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
+					}
+				}
 
-		let ball_pikes = &mut self.groups[10];
-		let (ball_pikes_instance, _) = &ball_pikes.params[0];
-		for (_mesh, material, buffer) in &mut ball_pikes.model {
-			let a = cgmath::Rad(0.4) * time;
-			let v = cgmath::Vector3::new(0.0, 0.0, 0.9);
-			let rotation = cgmath::Basis3::from_axis_angle(v, a);
-			let instance_data = vec![ball_coral_instance.to_raw_rotate(material, &rotation)];
-			self.queue
-				.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
+				_ => {}
+			},
 		}
-		*/
 
 		/*
 		let eye_lid = &mut self.groups[0];
 		let (eye_lid_instance, _) = &eye_lid.params[0];
 
-		let phase = phase.lock().unwrap();
 		for (mesh, material, buffer) in &mut eye_lid.model {
 			let x = activation_func(phase.gains[0], -0.5, 0.5, 46.0, -50.0);
 			let instance_data = vec![eye_lid_instance.to_raw_rotate(
@@ -414,46 +413,7 @@ impl Display {
 		*/
 
 		/*
-		match phase.state {
-			fft::State::Break(b) => match b {
-				//TODO
-				_ => {}
-			},
-			fft::State::Drop(d) => match d {
-				fft::Drop::State0 => {
-					// eye_lid
-					for (mesh, material, buffer) in &mut eye_lid.model {
-						let x = activation_func(phase.gains[0], -0.5, 0.5, 0.0, -100.0);
-						let instance_data = vec![eye_lid_instance.to_raw_rotate(
-							material,
-							&cgmath::Basis3::from(Euler {
-								x: Deg(x),
-								y: Deg(0.0),
-								z: Deg(0.0),
-							}),
-						)];
-						self.queue
-							.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
-					}
-				}
-				_ => {
-					for (mesh, material, buffer) in &mut eye_lid.model {
-						let x = activation_func(phase.gains[0], -0.5, 0.5, 46.0, -125.0);
-						let instance_data = vec![eye_lid_instance.to_raw_rotate(
-							material,
-							&cgmath::Basis3::from(Euler {
-								x: Deg(x),
-								y: Deg(0.0),
-								z: Deg(0.0),
-							}),
-						)];
-						self.queue
-							.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
-					}
-				}
-			},
-		}
-		*/
+			*/
 
 		/*
 

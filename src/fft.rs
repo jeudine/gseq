@@ -69,6 +69,7 @@ struct Buffer {
 	var: Vec<f32>,
 	global_mean: Vec<f32>,
 	global_var: Vec<f32>,
+	global_count: u64,
 	count: u64,
 	nb_channels: u32,
 	index_limits: Vec<usize>,
@@ -136,6 +137,7 @@ pub fn init(
 		var,
 		global_mean: vec![0.0; nb_channels as usize],
 		global_var: vec![0.0; nb_channels as usize],
+		global_count: 0,
 		count: 0,
 		window: hanning_window,
 		nb_channels,
@@ -239,6 +241,7 @@ where
 		if buffer.pos == buffer.len {
 			buffer.pos = 0;
 			buffer.count += 1;
+			buffer.global_count += 1;
 			buffer
 				.r2c
 				.process_with_scratch(&mut buffer.input, &mut buffer.output, &mut buffer.scratch)
@@ -260,13 +263,13 @@ where
 			// update mean, sd and stat_window
 			let tmp_inv = 1.0 / (buffer.stat_window_size) as f32;
 
-			if buffer.count == 1 {
+			if buffer.global_count == 1 {
 				for i in 0..buffer.nb_channels as usize {
 					buffer.global_mean[i] = levels[i];
 				}
 			} else {
 				for i in 0..buffer.nb_channels as usize {
-					let tmp_0: f32 = buffer.count as f32;
+					let tmp_0: f32 = buffer.global_count as f32;
 					let tmp_1: f32 = (tmp_0 - 1.0) / tmp_0;
 					buffer.global_mean[i] = tmp_1 * buffer.global_mean[i] + levels[i] / tmp_0;
 					buffer.global_var[i] = tmp_1 * buffer.global_var[i]
@@ -339,16 +342,25 @@ where
 			let global_sd_low = buffer.global_var[0].sqrt();
 			let val = (mean_low - global_mean_low) / global_sd_low;
 
+			//TODO: testing
+			//buffer.state = State::Drop(Drop::State0);
+
 			buffer.state = if val > 0.2 {
 				if let State::Break(_) = buffer.state {
+					buffer.global_count = buffer.stat_window_size as u64;
+					buffer.global_mean = buffer.mean.clone();
+					buffer.var = buffer.var.clone();
 					let state = State::Drop(rand::random());
 					println!("{:?}", state);
 					state
 				} else {
 					buffer.state
 				}
-			} else if val < 0.2 {
+			} else if val < -0.2 {
 				if let State::Drop(_) = buffer.state {
+					buffer.global_count = buffer.stat_window_size as u64;
+					buffer.global_mean = buffer.mean.clone();
+					buffer.var = buffer.var.clone();
 					let state = State::Break(rand::random());
 					println!("{:?}", state);
 					state

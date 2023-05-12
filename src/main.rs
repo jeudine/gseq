@@ -222,7 +222,7 @@ fn main() {
 			Instance {
 				position: cgmath::Vector3::new(0.0, 0.0, 0.0),
 				rotation: Basis3::from(Euler {
-					x: Deg(110.0),
+					x: Deg(0.0),
 					y: Deg(0.0),
 					z: Deg(0.0),
 				}),
@@ -382,14 +382,14 @@ fn main() {
 	};
 
 	let torus3_r = Item {
-		file_name: "res/eye/torus2.obj".to_string(),
+		file_name: "res/eye/torus3.obj".to_string(),
 		params: vec![(
 			Instance {
 				position: cgmath::Vector3::new(0.0, 0.0, 0.0),
 				rotation: Basis3::one(),
 				scale: 1.0,
 			},
-			Action::FFT,
+			Action::Rotate(cgmath::Vector3::new(0.2, 0.8944, 0.4), cgmath::Rad(0.1)),
 		)],
 	};
 
@@ -427,14 +427,14 @@ fn main() {
 			iris3_r,
 			//pupil_cage_r,
 			//wireframe_r,
-			ball_cube_r,
-			ball_coral_r,
-			ball_pikes_r,
-			ball_pikes2_r,
-			torus_outside_r,
-			torus1_r,
-			torus2_r,
-			torus3_r,
+			ball_cube_r,     //done
+			ball_coral_r,    //done
+			ball_pikes_r,    //done
+			ball_pikes2_r,   //done
+			torus_outside_r, //done
+			torus1_r,        //done
+			torus2_r,        //done
+			torus3_r,        //done
 			torus_inside_r,
 			torus_inside2_r,
 		],
