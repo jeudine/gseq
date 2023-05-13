@@ -24,7 +24,7 @@ pub fn init(phase: &Arc<Mutex<fft::Phase>>) -> Result<(), Box<dyn std::error::Er
 				match b {
 					fft::Break::State0 => {
 						if phase.gains[2] > 0.5 {
-							val |= 0x04;
+							val |= 0x08;
 						}
 						if phase.gains[3] > 0.5 {
 							val |= 0x01;
