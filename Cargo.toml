@@ -20,6 +20,11 @@ realfft = "3.2.0"
 libftd2xx = { version = "0.32.2", features = [ "static" ] }
 ftdi-mpsse = "0.1.1"
 rand = "0.8.5"
+embedded-hal = "0.2.7"
+
+[dependencies.ftdi-embedded-hal]
+version = "0.15.1"
+features = ["libftd2xx", "libftd2xx-static"]
 
 [features]
 profile = []
