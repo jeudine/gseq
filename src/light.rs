@@ -24,43 +24,43 @@ pub struct Light {
 impl Light {
 	pub fn new(device: &wgpu::Device, bind_group_layout: &BindGroupLayout) -> Light {
 		let light_uniform_0 = LightUniform {
-			position: [0.0, 0.5, 0.0],
+			position: [0.0, 0.0, 0.0],
 			_padding: 0,
-			color: [0.518, 0.816, 1.0],
+			color: [1.0, 0.518, 0.816],
 			_padding2: 0,
 		};
 		let light_uniform_1 = LightUniform {
-			position: [0.0, -0.5, 0.0],
+			position: [0.0, 0.0, 0.5],
 			_padding: 0,
 			color: [1.0, 0.655, 0.443],
 			_padding2: 0,
 		};
 		let light_uniform_2 = LightUniform {
-			position: [-1.8, 0.5, 1.0],
+			position: [0.0, 0.0, -1.5],
 			_padding: 0,
 			color: [0.6, 0.6, 0.1],
 			_padding2: 0,
 		};
 		let light_uniform_3 = LightUniform {
-			position: [0.0, 0.0, 0.5],
+			position: [8.0, 4.0, 4.0],
 			_padding: 0,
 			color: [0.7, 0.7, 0.7],
 			_padding2: 0,
 		};
 		let light_uniform_4 = LightUniform {
-			position: [2.0, -1.5, -0.8],
+			position: [0.0, 0.0, 1.0],
 			_padding: 0,
-			color: [0.0, 0.0, 1.0],
+			color: [1.0, 0.0, 0.0],
 			_padding2: 0,
 		};
 		let light_uniform_5 = LightUniform {
-			position: [0.0, -1.8, -0.8],
+			position: [-2.0, 0.0, -0.5],
 			_padding: 0,
 			color: [0.9, 0.9, 0.9],
 			_padding2: 0,
 		};
 		let light_uniform_6 = LightUniform {
-			position: [1.4, 1.7, 0.4],
+			position: [2.0, 0.0, -0.5],
 			_padding: 0,
 			color: [0.9, 0.9, 0.9],
 			_padding2: 0,

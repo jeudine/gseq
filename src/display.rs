@@ -328,6 +328,19 @@ impl Display {
 	}
 
 	pub fn update(&mut self, phase: &Arc<Mutex<fft::Phase>>) {
+		#[cfg(feature = "test_display")]
+		{
+			for g in &mut self.groups {
+				let (instance, _action) = g.params[0];
+				for (_mesh, material, buffer) in &mut g.model {
+					let instance_data = vec![instance.to_raw(material)];
+					self.queue
+						.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
+				}
+			}
+			return;
+		}
+
 		let time = self.start_time.elapsed().as_secs_f32();
 
 		for g in &mut self.groups {

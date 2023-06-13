@@ -7,32 +7,8 @@ use gseq::Instance;
 use gseq::Item;
 
 fn main() {
-	let pupil_r = Item {
-		file_name: "res/eye/pupil.obj".to_string(),
-		params: vec![(
-			Instance {
-				position: cgmath::Vector3::new(0.0, 0.0, 0.0),
-				rotation: Basis3::one(),
-				scale: 1.0,
-			},
-			Action::FFT,
-		)],
-	};
-
-	let pupil_ring_r = Item {
-		file_name: "res/eye/pupil_ring.obj".to_string(),
-		params: vec![(
-			Instance {
-				position: cgmath::Vector3::new(0.0, 0.0, 0.0),
-				rotation: Basis3::one(),
-				scale: 1.0,
-			},
-			Action::FFT,
-		)],
-	};
-
 	let outside_r = Item {
-		file_name: "res/eye/outside.obj".to_string(),
+		file_name: "res/eye2/outside.obj".to_string(),
 		params: vec![(
 			Instance {
 				position: cgmath::Vector3::new(0.0, 0.0, 0.0),
@@ -47,8 +23,40 @@ fn main() {
 		)],
 	};
 
-	let iris2_r = Item {
-		file_name: "res/eye/iris2.obj".to_string(),
+	let wireframe_r = Item {
+		file_name: "res/eye2/wireframe.obj".to_string(),
+		params: vec![(
+			Instance {
+				position: cgmath::Vector3::new(0.0, 0.0, 0.0),
+				rotation: Basis3::from(Euler {
+					x: Deg(0.0),
+					y: Deg(0.0),
+					z: Deg(0.0),
+				}),
+				scale: 1.0,
+			},
+			Action::FFT,
+		)],
+	};
+
+	let iris_3_r = Item {
+		file_name: "res/eye2/iris_3.obj".to_string(),
+		params: vec![(
+			Instance {
+				position: cgmath::Vector3::new(0.0, 0.0, 0.0),
+				rotation: Basis3::from(Euler {
+					x: Deg(0.0),
+					y: Deg(0.0),
+					z: Deg(0.0),
+				}),
+				scale: 1.0,
+			},
+			Action::FFT,
+		)],
+	};
+
+	let pupil_r = Item {
+		file_name: "res/eye2/pupil.obj".to_string(),
 		params: vec![(
 			Instance {
 				position: cgmath::Vector3::new(0.0, 0.0, 0.0),
@@ -59,8 +67,8 @@ fn main() {
 		)],
 	};
 
-	let iris3_r = Item {
-		file_name: "res/eye/iris3.obj".to_string(),
+	let outside_ball_coral_r = Item {
+		file_name: "res/eye2/outside_ball_coral.obj".to_string(),
 		params: vec![(
 			Instance {
 				position: cgmath::Vector3::new(0.0, 0.0, 0.0),
@@ -71,85 +79,116 @@ fn main() {
 		)],
 	};
 
-	let ball_cube_r = Item {
-		file_name: "res/eye/ball_cube.obj".to_string(),
+	let outside_ball_coral_1_r = Item {
+		file_name: "res/eye2/outside_ball_coral_1.obj".to_string(),
 		params: vec![(
 			Instance {
 				position: cgmath::Vector3::new(0.0, 0.0, 0.0),
 				rotation: Basis3::one(),
 				scale: 1.0,
 			},
-			Action::Rotate(cgmath::Vector3::new(0.0, 0.7, 0.714), cgmath::Rad(0.3)),
+			Action::FFT,
 		)],
 	};
 
-	let ball_coral_r = Item {
-		file_name: "res/eye/ball_coral.obj".to_string(),
+	let outside_ball_cube_r = Item {
+		file_name: "res/eye2/outside_ball_cube.obj".to_string(),
 		params: vec![(
 			Instance {
 				position: cgmath::Vector3::new(0.0, 0.0, 0.0),
 				rotation: Basis3::one(),
 				scale: 1.0,
 			},
-			Action::Rotate(cgmath::Vector3::new(0.0, 0.5, 0.866), cgmath::Rad(0.2)),
+			Action::FFT,
 		)],
 	};
 
-	let ball_pikes_r = Item {
-		file_name: "res/eye/ball_pikes.obj".to_string(),
+	let outside_ball_cube_1_r = Item {
+		file_name: "res/eye2/outside_ball_cube_1.obj".to_string(),
 		params: vec![(
 			Instance {
 				position: cgmath::Vector3::new(0.0, 0.0, 0.0),
 				rotation: Basis3::one(),
 				scale: 1.0,
 			},
-			Action::Rotate(cgmath::Vector3::new(0.0, 0.2, 0.98), cgmath::Rad(-0.3)),
+			Action::FFT,
 		)],
 	};
 
-	let ball_pikes2_r = Item {
-		file_name: "res/eye/ball_pikes2.obj".to_string(),
+	let outside_ball_piek_r = Item {
+		file_name: "res/eye2/outside_ball_piek.obj".to_string(),
 		params: vec![(
 			Instance {
 				position: cgmath::Vector3::new(0.0, 0.0, 0.0),
 				rotation: Basis3::one(),
 				scale: 1.0,
 			},
-			Action::Rotate(cgmath::Vector3::new(0.0, 0.98, 0.2), cgmath::Rad(0.3)),
+			Action::FFT,
+		)],
+	};
+
+	let outside_ball_piek_1_r = Item {
+		file_name: "res/eye2/outside_ball_piek_1.obj".to_string(),
+		params: vec![(
+			Instance {
+				position: cgmath::Vector3::new(0.0, 0.0, 0.0),
+				rotation: Basis3::one(),
+				scale: 1.0,
+			},
+			Action::FFT,
+		)],
+	};
+
+	let outside_ball_piek_2_r = Item {
+		file_name: "res/eye2/outside_ball_piek_2.obj".to_string(),
+		params: vec![(
+			Instance {
+				position: cgmath::Vector3::new(0.0, 0.0, 0.0),
+				rotation: Basis3::one(),
+				scale: 1.0,
+			},
+			Action::FFT,
+		)],
+	};
+
+	let outside_ball_piek_3_r = Item {
+		file_name: "res/eye2/outside_ball_piek_3.obj".to_string(),
+		params: vec![(
+			Instance {
+				position: cgmath::Vector3::new(0.0, 0.0, 0.0),
+				rotation: Basis3::one(),
+				scale: 1.0,
+			},
+			Action::FFT,
+		)],
+	};
+
+	let torus_1_r = Item {
+		file_name: "res/eye2/torus_1.obj".to_string(),
+		params: vec![(
+			Instance {
+				position: cgmath::Vector3::new(0.0, 0.0, 0.0),
+				rotation: Basis3::one(),
+				scale: 1.0,
+			},
+			Action::FFT,
+		)],
+	};
+
+	let torus_2_r = Item {
+		file_name: "res/eye2/torus_2.obj".to_string(),
+		params: vec![(
+			Instance {
+				position: cgmath::Vector3::new(0.0, 0.0, 0.0),
+				rotation: Basis3::one(),
+				scale: 1.0,
+			},
+			Action::FFT,
 		)],
 	};
 
 	let torus_outside_r = Item {
-		file_name: "res/eye/torus_outside.obj".to_string(),
-		params: vec![(
-			Instance {
-				position: cgmath::Vector3::new(0.0, 0.0, 0.0),
-				rotation: Basis3::from(Euler {
-					x: Deg(0.0),
-					y: Deg(0.0),
-					z: Deg(0.0),
-				}),
-
-				scale: 1.0,
-			},
-			Action::Rotate(cgmath::Vector3::new(0.0, 0.0, 1.0), cgmath::Rad(0.3)),
-		)],
-	};
-
-	let torus1_r = Item {
-		file_name: "res/eye/torus1.obj".to_string(),
-		params: vec![(
-			Instance {
-				position: cgmath::Vector3::new(0.0, 0.0, 0.0),
-				rotation: Basis3::one(),
-				scale: 1.0,
-			},
-			Action::Rotate(cgmath::Vector3::new(0.9055, 0.3, 0.3), cgmath::Rad(0.4)),
-		)],
-	};
-
-	let torus2_r = Item {
-		file_name: "res/eye/torus2.obj".to_string(),
+		file_name: "res/eye2/torus_outside.obj".to_string(),
 		params: vec![(
 			Instance {
 				position: cgmath::Vector3::new(0.0, 0.0, 0.0),
@@ -157,204 +196,28 @@ fn main() {
 				scale: 1.0,
 			},
 			Action::FFT,
-		)],
-	};
-
-	let torus3_r = Item {
-		file_name: "res/eye/torus3.obj".to_string(),
-		params: vec![(
-			Instance {
-				position: cgmath::Vector3::new(0.0, 0.0, 0.0),
-				rotation: Basis3::one(),
-				scale: 1.0,
-			},
-			Action::Rotate(cgmath::Vector3::new(0.2, 0.8944, 0.4), cgmath::Rad(0.1)),
-		)],
-	};
-
-	let pupil_l = Item {
-		file_name: "res/eye/pupil.obj".to_string(),
-		params: vec![(
-			Instance {
-				position: cgmath::Vector3::new(0.0, 0.0, 0.0),
-				rotation: Basis3::one(),
-				scale: 1.0,
-			},
-			Action::FFT,
-		)],
-	};
-
-	let pupil_ring_l = Item {
-		file_name: "res/eye/pupil_ring.obj".to_string(),
-		params: vec![(
-			Instance {
-				position: cgmath::Vector3::new(0.0, 0.0, 0.0),
-				rotation: Basis3::one(),
-				scale: 1.0,
-			},
-			Action::FFT,
-		)],
-	};
-
-	let outside_l = Item {
-		file_name: "res/eye/outside.obj".to_string(),
-		params: vec![(
-			Instance {
-				position: cgmath::Vector3::new(0.0, 0.0, 0.0),
-				rotation: Basis3::from(Euler {
-					x: Deg(0.0),
-					y: Deg(0.0),
-					z: Deg(0.0),
-				}),
-				scale: 1.0,
-			},
-			Action::FFT,
-		)],
-	};
-
-	let iris2_l = Item {
-		file_name: "res/eye/iris2.obj".to_string(),
-		params: vec![(
-			Instance {
-				position: cgmath::Vector3::new(0.0, 0.0, 0.0),
-				rotation: Basis3::one(),
-				scale: 1.0,
-			},
-			Action::FFT,
-		)],
-	};
-
-	let iris3_l = Item {
-		file_name: "res/eye/iris3.obj".to_string(),
-		params: vec![(
-			Instance {
-				position: cgmath::Vector3::new(0.0, 0.0, 0.0),
-				rotation: Basis3::one(),
-				scale: 1.0,
-			},
-			Action::FFT,
-		)],
-	};
-
-	let ball_cube_l = Item {
-		file_name: "res/eye/ball_cube.obj".to_string(),
-		params: vec![(
-			Instance {
-				position: cgmath::Vector3::new(0.0, 0.0, 0.0),
-				rotation: Basis3::one(),
-				scale: 1.0,
-			},
-			Action::Rotate(cgmath::Vector3::new(0.0, 0.7, 0.714), cgmath::Rad(-0.3)),
-		)],
-	};
-
-	let ball_coral_l = Item {
-		file_name: "res/eye/ball_coral.obj".to_string(),
-		params: vec![(
-			Instance {
-				position: cgmath::Vector3::new(0.0, 0.0, 0.0),
-				rotation: Basis3::one(),
-				scale: 1.0,
-			},
-			Action::Rotate(cgmath::Vector3::new(0.0, 0.5, 0.866), cgmath::Rad(-0.2)),
-		)],
-	};
-
-	let ball_pikes_l = Item {
-		file_name: "res/eye/ball_pikes.obj".to_string(),
-		params: vec![(
-			Instance {
-				position: cgmath::Vector3::new(0.0, 0.0, 0.0),
-				rotation: Basis3::one(),
-				scale: 1.0,
-			},
-			Action::Rotate(cgmath::Vector3::new(0.0, 0.2, 0.98), cgmath::Rad(0.3)),
-		)],
-	};
-
-	let ball_pikes2_l = Item {
-		file_name: "res/eye/ball_pikes2.obj".to_string(),
-		params: vec![(
-			Instance {
-				position: cgmath::Vector3::new(0.0, 0.0, 0.0),
-				rotation: Basis3::one(),
-				scale: 1.0,
-			},
-			Action::Rotate(cgmath::Vector3::new(0.0, 0.98, 0.2), cgmath::Rad(-0.3)),
-		)],
-	};
-
-	let torus_outside_l = Item {
-		file_name: "res/eye/torus_outside.obj".to_string(),
-		params: vec![(
-			Instance {
-				position: cgmath::Vector3::new(0.0, 0.0, 0.0),
-				rotation: Basis3::from(Euler {
-					x: Deg(0.0),
-					y: Deg(0.0),
-					z: Deg(0.0),
-				}),
-
-				scale: 1.0,
-			},
-			Action::Rotate(cgmath::Vector3::new(0.0, 0.0, 1.0), cgmath::Rad(-0.3)),
-		)],
-	};
-
-	let torus1_l = Item {
-		file_name: "res/eye/torus1.obj".to_string(),
-		params: vec![(
-			Instance {
-				position: cgmath::Vector3::new(0.0, 0.0, 0.0),
-				rotation: Basis3::one(),
-				scale: 1.0,
-			},
-			Action::Rotate(cgmath::Vector3::new(0.9055, 0.3, 0.3), cgmath::Rad(-0.4)),
-		)],
-	};
-
-	let torus2_l = Item {
-		file_name: "res/eye/torus2.obj".to_string(),
-		params: vec![(
-			Instance {
-				position: cgmath::Vector3::new(0.0, 0.0, 0.0),
-				rotation: Basis3::one(),
-				scale: 1.0,
-			},
-			Action::FFT,
-		)],
-	};
-
-	let torus3_l = Item {
-		file_name: "res/eye/torus3.obj".to_string(),
-		params: vec![(
-			Instance {
-				position: cgmath::Vector3::new(0.0, 0.0, 0.0),
-				rotation: Basis3::one(),
-				scale: 1.0,
-			},
-			Action::Rotate(cgmath::Vector3::new(0.2, 0.8944, 0.4), cgmath::Rad(-0.1)),
 		)],
 	};
 
 	pollster::block_on(run(vec![
 		vec![
-			pupil_r,         //fft
-			pupil_ring_r,    //fft
-			outside_r,       //fft
-			iris2_r,         //fft
-			iris3_r,         //fft
-			ball_cube_r,     //done
-			ball_coral_r,    //done
-			ball_pikes_r,    //done
-			ball_pikes2_r,   //done
-			torus_outside_r, //done
-			torus1_r,        //done
-			torus2_r,        //done
-			torus3_r,        //done
-			                 //torus_inside_r,
-			                 //torus_inside2_r,
+			outside_r, //fft
+			wireframe_r,
+			iris_3_r, //fft
+			pupil_r,  //fft
+			outside_ball_coral_r,
+			outside_ball_coral_1_r,
+			outside_ball_cube_r,
+			outside_ball_cube_1_r,
+			outside_ball_piek_r,
+			outside_ball_piek_1_r,
+			outside_ball_piek_2_r,
+			outside_ball_piek_3_r,
+			torus_1_r,
+			torus_2_r,
+			torus_outside_r,
 		],
+		/*
 		vec![
 			pupil_l,         //fft
 			pupil_ring_l,    //fft
@@ -369,9 +232,10 @@ fn main() {
 			torus1_l,        //done
 			torus2_l,        //done
 			torus3_l,        //done
-			                 //torus_inside_r,
-			                 //torus_inside2_r,
+							 //torus_inside_r,
+							 //torus_inside2_r,
 		],
+		*/
 	]));
 
 	/*

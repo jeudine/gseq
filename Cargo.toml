@@ -23,3 +23,4 @@ rand = "0.8.5"
 
 [features]
 profile = []
+test_display = []
