@@ -343,6 +343,25 @@ impl Display {
 
 		let time = self.start_time.elapsed().as_secs_f32();
 
+		let outside_ball_coral = &self.groups[4];
+		let outside_ball_coral_1 = &self.groups[5];
+
+		let phase = phase.lock().unwrap();
+		match phase.state {
+			fft::State::Break(b) => match b {
+				fft::Break::State0 => {}
+				fft::Break::State1 => {}
+				fft::Break::State2 => {}
+				fft::Break::State3 => {}
+			},
+			fft::State::Drop(d) => match d {
+				fft::Drop::State0 => {}
+				fft::Drop::State1 => {}
+				fft::Drop::State2 => {}
+				fft::Drop::State3 => {}
+			},
+		}
+
 		for g in &mut self.groups {
 			//TODO: only one group
 			let (instance, action) = g.params[0];
@@ -398,7 +417,7 @@ impl Display {
 		let (iris3_instance, _) = iris3.params[0];
 
 		//FFT elements
-		let phase = phase.lock().unwrap();
+		//let phase = phase.lock().unwrap();
 
 		match phase.state {
 			fft::State::Break(b) => match b {
