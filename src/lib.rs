@@ -1,4 +1,3 @@
-pub mod action;
 mod camera;
 mod display;
 mod fft;
@@ -10,7 +9,6 @@ mod light;
 mod model;
 mod texture;
 use crate::model::Model;
-pub use action::Action;
 use display::Display;
 pub use instance::Instance;
 pub use item::Item;

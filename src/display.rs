@@ -1,4 +1,3 @@
-use crate::action::Action;
 use crate::camera::{Camera, CameraUniform};
 use crate::fft;
 use crate::group::Group;
@@ -9,6 +8,7 @@ use crate::model::Model;
 use crate::texture::Texture;
 use cgmath::{Basis3, Deg, Euler, Rotation3};
 use rand::Rng;
+use std::f32::consts::PI;
 use std::iter;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
@@ -32,7 +32,7 @@ pub struct Display {
 	bind_group: wgpu::BindGroup,
 	window: Window,
 	start_time: Instant,
-	cur_fft_instance: u32,
+	previous_time: f32,
 	cur_pupil_pos: cgmath::Vector3<f32>,
 	cur_pupil_rot: cgmath::Euler<cgmath::Deg<f32>>,
 	above_05: bool,
@@ -94,13 +94,13 @@ impl Display {
 		let camera = Camera {
 			// position the camera one unit up and 2 units back
 			// +z is out of the screen
-			eye: (0.0, 0.0, 5.0).into(),
+			eye: (0.0, 0.0, 8.0).into(),
 			// have it look at the origin
 			target: (0.0, 0.0, 0.0).into(),
 			// which way is "up"
 			up: cgmath::Vector3::unit_y(),
 			aspect: config.width as f32 / config.height as f32,
-			fovy: 45.0,
+			fovy: 50.0,
 			znear: 0.1,
 			zfar: 100.0,
 		};
@@ -275,7 +275,7 @@ impl Display {
 		let lights = Light::new(&device, &light_bind_group_layout);
 		let groups: Vec<Group> = items
 			.iter()
-			.map(|x| Group::new(&x.file_name, &x.params, &device))
+			.map(|x| Group::new(&x.file_name, x.instance, &device))
 			.collect();
 
 		/*
@@ -303,8 +303,7 @@ impl Display {
 			bind_group,
 			window,
 			start_time: Instant::now(),
-			//nb_fft_instances,
-			cur_fft_instance: 0,
+			previous_time: 0.0,
 			cur_pupil_pos: cgmath::Vector3::new(0.0, 0.0, 0.0),
 			cur_pupil_rot: cgmath::Euler::new(Deg(0.0), Deg(0.0), Deg(0.0)),
 			above_05: false,
@@ -342,14 +341,20 @@ impl Display {
 		}
 
 		let time = self.start_time.elapsed().as_secs_f32();
+		let vertical_vec = cgmath::Vector3::new(0.0, 1.0, 0.0);
 
-		let outside_ball_coral = &self.groups[4];
+		let outside = &self.groups[0];
 		let outside_ball_coral_1 = &self.groups[5];
 
 		let phase = phase.lock().unwrap();
 		match phase.state {
 			fft::State::Break(b) => match b {
-				fft::Break::State0 => {}
+				fft::Break::State0 => {
+					let speed = 2.0 * PI / 8.0;
+					let angle = cgmath::Rad(speed * (time - self.previous_time));
+					let rotation = cgmath::Basis3::from_axis_angle(vertical_vec, angle);
+					self.groups[4].rotate(&rotation, &mut self.queue);
+				}
 				fft::Break::State1 => {}
 				fft::Break::State2 => {}
 				fft::Break::State3 => {}
@@ -362,6 +367,9 @@ impl Display {
 			},
 		}
 
+		self.previous_time = time;
+
+		/*
 		for g in &mut self.groups {
 			//TODO: only one group
 			let (instance, action) = g.params[0];
@@ -821,6 +829,7 @@ impl Display {
 			}
 		}
 		*/
+		*/
 	}
 
 	pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
@@ -872,7 +881,7 @@ impl Display {
 						.set_index_buffer(me.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
 					render_pass.set_bind_group(0, &self.bind_group, &[]);
 					render_pass.set_bind_group(1, &self.lights.bind_group, &[]);
-					render_pass.draw_indexed(0..me.num_elements, 0, 0..g.params.len() as _);
+					render_pass.draw_indexed(0..me.num_elements, 0, 0..1 as _);
 				}
 			}
 		}

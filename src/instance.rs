@@ -135,6 +135,9 @@ impl Instance {
 		}
 	}
 
+	pub fn rotate(&mut self, rotation: &cgmath::Basis3<f32>) {
+		self.rotation = self.rotation * rotation;
+	}
 	pub fn raw_zero() -> InstanceRaw {
 		InstanceRaw {
 			ambient: [0.0, 0.0, 0.0],
