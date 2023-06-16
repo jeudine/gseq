@@ -6,6 +6,7 @@ use gseq::Instance;
 use gseq::Item;
 
 fn main() {
+	//TODO: blinking, scale, color, change rotation direction
 	let outside_r = Item {
 		file_name: "res/eye2/outside.obj".to_string(),
 		instance: Instance {
@@ -19,8 +20,8 @@ fn main() {
 		},
 	};
 
-	let outside_copie_r = Item {
-		file_name: "res/eye2/outside_copie.obj".to_string(),
+	let outside_copy_r = Item {
+		file_name: "res/eye2/outside_copy.obj".to_string(),
 		instance: Instance {
 			position: cgmath::Vector3::new(0.0, 0.0, 0.0),
 			rotation: Basis3::from(Euler {
@@ -169,7 +170,7 @@ fn main() {
 	pollster::block_on(run(vec![
 		vec![
 			outside_r,
-			outside_copie_r,
+			outside_copy_r,
 			wireframe_r,
 			iris_3_r,
 			pupil_r,

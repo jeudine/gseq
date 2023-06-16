@@ -33,6 +33,9 @@ pub struct Display {
 	window: Window,
 	start_time: Instant,
 	previous_time: f32,
+
+	state_blinking: u32,
+
 	cur_pupil_pos: cgmath::Vector3<f32>,
 	cur_pupil_rot: cgmath::Euler<cgmath::Deg<f32>>,
 	above_05: bool,
@@ -304,6 +307,9 @@ impl Display {
 			window,
 			start_time: Instant::now(),
 			previous_time: 0.0,
+
+			state_blinking: 0,
+
 			cur_pupil_pos: cgmath::Vector3::new(0.0, 0.0, 0.0),
 			cur_pupil_rot: cgmath::Euler::new(Deg(0.0), Deg(0.0), Deg(0.0)),
 			above_05: false,
@@ -345,6 +351,22 @@ impl Display {
 		let x_vec = cgmath::Vector3::new(1.0, 0.0, 0.0);
 
 		let phase = phase.lock().unwrap();
+
+		let mut rng = rand::thread_rng();
+		if self.state_blinking == 0 {
+			let random_bool = rng.gen_bool(0.05);
+			if random_bool {
+				self.state_blinking = 1;
+			}
+		} else {
+			//TODO
+			self.state_blinking = if self.state_blinking == 10 {
+				0
+			} else {
+				self.state_blinking + 1
+			}
+		}
+
 		match phase.state {
 			fft::State::Break(b) => match b {
 				fft::Break::State0 => {
