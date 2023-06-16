@@ -343,10 +343,9 @@ where
 			let val = (mean_low - global_mean_low) / global_sd_low;
 
 			//TODO: testing
-			buffer.state = State::Break(Break::State0);
-			return;
+			//buffer.state = State::Drop(Drop::State0);
 
-			buffer.state = if val > 0.2 {
+			buffer.state = if val > 0.1 {
 				if let State::Break(_) = buffer.state {
 					buffer.global_count = buffer.stat_window_size as u64;
 					buffer.global_mean = buffer.mean.clone();

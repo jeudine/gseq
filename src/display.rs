@@ -348,36 +348,55 @@ impl Display {
 
 		let time = self.start_time.elapsed().as_secs_f32();
 		let z_vec = cgmath::Vector3::new(0.0, 0.0, -1.0);
+		let y_vec = cgmath::Vector3::new(0.0, 1.0, 0.0);
 		let x_vec = cgmath::Vector3::new(1.0, 0.0, 0.0);
 
 		let phase = phase.lock().unwrap();
 
 		let mut rng = rand::thread_rng();
 		if self.state_blinking == 0 {
-			let random_bool = rng.gen_bool(0.05);
+			let random_bool = rng.gen_bool(0.005);
 			if random_bool {
 				self.state_blinking = 1;
 			}
+			self.groups[1].write_buffer(&mut self.queue);
 		} else {
-			//TODO
-			self.state_blinking = if self.state_blinking == 10 {
+			self.state_blinking = if self.state_blinking == 18 {
 				0
 			} else {
+				//closing the eye
+				if self.state_blinking <= 9 {
+					let angle = cgmath::Rad(self.state_blinking as f32 * 0.24);
+					let rotation = cgmath::Basis3::from_axis_angle(x_vec, angle);
+					self.groups[1].temp_rotate(&rotation, &mut self.queue);
+				}
+				//open the eye
+				else {
+					let angle = cgmath::Rad((18 - self.state_blinking) as f32 * 0.24);
+					let rotation = cgmath::Basis3::from_axis_angle(x_vec, angle);
+					self.groups[1].temp_rotate(&rotation, &mut self.queue);
+				}
 				self.state_blinking + 1
 			}
 		}
 
 		match phase.state {
 			fft::State::Break(b) => match b {
-				fft::Break::State0 => {
+				_ => {
 					let speed = 2.0 * PI / 40.0;
 					let angle = cgmath::Rad(speed * (time - self.previous_time));
 					let rotation = cgmath::Basis3::from_axis_angle(z_vec, angle);
-					self.groups[2].rotate(&rotation, &mut self.queue);
+					let scale = activation_func(phase.gains[0], -1.0, 1.0, 0.8, 1.2);
+					self.groups[2].rotate_scale(&rotation, scale, &mut self.queue);
+					let color = activation_func(phase.gains[3], -0.5, 0.7, 0.2, 0.7);
+					self.groups[3].set_color((Some(color), None, Some(color)));
 					let speed = 2.0 * PI / 60.0;
 					let angle = cgmath::Rad(speed * (time - self.previous_time));
 					let rotation = cgmath::Basis3::from_axis_angle(x_vec, angle);
 					self.groups[3].rotate(&rotation, &mut self.queue);
+					let color = activation_func(phase.gains[2], -1.0, 1.0, 0.0, 0.4);
+					self.groups[4].set_color((Some(color), None, None));
+					self.groups[4].write_buffer(&mut self.queue);
 					let speed = 2.0 * PI / 8.0;
 					let angle = cgmath::Rad(speed * (time - self.previous_time));
 					let rotation = cgmath::Basis3::from_axis_angle(z_vec, angle);
@@ -393,20 +412,44 @@ impl Display {
 					let angle = cgmath::Rad(speed * (time - self.previous_time));
 					let rotation = cgmath::Basis3::from_axis_angle(z_vec, angle);
 					self.groups[13].rotate(&rotation, &mut self.queue);
-					let speed = 2.0 * PI / 8.0;
-					let angle = cgmath::Rad(speed * (time - self.previous_time));
-					let rotation = cgmath::Basis3::from_axis_angle(z_vec, angle);
+					self.groups[14].rotate(&rotation, &mut self.queue);
 					self.groups[15].rotate(&rotation, &mut self.queue);
 				}
-				fft::Break::State1 => {}
-				fft::Break::State2 => {}
-				fft::Break::State3 => {}
 			},
 			fft::State::Drop(d) => match d {
-				fft::Drop::State0 => {}
-				fft::Drop::State1 => {}
-				fft::Drop::State2 => {}
-				fft::Drop::State3 => {}
+				_ => {
+					let speed = 2.0 * PI / 20.0;
+					let angle = cgmath::Rad(speed * (time - self.previous_time));
+					let rotation = cgmath::Basis3::from_axis_angle(z_vec, angle);
+					let scale = activation_func(phase.gains[0], -1.0, 1.0, 0.8, 1.2);
+					self.groups[2].rotate_scale(&rotation, scale, &mut self.queue);
+					let color = activation_func(phase.gains[3], -0.5, 0.7, 0.2, 0.7);
+					self.groups[3].set_color((Some(color), Some(color), None));
+					let speed = 2.0 * PI / 20.0;
+					let angle = cgmath::Rad(speed * (time - self.previous_time));
+					let rotation = cgmath::Basis3::from_axis_angle(y_vec, angle);
+					self.groups[3].rotate(&rotation, &mut self.queue);
+					let color = activation_func(phase.gains[2], -1.0, 1.0, 0.0, 0.4);
+					self.groups[4].set_color((Some(color), None, None));
+					self.groups[4].write_buffer(&mut self.queue);
+					let speed = -2.0 * PI / 16.0;
+					let angle = cgmath::Rad(speed * (time - self.previous_time));
+					let rotation = cgmath::Basis3::from_axis_angle(y_vec, angle);
+					self.groups[5].rotate(&rotation, &mut self.queue);
+					self.groups[6].rotate(&rotation, &mut self.queue);
+					self.groups[7].rotate(&rotation, &mut self.queue);
+					self.groups[8].rotate(&rotation, &mut self.queue);
+					self.groups[9].rotate(&rotation, &mut self.queue);
+					self.groups[10].rotate(&rotation, &mut self.queue);
+					self.groups[11].rotate(&rotation, &mut self.queue);
+					self.groups[12].rotate(&rotation, &mut self.queue);
+					let speed = 2.0 * PI / 8.0;
+					let angle = cgmath::Rad(speed * (time - self.previous_time));
+					let rotation = cgmath::Basis3::from_axis_angle(y_vec, angle);
+					self.groups[13].rotate_scale(&rotation, scale, &mut self.queue);
+					self.groups[14].rotate_scale(&rotation, scale, &mut self.queue);
+					self.groups[15].rotate_scale(&rotation, scale, &mut self.queue);
+				}
 			},
 		}
 
@@ -731,7 +774,7 @@ impl Display {
 						}
 
 						for (_mesh, material, buffer) in &iris3.model {
-							let color = activation_func(phase.gains[2], -0.5, 0.5, 0.0, 1.0);
+							let color = activation_func(phase.gains[2], -2.0, 2.0, 0.0, 1.0);
 							let mut new_material = material.clone();
 							new_material.diffuse.z = color;
 							new_material.spec.z = color;

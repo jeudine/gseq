@@ -40,4 +40,41 @@ impl Group {
 			queue.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
 		}
 	}
+
+	pub fn temp_rotate(&mut self, rotation: &cgmath::Basis3<f32>, queue: &mut wgpu::Queue) {
+		for (_mesh, material, buffer) in &mut self.model {
+			let instance_data = vec![self.instance.to_raw_rotate(material, rotation)];
+			queue.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
+		}
+	}
+
+	pub fn set_color(&mut self, color: (Option<f32>, Option<f32>, Option<f32>)) {
+		for (_mesh, material, _buffer) in &mut self.model {
+			if let Some(c) = color.0 {
+				material.diffuse.x = c;
+				material.spec.x = c;
+			}
+			if let Some(c) = color.1 {
+				material.diffuse.y = c;
+				material.spec.y = c;
+			}
+			if let Some(c) = color.2 {
+				material.diffuse.z = c;
+				material.spec.z = c;
+			}
+		}
+	}
+
+	pub fn rotate_scale(
+		&mut self,
+		rotation: &cgmath::Basis3<f32>,
+		scale: f32,
+		queue: &mut wgpu::Queue,
+	) {
+		self.instance.rotate(rotation);
+		for (_mesh, material, buffer) in &mut self.model {
+			let instance_data = vec![self.instance.to_raw_scale(material, scale)];
+			queue.write_buffer(&buffer, 0, bytemuck::cast_slice(&instance_data));
+		}
+	}
 }
