@@ -19,6 +19,19 @@ fn main() {
 		},
 	};
 
+	let outside_copie_r = Item {
+		file_name: "res/eye2/outside_copie.obj".to_string(),
+		instance: Instance {
+			position: cgmath::Vector3::new(0.0, 0.0, 0.0),
+			rotation: Basis3::from(Euler {
+				x: Deg(0.0),
+				y: Deg(0.0),
+				z: Deg(0.0),
+			}),
+			scale: 1.0,
+		},
+	};
+
 	let wireframe_r = Item {
 		file_name: "res/eye2/wireframe.obj".to_string(),
 		instance: Instance {
@@ -156,6 +169,7 @@ fn main() {
 	pollster::block_on(run(vec![
 		vec![
 			outside_r,
+			outside_copie_r,
 			wireframe_r,
 			iris_3_r,
 			pupil_r,

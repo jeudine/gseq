@@ -94,7 +94,7 @@ impl Display {
 		let camera = Camera {
 			// position the camera one unit up and 2 units back
 			// +z is out of the screen
-			eye: (0.0, 0.0, 8.0).into(),
+			eye: (0.0, 0.0, 7.0).into(),
 			// have it look at the origin
 			target: (0.0, 0.0, 0.0).into(),
 			// which way is "up"
@@ -341,19 +341,40 @@ impl Display {
 		}
 
 		let time = self.start_time.elapsed().as_secs_f32();
-		let vertical_vec = cgmath::Vector3::new(0.0, 1.0, 0.0);
-
-		let outside = &self.groups[0];
-		let outside_ball_coral_1 = &self.groups[5];
+		let z_vec = cgmath::Vector3::new(0.0, 0.0, -1.0);
+		let x_vec = cgmath::Vector3::new(1.0, 0.0, 0.0);
 
 		let phase = phase.lock().unwrap();
 		match phase.state {
 			fft::State::Break(b) => match b {
 				fft::Break::State0 => {
+					let speed = 2.0 * PI / 40.0;
+					let angle = cgmath::Rad(speed * (time - self.previous_time));
+					let rotation = cgmath::Basis3::from_axis_angle(z_vec, angle);
+					self.groups[2].rotate(&rotation, &mut self.queue);
+					let speed = 2.0 * PI / 60.0;
+					let angle = cgmath::Rad(speed * (time - self.previous_time));
+					let rotation = cgmath::Basis3::from_axis_angle(x_vec, angle);
+					self.groups[3].rotate(&rotation, &mut self.queue);
 					let speed = 2.0 * PI / 8.0;
 					let angle = cgmath::Rad(speed * (time - self.previous_time));
-					let rotation = cgmath::Basis3::from_axis_angle(vertical_vec, angle);
-					self.groups[4].rotate(&rotation, &mut self.queue);
+					let rotation = cgmath::Basis3::from_axis_angle(z_vec, angle);
+					self.groups[5].rotate(&rotation, &mut self.queue);
+					self.groups[6].rotate(&rotation, &mut self.queue);
+					self.groups[7].rotate(&rotation, &mut self.queue);
+					self.groups[8].rotate(&rotation, &mut self.queue);
+					self.groups[9].rotate(&rotation, &mut self.queue);
+					self.groups[10].rotate(&rotation, &mut self.queue);
+					self.groups[11].rotate(&rotation, &mut self.queue);
+					self.groups[12].rotate(&rotation, &mut self.queue);
+					let speed = -2.0 * PI / 8.0;
+					let angle = cgmath::Rad(speed * (time - self.previous_time));
+					let rotation = cgmath::Basis3::from_axis_angle(z_vec, angle);
+					self.groups[13].rotate(&rotation, &mut self.queue);
+					let speed = 2.0 * PI / 8.0;
+					let angle = cgmath::Rad(speed * (time - self.previous_time));
+					let rotation = cgmath::Basis3::from_axis_angle(z_vec, angle);
+					self.groups[15].rotate(&rotation, &mut self.queue);
 				}
 				fft::Break::State1 => {}
 				fft::Break::State2 => {}
