@@ -22,7 +22,3 @@ ftdi-mpsse = "0.1.1"
 rand = "0.8.5"
 promptly = "0.3.1"
 crossterm = "0.27.0"
-
-[features]
-profile = []
-test_display = []
