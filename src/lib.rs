@@ -1,10 +1,9 @@
+mod audio;
 mod camera;
 mod display;
-mod fft;
 mod group;
 pub mod instance;
 pub mod item;
-mod led;
 mod light;
 mod model;
 mod texture;
@@ -19,6 +18,7 @@ use winit::{
 	window::WindowBuilder,
 };
 
+const NB_AUDIO_CHANNEL: u32 = 4;
 /*
 #[repr(C)]
 // This is so we can store this in a buffer
@@ -33,9 +33,9 @@ pub struct Matrix4 {
 pub async fn run(mut items: Vec<Vec<Item>>) {
 	let event_loop = EventLoop::new();
 
-	// Init fft
-	#[allow(unused)]
-	let (phase, stream) = fft::init(2048, 4, 20, 15000).unwrap();
+	// Init audio
+	//TODO: remove unwrap
+	let (audio_data, stream) = audio::init(2048, NB_AUDIO_CHANNEL, 20, 20000).unwrap();
 
 	// Create one state for each display
 	let mut displays = vec![];
@@ -46,10 +46,6 @@ pub async fn run(mut items: Vec<Vec<Item>>) {
 	}
 
 	//Init the LED controller
-	match led::init(&phase) {
-		Ok(_) => {}
-		Err(e) => println!("[ERROR] {}", e),
-	};
 
 	event_loop.run(move |event, _, control_flow| {
 		match event {
@@ -68,7 +64,7 @@ pub async fn run(mut items: Vec<Vec<Item>>) {
 										..
 									},
 								..
-							} => fft::reset_global(&phase),
+							} => { /*TODO*/ }
 							WindowEvent::CloseRequested
 							| WindowEvent::KeyboardInput {
 								input:
@@ -96,7 +92,7 @@ pub async fn run(mut items: Vec<Vec<Item>>) {
 			Event::RedrawRequested(window_id) => {
 				for d in &mut displays {
 					if window_id == d.window().id() {
-						d.update(&phase);
+						d.update(&audio_data);
 						match d.render() {
 							Ok(_) => {}
 							// Reconfigure the surface if it's lost or outdated

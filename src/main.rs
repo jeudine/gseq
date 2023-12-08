@@ -167,45 +167,7 @@ fn main() {
 		},
 	};
 
-	pollster::block_on(run(vec![
-		vec![
-			outside_r,
-			outside_copy_r,
-			wireframe_r,
-			iris_3_r,
-			pupil_r,
-			outside_ball_coral_r,
-			outside_ball_coral_1_r,
-			outside_ball_cube_r,
-			outside_ball_cube_1_r,
-			outside_ball_piek_r,
-			outside_ball_piek_1_r,
-			outside_ball_piek_2_r,
-			outside_ball_piek_3_r,
-			torus_1_r,
-			torus_2_r,
-			torus_outside_r,
-		],
-		/*
-		vec![
-			pupil_l,         //fft
-			pupil_ring_l,    //fft
-			outside_l,       //fft
-			iris2_l,         //fft
-			iris3_l,         //fft
-			ball_cube_l,     //done
-			ball_coral_l,    //done
-			ball_pikes_l,    //done
-			ball_pikes2_l,   //done
-			torus_outside_l, //done
-			torus1_l,        //done
-			torus2_l,        //done
-			torus3_l,        //done
-							 //torus_inside_r,
-							 //torus_inside2_r,
-		],
-		*/
-	]));
+	pollster::block_on(run(vec![vec![]]));
 
 	/*
 	let cube = Item {
