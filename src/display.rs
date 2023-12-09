@@ -31,6 +31,10 @@ pub struct Display {
 	audio_buffer: wgpu::Buffer,
 	audio_bind_group: wgpu::BindGroup,
 
+	start_time: Instant,
+	time_buffer: wgpu::Buffer,
+	time_bind_group: wgpu::BindGroup,
+
 	window: Window,
 }
 
@@ -86,6 +90,7 @@ impl Display {
 			source: wgpu::ShaderSource::Wgsl(include_str!("shader.wgsl").into()),
 		});
 
+		// Camera bind group
 		let camera = Camera {
 			// position the camera one unit up and 2 units back
 			// +z is out of the screen
@@ -122,6 +127,23 @@ impl Display {
 				label: Some("camera_bind_group_layout"),
 			});
 
+		let camera_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+			layout: &camera_bind_group_layout,
+			entries: &[wgpu::BindGroupEntry {
+				binding: 0,
+				resource: camera_buffer.as_entire_binding(),
+			}],
+			label: Some("camera_bind_group"),
+		});
+
+		// Audio bind group
+		let audio_data = audio::Data::new();
+		let audio_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+			label: Some("audio_buffer"),
+			contents: bytemuck::cast_slice(&[audio_data]),
+			usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+		});
+
 		let audio_bind_group_layout =
 			device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
 				entries: &[wgpu::BindGroupLayoutEntry {
@@ -136,23 +158,6 @@ impl Display {
 				}],
 				label: Some("audio_bind_group_layout"),
 			});
-
-		let camera_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-			layout: &camera_bind_group_layout,
-			entries: &[wgpu::BindGroupEntry {
-				binding: 0,
-				resource: camera_buffer.as_entire_binding(),
-			}],
-			label: Some("camera_bind_group"),
-		});
-
-		let audio_data = audio::Data::new();
-		let audio_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-			label: Some("audio_buffer"),
-			contents: bytemuck::cast_slice(&[audio_data]),
-			usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-		});
-
 		let audio_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
 			layout: &audio_bind_group_layout,
 			entries: &[wgpu::BindGroupEntry {
@@ -162,12 +167,49 @@ impl Display {
 			label: Some("audio_bind_group"),
 		});
 
+		// Time bind group
+		let start_time = Instant::now();
+		let time = start_time.elapsed().as_secs_f32();
+
+		let time_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+			label: Some("time_buffer"),
+			contents: bytemuck::cast_slice(&[time]),
+			usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+		});
+
+		let time_bind_group_layout =
+			device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+				entries: &[wgpu::BindGroupLayoutEntry {
+					binding: 0,
+					visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
+					ty: wgpu::BindingType::Buffer {
+						ty: wgpu::BufferBindingType::Uniform,
+						has_dynamic_offset: false,
+						min_binding_size: None,
+					},
+					count: None,
+				}],
+				label: Some("time_bind_group_layout"),
+			});
+		let time_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+			layout: &time_bind_group_layout,
+			entries: &[wgpu::BindGroupEntry {
+				binding: 0,
+				resource: time_buffer.as_entire_binding(),
+			}],
+			label: Some("time_bind_group"),
+		});
+
 		let depth_texture = Texture::create_depth_texture(&device, &config, "depth_texture");
 
 		let render_pipeline_layout =
 			device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
 				label: Some("Render Pipeline Layout"),
-				bind_group_layouts: &[&camera_bind_group_layout, &audio_bind_group_layout],
+				bind_group_layouts: &[
+					&camera_bind_group_layout,
+					&audio_bind_group_layout,
+					&time_bind_group_layout,
+				],
 				push_constant_ranges: &[],
 			});
 
@@ -247,6 +289,10 @@ impl Display {
 			audio_buffer,
 			audio_bind_group,
 
+			start_time,
+			time_buffer,
+			time_bind_group,
+
 			window,
 		}
 	}
@@ -267,9 +313,15 @@ impl Display {
 	}
 
 	pub fn update(&mut self, audio: &Arc<Mutex<audio::Data>>) {
+		// Update audio
 		let audio_data = *audio.lock().unwrap();
 		self.queue
 			.write_buffer(&self.audio_buffer, 0, bytemuck::cast_slice(&[audio_data]));
+
+		// Update time
+		let time = self.start_time.elapsed().as_secs_f32();
+		self.queue
+			.write_buffer(&self.time_buffer, 0, bytemuck::cast_slice(&[time]));
 	}
 
 	pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
@@ -321,6 +373,7 @@ impl Display {
 						.set_index_buffer(mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
 					render_pass.set_bind_group(0, &self.camera_bind_group, &[]);
 					render_pass.set_bind_group(1, &self.audio_bind_group, &[]);
+					render_pass.set_bind_group(2, &self.time_bind_group, &[]);
 					render_pass.draw_indexed(0..mesh.num_elements, 0, 0..1 as _);
 				}
 			}

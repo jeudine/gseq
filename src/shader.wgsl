@@ -113,6 +113,9 @@ var<uniform> camera: Camera;
 @group(1) @binding(0)
 var<uniform> audio: Audio;
 
+@group(2) @binding(0)
+var<uniform> time: f32;
+
 struct VertexInput {
 	@location(0) position: vec3<f32>,
 }
@@ -146,8 +149,8 @@ fn layered_noise(v: vec3<f32>, n_layers: i32) -> f32 {
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-	var n = 0.7 * layered_noise(in.position.xyz * 0.01, 8);
-    
+	var n = 0.7 * layered_noise(vec3<f32>(in.position.xy * 0.01, time), 8);
+    n = cos(10.0 * n);
     var col = vec3(0.5 + 0.5 * vec3(n, n, n));
 	return vec4<f32>(col, 1.0);
 }
