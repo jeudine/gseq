@@ -15,7 +15,6 @@ use winit::{
 	window::WindowBuilder,
 };
 
-const NB_AUDIO_CHANNEL: u32 = 4;
 /*
 #[repr(C)]
 // This is so we can store this in a buffer
@@ -32,7 +31,7 @@ pub async fn run(mut items: Vec<Vec<Item>>) {
 
 	// Init audio
 	//TODO: remove unwrap
-	let (audio_data, stream) = audio::init(2048, NB_AUDIO_CHANNEL, 20, 20000).unwrap();
+	let (audio_data, stream) = audio::init(2048, 20, 20000).unwrap();
 
 	// Create one state for each display
 	let mut displays = vec![];
