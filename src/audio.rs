@@ -62,9 +62,7 @@ pub fn init(
 
 	let device = &devices[device_id];
 
-	let config = device
-		.default_input_config()
-		.expect("Failed to get default input config");
+	let config = device.default_input_config()?;
 
 	println!("[DEFAULT AUDIO CONFIG] {:?}", config);
 
@@ -140,6 +138,10 @@ pub fn init(
 		)?,
 		_ => return Err(Box::from("Unsupported sample format")),
 	};
+
+	for _ in 0..nb_channels {
+		println!("");
+	}
 
 	stream.play()?;
 	Ok((audio_data_arc, stream))
