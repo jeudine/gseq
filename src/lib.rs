@@ -38,8 +38,9 @@ pub async fn run(mut items: Vec<Vec<Item>>) {
 	let mut displays = vec![];
 	while !items.is_empty() {
 		let window = WindowBuilder::new().build(&event_loop).unwrap();
-		let display = Display::new(window, items.pop().ok_or(()).unwrap()).await;
-		displays.push(display);
+		let display: Result<Display, display::DisplayError> =
+			Display::new(window, items.pop().ok_or(()).unwrap()).await;
+		displays.push(display.unwrap());
 	}
 
 	//Init the LED controller

@@ -1,6 +1,14 @@
+use fs_err as fs;
+use thiserror::Error;
+
 use crate::model::Model;
 use crate::texture::Texture;
-use std::fs;
+
+#[derive(Error, Debug)]
+pub enum PipelineError {
+	#[error("Failed to read shader")]
+	Reading(#[from] std::io::Error),
+}
 
 pub struct Pipeline {
 	render_pipeline: wgpu::RenderPipeline,
@@ -47,12 +55,10 @@ impl Pipeline {
 		config: &wgpu::SurfaceConfiguration,
 		models: Vec<Model>,
 		shader_path: &std::path::Path,
-		depth_texture: &Texture,
-	) -> Pipeline {
+	) -> Result<Pipeline, PipelineError> {
 		let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
 			label: Some("Shader"),
-			//TODO: unwrap
-			source: wgpu::ShaderSource::Wgsl(fs::read_to_string(shader_path).unwrap().into()),
+			source: wgpu::ShaderSource::Wgsl(fs::read_to_string(shader_path)?.into()),
 		});
 
 		let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
@@ -102,10 +108,11 @@ impl Pipeline {
 			},
 			multiview: None,
 		});
-		Pipeline {
+
+		Ok(Pipeline {
 			render_pipeline,
 			models,
-		}
+		})
 	}
 
 	fn new_2d() {}

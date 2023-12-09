@@ -11,8 +11,19 @@ use std::f32::consts::PI;
 use std::iter;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
+use thiserror::Error;
 use wgpu::util::DeviceExt;
 use winit::window::Window;
+
+#[derive(Error, Debug)]
+pub enum DisplayError {
+	#[error("Failed to create a pipeline")]
+	PipelineCreation(#[from] pipeline::PipelineError),
+	#[error("Failed to request an adapter")]
+	AdapterRequest,
+	#[error("Failed to request a device")]
+	DeviceRequest(#[from] wgpu::RequestDeviceError),
+}
 
 pub struct Display {
 	surface: wgpu::Surface,
@@ -41,7 +52,7 @@ pub struct Display {
 }
 
 impl Display {
-	pub async fn new(window: Window, items: Vec<Item>) -> Self {
+	pub async fn new(window: Window, items: Vec<Item>) -> Result<Self, DisplayError> {
 		let size = window.inner_size();
 
 		// The instance is a handle to our GPU
@@ -61,7 +72,7 @@ impl Display {
 				force_fallback_adapter: false,
 			})
 			.await
-			.unwrap();
+			.ok_or(DisplayError::AdapterRequest)?;
 
 		let (device, queue) = adapter
 			.request_device(
@@ -74,8 +85,7 @@ impl Display {
 				},
 				None, // Trace path
 			)
-			.await
-			.unwrap();
+			.await?;
 
 		let config = wgpu::SurfaceConfiguration {
 			usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
@@ -213,10 +223,9 @@ impl Display {
 			&config,
 			models,
 			&std::path::PathBuf::from("src/shader.wgsl"),
-			&depth_texture,
-		)];
+		)?];
 
-		Self {
+		Ok(Self {
 			surface,
 			device,
 			queue,
@@ -236,7 +245,7 @@ impl Display {
 			time_bind_group,
 
 			window,
-		}
+		})
 	}
 
 	pub fn window(&self) -> &Window {

@@ -864,6 +864,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "fs-err"
+version = "2.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "88a41f105fe1d5b6b34b2055e3dc59bb79b46b48b2040b9e6c7b4b5de097aa41"
+dependencies = [
+ "autocfg",
+]
+
+[[package]]
 name = "ftdi-mpsse"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -968,6 +977,7 @@ dependencies = [
  "cpal",
  "crossterm",
  "env_logger",
+ "fs-err",
  "ftdi-mpsse",
  "image",
  "libftd2xx",
