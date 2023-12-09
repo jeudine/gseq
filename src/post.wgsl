@@ -98,11 +98,6 @@ fn snoise(v: vec3<f32>) -> f32 {
     return 105.0 * dot(m*m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
 }
 
-struct Camera {
-	view_pos: vec4<f32>,
-	view_proj: mat4x4<f32>,
-}
-
 struct Audio {
 	gain: vec4<f32>,
 }
@@ -112,6 +107,11 @@ var<uniform> audio: Audio;
 
 @group(1) @binding(0)
 var<uniform> time: f32;
+
+@group(2) @binding(0)
+var t_framebuffer: texture_2d<f32>;
+@group(2) @binding(1)
+var s_framebuffer: sampler;
 
 struct VertexInput {
 	@location(0) position: vec3<f32>,
@@ -146,8 +146,9 @@ fn layered_noise(v: vec3<f32>, n_layers: i32) -> f32 {
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-	var n = 0.7 * layered_noise(vec3<f32>(in.position.xy * 0.01, time), 8);
-    n = cos(10.0 * n);
-    var col = vec3(0.5 + 0.5 * vec3(n, n, n));
-	return vec4<f32>(col, 1.0);
+	var n = 100.0 * layered_noise(vec3<f32>(in.position.xy * 0.01, time), 8);
+    // n = cos(10.0 * n);
+    // var col = vec3(0.5 + 0.5 * vec3(n, n, n));
+	// return vec4<f32>(1.0, 1.0, 0.0, 1.0);
+    return textureSample(t_framebuffer, s_framebuffer, (in.position.xy+vec2<f32>(n, 0.0)) / vec2<f32>(800.0, 600.0));
 }
