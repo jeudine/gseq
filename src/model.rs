@@ -28,11 +28,13 @@ impl Model {
 			contents: bytemuck::cast_slice(&indices),
 			usage: wgpu::BufferUsages::INDEX,
 		});
+
 		let mesh = Mesh {
 			vertex_buffer,
 			index_buffer,
 			num_elements: indices.len() as u32,
 		};
+		
 		Model { meshes: vec![mesh] }
 	}
 
