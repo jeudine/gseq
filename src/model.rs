@@ -1,11 +1,10 @@
-use crate::instance::Material;
 use std::error::Error;
 use std::mem;
 use tobj::load_obj;
 use wgpu::util::DeviceExt;
 
 pub struct Model {
-	pub meshes: Vec<(Mesh, Material)>,
+	pub meshes: Vec<Mesh>,
 }
 
 pub struct Mesh {
@@ -15,6 +14,29 @@ pub struct Mesh {
 }
 
 impl Model {
+	pub fn new_quad(device: &wgpu::Device) -> Model {
+		let vertices: Vec<[f32; 3]> = vec![[0.0, 1.0, 0.0], [1.0, 1.0, 0.0], [0.0, 0.0, 0.0]];
+		let indices: Vec<u32> = vec![0, 1, 2, 0, 2, 1];
+		let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+			label: Some(&format!("Quad Vertex Buffer")),
+			contents: bytemuck::cast_slice(&vertices),
+			usage: wgpu::BufferUsages::VERTEX,
+		});
+
+		let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+			label: Some(&format!("Quad Index Buffer")),
+			contents: bytemuck::cast_slice(&indices),
+			usage: wgpu::BufferUsages::INDEX,
+		});
+		let mesh = Mesh {
+			vertex_buffer,
+			index_buffer,
+			num_elements: indices.len() as u32,
+		};
+		Model { meshes: vec![mesh] }
+	}
+
+	/*
 	pub fn new(file_name: &str, device: &wgpu::Device) -> Result<Model, Box<dyn Error>> {
 		let (model, materials) = load_obj(
 			file_name,
@@ -24,9 +46,6 @@ impl Model {
 				..Default::default()
 			},
 		)?;
-
-		//TODO: default case
-		let materials = materials.unwrap();
 
 		let meshes = model
 			.into_iter()
@@ -38,12 +57,9 @@ impl Model {
 								m.mesh.positions[i * 3],
 								m.mesh.positions[i * 3 + 1],
 								m.mesh.positions[i * 3 + 2],
-								m.mesh.normals[i * 3],
-								m.mesh.normals[i * 3 + 1],
-								m.mesh.normals[i * 3 + 2],
 							]
 						})
-						.collect::<Vec<[f32; 6]>>()
+						.collect::<Vec<[f32; 3]>>()
 				} else {
 					(0..m.mesh.positions.len() / 3)
 						.map(|i| {
@@ -81,42 +97,24 @@ impl Model {
 					None => 0,
 				};
 
-				let material = &materials[id];
-
-				println!(
-					"a:{:?}, d:{:?}, s:{:?}, s{:?}",
-					material.ambient, material.diffuse, material.specular, material.shininess
-				);
-
-				let material = Material {
-					ambient: material.ambient.into(),
-					diffuse: material.diffuse.into(),
-					spec: material.specular.into(),
-					shin: material.shininess.into(),
-				};
-				(mesh, material)
+				mesh
 			})
 			.collect::<Vec<_>>();
 
 		Ok(Self { meshes })
 	}
+	*/
 
 	pub fn desc<'a>() -> wgpu::VertexBufferLayout<'a> {
 		wgpu::VertexBufferLayout {
-			// 6 x f32
-			array_stride: std::mem::size_of::<[f32; 6]>() as wgpu::BufferAddress,
+			// 3 x f32
+			array_stride: std::mem::size_of::<[f32; 3]>() as wgpu::BufferAddress,
 			step_mode: wgpu::VertexStepMode::Vertex,
 			attributes: &[
 				// Position
 				wgpu::VertexAttribute {
 					offset: 0,
 					shader_location: 0,
-					format: wgpu::VertexFormat::Float32x3,
-				},
-				// Normal
-				wgpu::VertexAttribute {
-					offset: mem::size_of::<[f32; 3]>() as wgpu::BufferAddress,
-					shader_location: 1,
 					format: wgpu::VertexFormat::Float32x3,
 				},
 			],

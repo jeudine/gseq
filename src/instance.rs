@@ -7,14 +7,7 @@ pub struct Instance {
 	pub position: cgmath::Vector3<f32>,
 }
 
-#[derive(Copy, Clone)]
-pub struct Material {
-	pub ambient: cgmath::Vector3<f32>,
-	pub diffuse: cgmath::Vector3<f32>,
-	pub spec: cgmath::Vector3<f32>,
-	pub shin: f32,
-}
-
+/*
 #[repr(C)]
 #[derive(Debug, Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
 #[allow(dead_code)]
@@ -214,3 +207,4 @@ impl Instance {
 		}
 	}
 }
+*/

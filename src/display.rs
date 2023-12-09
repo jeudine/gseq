@@ -1,6 +1,5 @@
 use crate::audio;
 use crate::camera::{Camera, CameraUniform};
-use crate::group::Group;
 use crate::instance::Instance;
 use crate::item::Item;
 use crate::model::Model;
@@ -21,13 +20,13 @@ pub struct Display {
 	config: wgpu::SurfaceConfiguration,
 	pub size: winit::dpi::PhysicalSize<u32>,
 	render_pipeline: wgpu::RenderPipeline,
-	depth_texture: Texture,
-	pub groups: Vec<Group>,
+	//depth_texture: Texture,
+	pub models: Vec<Model>,
 	#[allow(dead_code)]
-	camera: Camera,
+	//camera: Camera,
 	#[allow(dead_code)]
-	view_proj_buffer: wgpu::Buffer,
-	bind_group: wgpu::BindGroup,
+	//view_proj_buffer: wgpu::Buffer,
+	//bind_group: wgpu::BindGroup,
 	window: Window,
 }
 
@@ -83,6 +82,7 @@ impl Display {
 			source: wgpu::ShaderSource::Wgsl(include_str!("shader.wgsl").into()),
 		});
 
+		/*
 		let camera = Camera {
 			// position the camera one unit up and 2 units back
 			// +z is out of the screen
@@ -130,11 +130,12 @@ impl Display {
 		});
 
 		let depth_texture = Texture::create_depth_texture(&device, &config, "depth_texture");
+		*/
 
 		let render_pipeline_layout =
 			device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
 				label: Some("Render Pipeline Layout"),
-				bind_group_layouts: &[&vp_bind_group_layout],
+				bind_group_layouts: &[],
 				push_constant_ranges: &[],
 			});
 
@@ -144,7 +145,7 @@ impl Display {
 			vertex: wgpu::VertexState {
 				module: &shader,
 				entry_point: "vs_main",
-				buffers: &[Model::desc(), Instance::desc()],
+				buffers: &[Model::desc()],
 			},
 			fragment: Some(wgpu::FragmentState {
 				module: &shader,
@@ -171,13 +172,14 @@ impl Display {
 				// Requires Features::CONSERVATIVE_RASTERIZATION
 				conservative: false,
 			},
-			depth_stencil: Some(wgpu::DepthStencilState {
-				format: Texture::DEPTH_FORMAT,
-				depth_write_enabled: true,
-				depth_compare: wgpu::CompareFunction::Less, // 1.
-				stencil: wgpu::StencilState::default(),     // 2.
-				bias: wgpu::DepthBiasState::default(),
-			}),
+			depth_stencil: None, /*Some(wgpu::DepthStencilState {
+									 format: Texture::DEPTH_FORMAT,
+									 depth_write_enabled: true,
+									 depth_compare: wgpu::CompareFunction::Less, // 1.
+									 stencil: wgpu::StencilState::default(),     // 2.
+									 bias: wgpu::DepthBiasState::default(),
+								 }),
+												*/
 			multisample: wgpu::MultisampleState {
 				count: 1,
 				mask: !0,
@@ -185,11 +187,6 @@ impl Display {
 			},
 			multiview: None,
 		});
-
-		let groups: Vec<Group> = items
-			.iter()
-			.map(|x| Group::new(&x.file_name, x.instance, &device))
-			.collect();
 
 		/*
 		let mut nb_fft_instances = 0;
@@ -201,6 +198,8 @@ impl Display {
 			}
 		}
 		*/
+		let models = vec![Model::new_quad(&device)];
+
 		Self {
 			surface,
 			device,
@@ -208,11 +207,11 @@ impl Display {
 			config,
 			size,
 			render_pipeline,
-			depth_texture,
-			groups,
-			camera,
-			view_proj_buffer,
-			bind_group,
+			//depth_texture,
+			//camera,
+			models,
+			//view_proj_buffer,
+			//bind_group,
 			window,
 		}
 	}
@@ -226,8 +225,10 @@ impl Display {
 			self.size = new_size;
 			self.config.width = new_size.width;
 			self.config.height = new_size.height;
+			/*
 			self.depth_texture =
 				Texture::create_depth_texture(&self.device, &self.config, "depth_texture");
+			*/
 			self.surface.configure(&self.device, &self.config);
 		}
 	}
@@ -263,27 +264,28 @@ impl Display {
 						store: true,
 					},
 				})],
-				depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-					view: &self.depth_texture.view,
-					depth_ops: Some(wgpu::Operations {
-						load: wgpu::LoadOp::Clear(1.0),
-						store: true,
-					}),
-					stencil_ops: None,
-				}),
+				depth_stencil_attachment: None, /*Some(wgpu::RenderPassDepthStencilAttachment {
+													view: &self.depth_texture.view,
+													depth_ops: Some(wgpu::Operations {
+														load: wgpu::LoadOp::Clear(1.0),
+														store: true,
+													}),
+													stencil_ops: None,
+												}),
+																		  */
 			});
 
 			render_pass.set_pipeline(&self.render_pipeline);
 
-			for g in &self.groups {
-				for (me, _, b) in &g.model {
-					render_pass.set_vertex_buffer(1, b.slice(..));
-					render_pass.set_vertex_buffer(0, me.vertex_buffer.slice(..));
+			for model in &self.models {
+				for mesh in &model.meshes {
+					//println!("MESH");
+					render_pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
 					render_pass
-						.set_index_buffer(me.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
-					render_pass.set_bind_group(0, &self.bind_group, &[]);
-					render_pass.draw_indexed(0..me.num_elements, 0, 0..1 as _);
+						.set_index_buffer(mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
+					render_pass.draw_indexed(0..mesh.num_elements, 0, 0..1 as _);
 				}
+				//render_pass.set_bind_group(0, &self.bind_group, &[]);
 			}
 		}
 
