@@ -15,8 +15,8 @@ pub struct Mesh {
 
 impl Model {
 	pub fn new_quad(device: &wgpu::Device) -> Model {
-		let vertices: Vec<[f32; 3]> = vec![[0.0, 1.0, 0.0], [1.0, 1.0, 0.0], [0.0, 0.0, 0.0]];
-		let indices: Vec<u32> = vec![0, 1, 2, 0, 2, 1];
+		let vertices: Vec<[f32; 3]> = vec![[-1.0, 1.0, 0.0], [1.0, 1.0, 0.0], [-1.0, -1.0, 0.0]];
+		let indices: Vec<u32> = vec![0, 2, 1];
 		let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
 			label: Some(&format!("Quad Vertex Buffer")),
 			contents: bytemuck::cast_slice(&vertices),

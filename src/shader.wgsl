@@ -15,7 +15,7 @@ struct VertexInput {
 }
 
 struct VertexOutput {
-	@location(5) world_position: vec3<f32>,
+	@builtin(position) position: vec4<f32>,
 }
 
 @vertex
@@ -23,7 +23,7 @@ fn vs_main(
 	model: VertexInput,
 	) -> VertexOutput {
 	var out: VertexOutput;
-	out.world_position = model.position;
+	out.position = vec4<f32>(model.position, 1.0);
 	return out;
 }
 
