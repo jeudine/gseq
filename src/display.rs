@@ -3,7 +3,6 @@ use crate::camera::{Camera, CameraUniform};
 use crate::group::Group;
 use crate::instance::Instance;
 use crate::item::Item;
-use crate::light::Light;
 use crate::model::Model;
 use crate::texture::Texture;
 use cgmath::{Basis3, Deg, Euler, Rotation3};
@@ -24,7 +23,6 @@ pub struct Display {
 	render_pipeline: wgpu::RenderPipeline,
 	depth_texture: Texture,
 	pub groups: Vec<Group>,
-	pub lights: Light,
 	#[allow(dead_code)]
 	camera: Camera,
 	#[allow(dead_code)]
@@ -122,83 +120,6 @@ impl Display {
 				label: Some("mv_bind_group_layout"),
 			});
 
-		let light_bind_group_layout =
-			device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-				entries: &[
-					wgpu::BindGroupLayoutEntry {
-						binding: 0,
-						visibility: wgpu::ShaderStages::FRAGMENT,
-						ty: wgpu::BindingType::Buffer {
-							ty: wgpu::BufferBindingType::Uniform,
-							has_dynamic_offset: false,
-							min_binding_size: None,
-						},
-						count: None,
-					},
-					wgpu::BindGroupLayoutEntry {
-						binding: 1,
-						visibility: wgpu::ShaderStages::FRAGMENT,
-						ty: wgpu::BindingType::Buffer {
-							ty: wgpu::BufferBindingType::Uniform,
-							has_dynamic_offset: false,
-							min_binding_size: None,
-						},
-						count: None,
-					},
-					wgpu::BindGroupLayoutEntry {
-						binding: 2,
-						visibility: wgpu::ShaderStages::FRAGMENT,
-						ty: wgpu::BindingType::Buffer {
-							ty: wgpu::BufferBindingType::Uniform,
-							has_dynamic_offset: false,
-							min_binding_size: None,
-						},
-						count: None,
-					},
-					wgpu::BindGroupLayoutEntry {
-						binding: 3,
-						visibility: wgpu::ShaderStages::FRAGMENT,
-						ty: wgpu::BindingType::Buffer {
-							ty: wgpu::BufferBindingType::Uniform,
-							has_dynamic_offset: false,
-							min_binding_size: None,
-						},
-						count: None,
-					},
-					wgpu::BindGroupLayoutEntry {
-						binding: 4,
-						visibility: wgpu::ShaderStages::FRAGMENT,
-						ty: wgpu::BindingType::Buffer {
-							ty: wgpu::BufferBindingType::Uniform,
-							has_dynamic_offset: false,
-							min_binding_size: None,
-						},
-						count: None,
-					},
-					wgpu::BindGroupLayoutEntry {
-						binding: 5,
-						visibility: wgpu::ShaderStages::FRAGMENT,
-						ty: wgpu::BindingType::Buffer {
-							ty: wgpu::BufferBindingType::Uniform,
-							has_dynamic_offset: false,
-							min_binding_size: None,
-						},
-						count: None,
-					},
-					wgpu::BindGroupLayoutEntry {
-						binding: 6,
-						visibility: wgpu::ShaderStages::FRAGMENT,
-						ty: wgpu::BindingType::Buffer {
-							ty: wgpu::BufferBindingType::Uniform,
-							has_dynamic_offset: false,
-							min_binding_size: None,
-						},
-						count: None,
-					},
-				],
-				label: Some("light_bind_group_layout"),
-			});
-
 		let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
 			layout: &vp_bind_group_layout,
 			entries: &[wgpu::BindGroupEntry {
@@ -213,8 +134,7 @@ impl Display {
 		let render_pipeline_layout =
 			device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
 				label: Some("Render Pipeline Layout"),
-				// TODO: if we want multiple lights add more light bind groups
-				bind_group_layouts: &[&vp_bind_group_layout, &light_bind_group_layout],
+				bind_group_layouts: &[&vp_bind_group_layout],
 				push_constant_ranges: &[],
 			});
 
@@ -266,7 +186,6 @@ impl Display {
 			multiview: None,
 		});
 
-		let lights = Light::new(&device, &light_bind_group_layout);
 		let groups: Vec<Group> = items
 			.iter()
 			.map(|x| Group::new(&x.file_name, x.instance, &device))
@@ -291,7 +210,6 @@ impl Display {
 			render_pipeline,
 			depth_texture,
 			groups,
-			lights: lights,
 			camera,
 			view_proj_buffer,
 			bind_group,
@@ -364,7 +282,6 @@ impl Display {
 					render_pass
 						.set_index_buffer(me.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
 					render_pass.set_bind_group(0, &self.bind_group, &[]);
-					render_pass.set_bind_group(1, &self.lights.bind_group, &[]);
 					render_pass.draw_indexed(0..me.num_elements, 0, 0..1 as _);
 				}
 			}
