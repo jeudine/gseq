@@ -20,13 +20,13 @@ pub struct Display {
 	config: wgpu::SurfaceConfiguration,
 	pub size: winit::dpi::PhysicalSize<u32>,
 	render_pipeline: wgpu::RenderPipeline,
-	//depth_texture: Texture,
+	depth_texture: Texture,
 	pub models: Vec<Model>,
 	#[allow(dead_code)]
-	//camera: Camera,
+	camera: Camera,
 	#[allow(dead_code)]
-	//view_proj_buffer: wgpu::Buffer,
-	//bind_group: wgpu::BindGroup,
+	camera_buffer: wgpu::Buffer,
+	camera_bind_group: wgpu::BindGroup,
 	window: Window,
 }
 
@@ -82,7 +82,6 @@ impl Display {
 			source: wgpu::ShaderSource::Wgsl(include_str!("shader.wgsl").into()),
 		});
 
-		/*
 		let camera = Camera {
 			// position the camera one unit up and 2 units back
 			// +z is out of the screen
@@ -99,7 +98,7 @@ impl Display {
 
 		let camera_uniform: CameraUniform = camera.into();
 
-		let view_proj_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+		let camera_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
 			label: Some("view_proj_buffer"),
 			contents: bytemuck::cast_slice(&[camera_uniform]),
 			usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
@@ -120,22 +119,21 @@ impl Display {
 				label: Some("mv_bind_group_layout"),
 			});
 
-		let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+		let camera_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
 			layout: &vp_bind_group_layout,
 			entries: &[wgpu::BindGroupEntry {
 				binding: 0,
-				resource: view_proj_buffer.as_entire_binding(),
+				resource: camera_buffer.as_entire_binding(),
 			}],
 			label: Some("vp_bind_group"),
 		});
 
 		let depth_texture = Texture::create_depth_texture(&device, &config, "depth_texture");
-		*/
 
 		let render_pipeline_layout =
 			device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
 				label: Some("Render Pipeline Layout"),
-				bind_group_layouts: &[],
+				bind_group_layouts: &[&vp_bind_group_layout],
 				push_constant_ranges: &[],
 			});
 
@@ -172,14 +170,13 @@ impl Display {
 				// Requires Features::CONSERVATIVE_RASTERIZATION
 				conservative: false,
 			},
-			depth_stencil: None, /*Some(wgpu::DepthStencilState {
-									 format: Texture::DEPTH_FORMAT,
-									 depth_write_enabled: true,
-									 depth_compare: wgpu::CompareFunction::Less, // 1.
-									 stencil: wgpu::StencilState::default(),     // 2.
-									 bias: wgpu::DepthBiasState::default(),
-								 }),
-												*/
+			depth_stencil: Some(wgpu::DepthStencilState {
+				format: Texture::DEPTH_FORMAT,
+				depth_write_enabled: true,
+				depth_compare: wgpu::CompareFunction::Less, // 1.
+				stencil: wgpu::StencilState::default(),     // 2.
+				bias: wgpu::DepthBiasState::default(),
+			}),
 			multisample: wgpu::MultisampleState {
 				count: 1,
 				mask: !0,
@@ -207,11 +204,11 @@ impl Display {
 			config,
 			size,
 			render_pipeline,
-			//depth_texture,
-			//camera,
+			depth_texture,
+			camera,
 			models,
-			//view_proj_buffer,
-			//bind_group,
+			camera_buffer,
+			camera_bind_group,
 			window,
 		}
 	}
@@ -225,10 +222,8 @@ impl Display {
 			self.size = new_size;
 			self.config.width = new_size.width;
 			self.config.height = new_size.height;
-			/*
 			self.depth_texture =
 				Texture::create_depth_texture(&self.device, &self.config, "depth_texture");
-			*/
 			self.surface.configure(&self.device, &self.config);
 		}
 	}
@@ -264,15 +259,14 @@ impl Display {
 						store: true,
 					},
 				})],
-				depth_stencil_attachment: None, /*Some(wgpu::RenderPassDepthStencilAttachment {
-													view: &self.depth_texture.view,
-													depth_ops: Some(wgpu::Operations {
-														load: wgpu::LoadOp::Clear(1.0),
-														store: true,
-													}),
-													stencil_ops: None,
-												}),
-																		  */
+				depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+					view: &self.depth_texture.view,
+					depth_ops: Some(wgpu::Operations {
+						load: wgpu::LoadOp::Clear(1.0),
+						store: true,
+					}),
+					stencil_ops: None,
+				}),
 			});
 
 			render_pass.set_pipeline(&self.render_pipeline);
@@ -283,9 +277,9 @@ impl Display {
 					render_pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
 					render_pass
 						.set_index_buffer(mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
+					render_pass.set_bind_group(0, &self.camera_bind_group, &[]);
 					render_pass.draw_indexed(0..mesh.num_elements, 0, 0..1 as _);
 				}
-				//render_pass.set_bind_group(0, &self.bind_group, &[]);
 			}
 		}
 
