@@ -13,11 +13,21 @@ use std::io::{stdout, Write};
 use std::sync::{Arc, Mutex};
 
 // mean and var: mean and var over 70 samples
+const NB_AUDIO_CHANNELS: u32 = 4;
 const STAT_WINDOW_SIZE: u32 = 70;
 
-#[derive(Clone)]
+#[repr(C)]
+#[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Data {
-	pub gain: Vec<f32>,
+	pub gain: [f32; NB_AUDIO_CHANNELS as usize],
+}
+
+impl Data {
+	pub fn new() -> Data {
+		Data {
+			gain: [0.0; NB_AUDIO_CHANNELS as usize],
+		}
+	}
 }
 
 struct Buffer {
@@ -39,7 +49,6 @@ struct Buffer {
 
 pub fn init(
 	chunck_size: u32,
-	nb_channels: u32,
 	min_freq: u32,
 	max_freq: u32,
 ) -> Result<(Arc<Mutex<Data>>, Stream), Box<dyn Error>> {
@@ -73,7 +82,7 @@ pub fn init(
 	let input = r2c.make_input_vec();
 	let output = r2c.make_output_vec();
 	let scratch = r2c.make_scratch_vec();
-	let stat_window = vec![VecDeque::new(); nb_channels as usize];
+	let stat_window = vec![VecDeque::new(); NB_AUDIO_CHANNELS as usize];
 	let hanning_window = (0..input.len())
 		.map(|i| 0.5 * (1.0 - ((2.0 * PI * i as f32) / (input.len() - 1) as f32).cos()))
 		.collect();
@@ -85,15 +94,15 @@ pub fn init(
 		len: chunck_size as usize,
 		pos: 0,
 		r2c,
-		mean: vec![0.0; nb_channels as usize],
-		var: vec![0.0; nb_channels as usize],
+		mean: vec![0.0; NB_AUDIO_CHANNELS as usize],
+		var: vec![0.0; NB_AUDIO_CHANNELS as usize],
 		count: 0,
 		window: hanning_window,
-		nb_channels,
+		nb_channels: NB_AUDIO_CHANNELS,
 		index_limits: calculate_channel_index(
 			min_freq,
 			max_freq,
-			nb_channels,
+			NB_AUDIO_CHANNELS,
 			config.sample_rate().0,
 			chunck_size,
 		),
@@ -106,7 +115,7 @@ pub fn init(
 	};
 
 	let audio_data = Data {
-		gain: vec![0.0; nb_channels as usize],
+		gain: [0.0; NB_AUDIO_CHANNELS as usize],
 	};
 	let audio_data_arc = Arc::new(Mutex::new(audio_data));
 	let audio_data_arc1 = audio_data_arc.clone();
@@ -139,7 +148,7 @@ pub fn init(
 		_ => return Err(Box::from("Unsupported sample format")),
 	};
 
-	for _ in 0..nb_channels {
+	for _ in 0..NB_AUDIO_CHANNELS {
 		println!("");
 	}
 
@@ -249,13 +258,12 @@ where
 				}
 			}
 
-			let gain = if !over {
-				vec![f32::MIN; buffer.nb_channels as usize]
-			} else {
-				(0..buffer.nb_channels as usize)
-					.map(|i| (levels[i] - buffer.mean[i]) / buffer.var[i].sqrt())
-					.collect()
-			};
+			let mut gain = [f32::MIN; NB_AUDIO_CHANNELS as usize];
+			if over {
+				for i in 0..NB_AUDIO_CHANNELS as usize {
+					gain[i] = (levels[i] - buffer.mean[i]) / buffer.var[i].sqrt();
+				}
+			}
 
 			/*
 
