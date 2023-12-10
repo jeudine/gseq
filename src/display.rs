@@ -1,13 +1,8 @@
 use crate::audio;
 use crate::camera::{Camera, CameraUniform};
-use crate::instance::Instance;
 use crate::item::Item;
-use crate::model::Model;
 use crate::pipeline;
 use crate::texture::Texture;
-use cgmath::{Basis3, Deg, Euler, Rotation3};
-use rand::Rng;
-use std::f32::consts::PI;
 use std::iter;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
@@ -45,7 +40,7 @@ pub struct Display {
 	audio_buffer: wgpu::Buffer,
 	audio_bind_group: wgpu::BindGroup,
 
-	frame_buffer: Texture,
+	framebuffer: Texture,
 	texture_bind_group: wgpu::BindGroup,
 	texture_bind_group_layout: wgpu::BindGroupLayout,
 
@@ -213,51 +208,24 @@ impl Display {
 		});
 
 		// Texture bind group
-		let frame_buffer = Texture::create_render_target(
+		let framebuffer = Texture::new_framebuffer(
 			&device,
 			(config.width, config.height),
 			"framebuffer texture",
 		);
 
-		let texture_bind_group_layout =
+		let texture_bind_group_layout: wgpu::BindGroupLayout =
 			device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
 				entries: &[
-					wgpu::BindGroupLayoutEntry {
-						binding: 0,
-						visibility: wgpu::ShaderStages::FRAGMENT,
-						ty: wgpu::BindingType::Texture {
-							multisampled: false,
-							view_dimension: wgpu::TextureViewDimension::D2,
-							sample_type: wgpu::TextureSampleType::Float { filterable: true },
-						},
-						count: None,
-					},
-					wgpu::BindGroupLayoutEntry {
-						binding: 1,
-						visibility: wgpu::ShaderStages::FRAGMENT,
-						ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-						count: None,
-					},
+					Texture::create_texture_bind_group_layout_entry(0),
+					Texture::create_sampler_bind_group_layout_entry(1),
 				],
 				label: Some("texture_bind_group_layout"),
 			});
 
-		let texture_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-			layout: &texture_bind_group_layout,
-			entries: &[
-				wgpu::BindGroupEntry {
-					binding: 0,
-					resource: wgpu::BindingResource::TextureView(&frame_buffer.view),
-				},
-				wgpu::BindGroupEntry {
-					binding: 1,
-					resource: wgpu::BindingResource::Sampler(&frame_buffer.sampler),
-				},
-			],
-			label: Some("texture_bind_group"),
-		});
+		let texture_bind_group = framebuffer.create_bind_group(&device, &texture_bind_group_layout);
 
-		let depth_texture = Texture::create_depth_texture(&device, &config, "depth_texture");
+		let depth_texture = Texture::new_depth(&device, &config, "depth_texture");
 
 		let layouts = pipeline::Layouts::new(
 			&camera_bind_group_layout,
@@ -297,7 +265,7 @@ impl Display {
 			audio_buffer,
 			audio_bind_group,
 
-			frame_buffer,
+			framebuffer,
 			texture_bind_group,
 			texture_bind_group_layout,
 
@@ -318,27 +286,15 @@ impl Display {
 			self.size = new_size;
 			self.config.width = new_size.width;
 			self.config.height = new_size.height;
-			self.depth_texture =
-				Texture::create_depth_texture(&self.device, &self.config, "depth_texture");
-			self.frame_buffer = Texture::create_render_target(
+			self.depth_texture = Texture::new_depth(&self.device, &self.config, "depth_texture");
+			self.framebuffer = Texture::new_framebuffer(
 				&self.device,
 				(new_size.width, new_size.height),
 				"framebuffer texture",
 			);
-			self.texture_bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
-				layout: &self.texture_bind_group_layout,
-				entries: &[
-					wgpu::BindGroupEntry {
-						binding: 0,
-						resource: wgpu::BindingResource::TextureView(&self.frame_buffer.view),
-					},
-					wgpu::BindGroupEntry {
-						binding: 1,
-						resource: wgpu::BindingResource::Sampler(&self.frame_buffer.sampler),
-					},
-				],
-				label: Some("texture_bind_group"),
-			});
+			self.texture_bind_group = self
+				.framebuffer
+				.create_bind_group(&self.device, &self.texture_bind_group_layout);
 			self.surface.configure(&self.device, &self.config);
 		}
 	}
@@ -372,7 +328,7 @@ impl Display {
 			let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
 				label: Some("Render Pass"),
 				color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-					view: &self.frame_buffer.view,
+					view: &self.framebuffer.view(),
 					resolve_target: None,
 					ops: wgpu::Operations {
 						//load: wgpu::LoadOp::Load,
@@ -386,7 +342,7 @@ impl Display {
 					},
 				})],
 				depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-					view: &self.depth_texture.view,
+					view: &self.depth_texture.view(),
 					depth_ops: Some(wgpu::Operations {
 						load: wgpu::LoadOp::Clear(1.0),
 						store: true,
