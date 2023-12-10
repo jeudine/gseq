@@ -140,7 +140,7 @@ impl Pipeline {
 
 		let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
 			label: Some("2D Render Pipeline"),
-			layout: Some(&layouts.layout_3d),
+			layout: Some(&layouts.layout_2d),
 			vertex: wgpu::VertexState {
 				module: &shader,
 				entry_point: "vs_main",
