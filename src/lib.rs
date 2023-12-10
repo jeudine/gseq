@@ -6,6 +6,7 @@ pub mod item;
 mod model;
 mod pipeline;
 mod texture;
+mod transform;
 use display::Display;
 pub use instance::Instance;
 pub use item::Item;
