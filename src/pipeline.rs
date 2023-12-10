@@ -24,32 +24,23 @@ pub struct Layouts {
 impl Layouts {
 	pub fn new(
 		camera_bind_group_layout: &wgpu::BindGroupLayout,
-		audio_bind_group_layout: &wgpu::BindGroupLayout,
-		time_bind_group_layout: &wgpu::BindGroupLayout,
+		universal_bind_group_layout: &wgpu::BindGroupLayout,
 		texture_bind_group_layout: &wgpu::BindGroupLayout,
 		device: &wgpu::Device,
 	) -> Layouts {
 		let layout_3d = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
 			label: Some("Render Pipeline Layout"),
-			bind_group_layouts: &[
-				&audio_bind_group_layout,
-				&time_bind_group_layout,
-				&camera_bind_group_layout,
-			],
+			bind_group_layouts: &[&universal_bind_group_layout, &camera_bind_group_layout],
 			push_constant_ranges: &[],
 		});
 		let layout_2d = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
 			label: Some("Render Pipeline Layout"),
-			bind_group_layouts: &[&audio_bind_group_layout, &time_bind_group_layout],
+			bind_group_layouts: &[&universal_bind_group_layout],
 			push_constant_ranges: &[],
 		});
 		let layout_post = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
 			label: Some("Render Pipeline Layout"),
-			bind_group_layouts: &[
-				&audio_bind_group_layout,
-				&time_bind_group_layout,
-				&texture_bind_group_layout,
-			],
+			bind_group_layouts: &[&universal_bind_group_layout, &texture_bind_group_layout],
 			push_constant_ranges: &[],
 		});
 		Layouts {

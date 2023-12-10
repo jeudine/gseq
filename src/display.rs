@@ -26,29 +26,32 @@ pub struct Display {
 	queue: wgpu::Queue,
 	config: wgpu::SurfaceConfiguration,
 	pub size: winit::dpi::PhysicalSize<u32>,
+	window: Window,
 
+	start_time: Instant,
+
+	// Pipelines
 	pipelines: Vec<pipeline::Pipeline>,
 	post_pipeline: pipeline::Pipeline,
 
-	depth_texture: Texture,
-	#[allow(dead_code)]
+	// Camera
 	camera: Camera,
-	#[allow(dead_code)]
-	camera_buffer: wgpu::Buffer,
-	camera_bind_group: wgpu::BindGroup,
 
-	audio_buffer: wgpu::Buffer,
-	audio_bind_group: wgpu::BindGroup,
-
+	// Textures
+	depth_texture: Texture,
 	framebuffer: Texture,
-	texture_bind_group: wgpu::BindGroup,
-	texture_bind_group_layout: wgpu::BindGroupLayout,
 
-	start_time: Instant,
+	// Buffers
+	audio_buffer: wgpu::Buffer,
 	time_buffer: wgpu::Buffer,
-	time_bind_group: wgpu::BindGroup,
+	size_buffer: wgpu::Buffer,
+	camera_buffer: wgpu::Buffer,
 
-	window: Window,
+	// Bind groups
+	universal_bind_group: wgpu::BindGroup,
+	camera_bind_group: wgpu::BindGroup,
+	texture_bind_group_layout: wgpu::BindGroupLayout,
+	texture_bind_group: wgpu::BindGroup,
 }
 
 impl Display {
@@ -143,7 +146,7 @@ impl Display {
 			label: Some("camera_bind_group"),
 		});
 
-		// Audio bind group
+		// Audio bindings
 		let audio_data = audio::Data::new();
 		let audio_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
 			label: Some("audio_buffer"),
@@ -151,30 +154,7 @@ impl Display {
 			usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
 		});
 
-		let audio_bind_group_layout =
-			device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-				entries: &[wgpu::BindGroupLayoutEntry {
-					binding: 0,
-					visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
-					ty: wgpu::BindingType::Buffer {
-						ty: wgpu::BufferBindingType::Uniform,
-						has_dynamic_offset: false,
-						min_binding_size: None,
-					},
-					count: None,
-				}],
-				label: Some("audio_bind_group_layout"),
-			});
-		let audio_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-			layout: &audio_bind_group_layout,
-			entries: &[wgpu::BindGroupEntry {
-				binding: 0,
-				resource: audio_buffer.as_entire_binding(),
-			}],
-			label: Some("audio_bind_group"),
-		});
-
-		// Time bind group
+		// Time bindings
 		let start_time = Instant::now();
 		let time = start_time.elapsed().as_secs_f32();
 
@@ -184,27 +164,69 @@ impl Display {
 			usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
 		});
 
-		let time_bind_group_layout =
+		// Size bindings
+		let size_data: [u32; 2] = [size.width, size.height];
+		let size_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+			label: Some("size_buffer"),
+			contents: bytemuck::cast_slice(&[size_data]),
+			usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+		});
+
+		// Universal bind group
+		let universal_bind_group_layout =
 			device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-				entries: &[wgpu::BindGroupLayoutEntry {
-					binding: 0,
-					visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
-					ty: wgpu::BindingType::Buffer {
-						ty: wgpu::BufferBindingType::Uniform,
-						has_dynamic_offset: false,
-						min_binding_size: None,
+				entries: &[
+					wgpu::BindGroupLayoutEntry {
+						binding: 0,
+						visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
+						ty: wgpu::BindingType::Buffer {
+							ty: wgpu::BufferBindingType::Uniform,
+							has_dynamic_offset: false,
+							min_binding_size: None,
+						},
+						count: None,
 					},
-					count: None,
-				}],
-				label: Some("time_bind_group_layout"),
+					wgpu::BindGroupLayoutEntry {
+						binding: 1,
+						visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
+						ty: wgpu::BindingType::Buffer {
+							ty: wgpu::BufferBindingType::Uniform,
+							has_dynamic_offset: false,
+							min_binding_size: None,
+						},
+						count: None,
+					},
+					wgpu::BindGroupLayoutEntry {
+						binding: 2,
+						visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
+						ty: wgpu::BindingType::Buffer {
+							ty: wgpu::BufferBindingType::Uniform,
+							has_dynamic_offset: false,
+							min_binding_size: None,
+						},
+						count: None,
+					},
+				],
+				label: Some("universal_bind_group_layout"),
 			});
-		let time_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-			layout: &time_bind_group_layout,
-			entries: &[wgpu::BindGroupEntry {
-				binding: 0,
-				resource: time_buffer.as_entire_binding(),
-			}],
-			label: Some("time_bind_group"),
+
+		let universal_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+			layout: &universal_bind_group_layout,
+			entries: &[
+				wgpu::BindGroupEntry {
+					binding: 0,
+					resource: audio_buffer.as_entire_binding(),
+				},
+				wgpu::BindGroupEntry {
+					binding: 1,
+					resource: time_buffer.as_entire_binding(),
+				},
+				wgpu::BindGroupEntry {
+					binding: 2,
+					resource: size_buffer.as_entire_binding(),
+				},
+			],
+			label: Some("universal_bind_group"),
 		});
 
 		// Texture bind group
@@ -229,8 +251,7 @@ impl Display {
 
 		let layouts = pipeline::Layouts::new(
 			&camera_bind_group_layout,
-			&audio_bind_group_layout,
-			&time_bind_group_layout,
+			&universal_bind_group_layout,
 			&texture_bind_group_layout,
 			&device,
 		);
@@ -255,25 +276,21 @@ impl Display {
 			queue,
 			config,
 			size,
+			window,
+			start_time,
 			pipelines,
 			post_pipeline,
-			depth_texture,
 			camera,
-			camera_buffer,
-			camera_bind_group,
-
-			audio_buffer,
-			audio_bind_group,
-
+			depth_texture,
 			framebuffer,
-			texture_bind_group,
-			texture_bind_group_layout,
-
-			start_time,
+			audio_buffer,
 			time_buffer,
-			time_bind_group,
-
-			window,
+			size_buffer,
+			camera_buffer,
+			universal_bind_group,
+			camera_bind_group,
+			texture_bind_group_layout,
+			texture_bind_group,
 		})
 	}
 
@@ -286,16 +303,24 @@ impl Display {
 			self.size = new_size;
 			self.config.width = new_size.width;
 			self.config.height = new_size.height;
+
+			// Create new textures with new size
 			self.depth_texture = Texture::new_depth(&self.device, &self.config, "depth_texture");
 			self.framebuffer = Texture::new_framebuffer(
 				&self.device,
 				(new_size.width, new_size.height),
 				"framebuffer texture",
 			);
+			// Update the bind group of relevant textures
 			self.texture_bind_group = self
 				.framebuffer
 				.create_bind_group(&self.device, &self.texture_bind_group_layout);
 			self.surface.configure(&self.device, &self.config);
+
+			// Update window size
+			let size_data: [u32; 2] = [self.size.width, self.size.height];
+			self.queue
+				.write_buffer(&self.size_buffer, 0, bytemuck::cast_slice(&[size_data]));
 		}
 	}
 
@@ -351,9 +376,8 @@ impl Display {
 				}),
 			});
 
-			render_pass.set_bind_group(0, &self.audio_bind_group, &[]);
-			render_pass.set_bind_group(1, &self.time_bind_group, &[]);
-			render_pass.set_bind_group(2, &self.camera_bind_group, &[]);
+			render_pass.set_bind_group(0, &self.universal_bind_group, &[]);
+			render_pass.set_bind_group(1, &self.camera_bind_group, &[]);
 			for p in &self.pipelines {
 				p.draw(&mut render_pass);
 			}
@@ -378,9 +402,8 @@ impl Display {
 				depth_stencil_attachment: None,
 			});
 
-			render_pass.set_bind_group(0, &self.audio_bind_group, &[]);
-			render_pass.set_bind_group(1, &self.time_bind_group, &[]);
-			render_pass.set_bind_group(2, &self.texture_bind_group, &[]);
+			render_pass.set_bind_group(0, &self.universal_bind_group, &[]);
+			render_pass.set_bind_group(1, &self.texture_bind_group, &[]);
 			self.post_pipeline.draw(&mut render_pass);
 		}
 
