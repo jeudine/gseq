@@ -1,14 +1,9 @@
 use crate::audio;
 use crate::camera::{Camera, CameraUniform};
-use crate::instance::Instance;
 use crate::item::Item;
-use crate::model::Model;
 use crate::pipeline;
 use crate::texture::Texture;
 use crate::transform;
-use cgmath::{Basis3, Deg, Euler, Rotation3};
-use rand::Rng;
-use std::f32::consts::PI;
 use std::iter;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
@@ -32,29 +27,36 @@ pub struct Display {
 	queue: wgpu::Queue,
 	config: wgpu::SurfaceConfiguration,
 	pub size: winit::dpi::PhysicalSize<u32>,
-
-	pipelines: Vec<pipeline::Pipeline>,
-	post_pipeline: pipeline::Pipeline,
-
-	depth_texture: Texture,
-	#[allow(dead_code)]
-	camera: Camera,
-	#[allow(dead_code)]
-	camera_buffer: wgpu::Buffer,
-	camera_bind_group: wgpu::BindGroup,
-
-	audio_buffer: wgpu::Buffer,
-	audio_bind_group: wgpu::BindGroup,
-
-	frame_buffer: Texture,
-	texture_bind_group: wgpu::BindGroup,
-	texture_bind_group_layout: wgpu::BindGroupLayout,
+	window: Window,
 
 	start_time: Instant,
-	time_buffer: wgpu::Buffer,
-	time_bind_group: wgpu::BindGroup,
 
-	window: Window,
+	// Pipelines
+	pipeline_groups: Vec<pipeline::PipelineGroup>,
+	pipeline_post: pipeline::PipelinePost,
+
+	// Camera
+	camera: Camera,
+
+	// Textures
+	depth_texture: Texture,
+	framebuffer: Texture,
+
+	// Buffers
+	audio_buffer: wgpu::Buffer,
+	time_buffer: wgpu::Buffer,
+	size_buffer: wgpu::Buffer,
+	camera_buffer: wgpu::Buffer,
+
+	// Bind groups
+	bind_groups: Vec<wgpu::BindGroup>,
+	texture_bind_group_layout: wgpu::BindGroupLayout,
+	/*
+	universal_bind_group: wgpu::BindGroup,
+	camera_bind_group: wgpu::BindGroup,
+	texture_bind_group_layout: wgpu::BindGroupLayout,
+	texture_bind_group: wgpu::BindGroup,
+	*/
 }
 
 impl Display {
@@ -149,7 +151,7 @@ impl Display {
 			label: Some("camera_bind_group"),
 		});
 
-		// Audio bind group
+		// Audio bindings
 		let audio_data = audio::Data::new();
 		let audio_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
 			label: Some("audio_buffer"),
@@ -157,30 +159,7 @@ impl Display {
 			usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
 		});
 
-		let audio_bind_group_layout =
-			device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-				entries: &[wgpu::BindGroupLayoutEntry {
-					binding: 0,
-					visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
-					ty: wgpu::BindingType::Buffer {
-						ty: wgpu::BufferBindingType::Uniform,
-						has_dynamic_offset: false,
-						min_binding_size: None,
-					},
-					count: None,
-				}],
-				label: Some("audio_bind_group_layout"),
-			});
-		let audio_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-			layout: &audio_bind_group_layout,
-			entries: &[wgpu::BindGroupEntry {
-				binding: 0,
-				resource: audio_buffer.as_entire_binding(),
-			}],
-			label: Some("audio_bind_group"),
-		});
-
-		// Time bind group
+		// Time bindings
 		let start_time = Instant::now();
 		let time = start_time.elapsed().as_secs_f32();
 
@@ -190,84 +169,99 @@ impl Display {
 			usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
 		});
 
-		let time_bind_group_layout =
-			device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-				entries: &[wgpu::BindGroupLayoutEntry {
-					binding: 0,
-					visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
-					ty: wgpu::BindingType::Buffer {
-						ty: wgpu::BufferBindingType::Uniform,
-						has_dynamic_offset: false,
-						min_binding_size: None,
-					},
-					count: None,
-				}],
-				label: Some("time_bind_group_layout"),
-			});
-		let time_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-			layout: &time_bind_group_layout,
-			entries: &[wgpu::BindGroupEntry {
-				binding: 0,
-				resource: time_buffer.as_entire_binding(),
-			}],
-			label: Some("time_bind_group"),
+		// Size bindings
+		let size_data: [u32; 2] = [size.width, size.height];
+		let size_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+			label: Some("size_buffer"),
+			contents: bytemuck::cast_slice(&[size_data]),
+			usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
 		});
 
-		// Texture bind group
-		let frame_buffer = Texture::create_render_target(
-			&device,
-			(config.width, config.height),
-			"framebuffer texture",
-		);
-
-		let texture_bind_group_layout =
+		// Universal bind group
+		let universal_bind_group_layout =
 			device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
 				entries: &[
 					wgpu::BindGroupLayoutEntry {
 						binding: 0,
-						visibility: wgpu::ShaderStages::FRAGMENT,
-						ty: wgpu::BindingType::Texture {
-							multisampled: false,
-							view_dimension: wgpu::TextureViewDimension::D2,
-							sample_type: wgpu::TextureSampleType::Float { filterable: true },
+						visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
+						ty: wgpu::BindingType::Buffer {
+							ty: wgpu::BufferBindingType::Uniform,
+							has_dynamic_offset: false,
+							min_binding_size: None,
 						},
 						count: None,
 					},
 					wgpu::BindGroupLayoutEntry {
 						binding: 1,
-						visibility: wgpu::ShaderStages::FRAGMENT,
-						ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+						visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
+						ty: wgpu::BindingType::Buffer {
+							ty: wgpu::BufferBindingType::Uniform,
+							has_dynamic_offset: false,
+							min_binding_size: None,
+						},
 						count: None,
 					},
+					wgpu::BindGroupLayoutEntry {
+						binding: 2,
+						visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
+						ty: wgpu::BindingType::Buffer {
+							ty: wgpu::BufferBindingType::Uniform,
+							has_dynamic_offset: false,
+							min_binding_size: None,
+						},
+						count: None,
+					},
+				],
+				label: Some("universal_bind_group_layout"),
+			});
+
+		let universal_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+			layout: &universal_bind_group_layout,
+			entries: &[
+				wgpu::BindGroupEntry {
+					binding: 0,
+					resource: audio_buffer.as_entire_binding(),
+				},
+				wgpu::BindGroupEntry {
+					binding: 1,
+					resource: time_buffer.as_entire_binding(),
+				},
+				wgpu::BindGroupEntry {
+					binding: 2,
+					resource: size_buffer.as_entire_binding(),
+				},
+			],
+			label: Some("universal_bind_group"),
+		});
+
+		// Texture bind group
+		let framebuffer = Texture::new_framebuffer(
+			&device,
+			(config.width, config.height),
+			"framebuffer texture",
+		);
+
+		let texture_bind_group_layout: wgpu::BindGroupLayout =
+			device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+				entries: &[
+					Texture::create_texture_bind_group_layout_entry(0),
+					Texture::create_sampler_bind_group_layout_entry(1),
 				],
 				label: Some("texture_bind_group_layout"),
 			});
 
-		let texture_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-			layout: &texture_bind_group_layout,
-			entries: &[
-				wgpu::BindGroupEntry {
-					binding: 0,
-					resource: wgpu::BindingResource::TextureView(&frame_buffer.view),
-				},
-				wgpu::BindGroupEntry {
-					binding: 1,
-					resource: wgpu::BindingResource::Sampler(&frame_buffer.sampler),
-				},
-			],
-			label: Some("texture_bind_group"),
-		});
+		let texture_bind_group = framebuffer.create_bind_group(&device, &texture_bind_group_layout);
 
-		// ShapeTransform Bind Group
-		let shape_transform = transform::Transforms_2D::new();
+		// Transform_2D Bind Group
+		let transform_2d = transform::Transforms_2D::new();
 
-		let shape_transform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-			label: Some("shape_transform_buffer"),
-			contents: bytemuck::cast_slice(&[shape_transform]),
+		let transform_2d_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+			label: Some("transform_2d_buffer"),
+			contents: bytemuck::cast_slice(&[transform_2d]),
 			usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
 		});
 
-		let shape_transform_bind_group_layout =
+		let transform_2d_bind_group_layout =
 			device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
 				entries: &[wgpu::BindGroupLayoutEntry {
 					binding: 0,
@@ -279,24 +273,39 @@ impl Display {
 					},
 					count: None,
 				}],
-				label: Some("shape_transform_bind_group_layout"),
+				label: Some("transform_2d_bind_group_layout"),
 			});
 
-		let shape_transform_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-			layout: &shape_transform_bind_group_layout,
+		let transform_2d_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+			layout: &transform_2d_bind_group_layout,
 			entries: &[wgpu::BindGroupEntry {
 				binding: 0,
-				resource: shape_transform_buffer.as_entire_binding(),
+				resource: transform_2d_buffer.as_entire_binding(),
 			}],
-			label: Some("shape_transform_bind_group"),
+			label: Some("transform_2d_bind_group"),
 		});
 
-		let depth_texture = Texture::create_depth_texture(&device, &config, "depth_texture");
+		let depth_texture = Texture::new_depth(&device, &config, "depth_texture");
 
+		let bind_groups = vec![universal_bind_group, camera_bind_group, texture_bind_group];
+		let bind_group_layouts = vec![
+			universal_bind_group_layout,
+			camera_bind_group_layout,
+			texture_bind_group_layout,
+		];
+
+		let bind_group_indices_2d = vec![0];
+
+		let pipeline_group_2d =
+			pipeline::PipelineGroup::new_2d(&bind_group_layouts, bind_group_indices_2d, &device);
+
+		let pipeline_groups = vec![pipeline_group_2d];
+
+		/*
+		let layout_2d = pipeline::Layout::new_2d();
 		let layouts = pipeline::Layouts::new(
 			&camera_bind_group_layout,
-			&audio_bind_group_layout,
-			&time_bind_group_layout,
+			&universal_bind_group_layout,
 			&texture_bind_group_layout,
 			&device,
 		);
@@ -307,12 +316,13 @@ impl Display {
 			&config,
 			&std::path::PathBuf::from("shader/2d_noise_1.wgsl"),
 		)?];
+		*/
 
-		let post_pipeline = pipeline::Pipeline::new_post(
+		let pipeline_post = pipeline::PipelinePost::new(
 			&layouts,
 			&device,
 			&config,
-			&std::path::PathBuf::from("src/post.wgsl"),
+			&std::path::PathBuf::from("shader/post.wgsl"),
 		)?;
 
 		Ok(Self {
@@ -321,25 +331,19 @@ impl Display {
 			queue,
 			config,
 			size,
-			pipelines,
-			post_pipeline,
-			depth_texture,
-			camera,
-			camera_buffer,
-			camera_bind_group,
-
-			audio_buffer,
-			audio_bind_group,
-
-			frame_buffer,
-			texture_bind_group,
-			texture_bind_group_layout,
-
-			start_time,
-			time_buffer,
-			time_bind_group,
-
 			window,
+			start_time,
+			pipeline_groups,
+			pipeline_post,
+			camera,
+			depth_texture,
+			framebuffer,
+			audio_buffer,
+			time_buffer,
+			size_buffer,
+			camera_buffer,
+			bind_groups,
+			texture_bind_group_layout,
 		})
 	}
 
@@ -352,28 +356,24 @@ impl Display {
 			self.size = new_size;
 			self.config.width = new_size.width;
 			self.config.height = new_size.height;
-			self.depth_texture =
-				Texture::create_depth_texture(&self.device, &self.config, "depth_texture");
-			self.frame_buffer = Texture::create_render_target(
+
+			// Create new textures with new size
+			self.depth_texture = Texture::new_depth(&self.device, &self.config, "depth_texture");
+			self.framebuffer = Texture::new_framebuffer(
 				&self.device,
 				(new_size.width, new_size.height),
 				"framebuffer texture",
 			);
-			self.texture_bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
-				layout: &self.texture_bind_group_layout,
-				entries: &[
-					wgpu::BindGroupEntry {
-						binding: 0,
-						resource: wgpu::BindingResource::TextureView(&self.frame_buffer.view),
-					},
-					wgpu::BindGroupEntry {
-						binding: 1,
-						resource: wgpu::BindingResource::Sampler(&self.frame_buffer.sampler),
-					},
-				],
-				label: Some("texture_bind_group"),
-			});
+			// Update the bind group of relevant textures
+			self.texture_bind_group = self
+				.framebuffer
+				.create_bind_group(&self.device, &self.texture_bind_group_layout);
 			self.surface.configure(&self.device, &self.config);
+
+			// Update window size
+			let size_data: [u32; 2] = [self.size.width, self.size.height];
+			self.queue
+				.write_buffer(&self.size_buffer, 0, bytemuck::cast_slice(&[size_data]));
 		}
 	}
 
@@ -406,7 +406,7 @@ impl Display {
 			let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
 				label: Some("Render Pass"),
 				color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-					view: &self.frame_buffer.view,
+					view: &self.framebuffer.view(),
 					resolve_target: None,
 					ops: wgpu::Operations {
 						//load: wgpu::LoadOp::Load,
@@ -420,7 +420,7 @@ impl Display {
 					},
 				})],
 				depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-					view: &self.depth_texture.view,
+					view: &self.depth_texture.view(),
 					depth_ops: Some(wgpu::Operations {
 						load: wgpu::LoadOp::Clear(1.0),
 						store: true,
@@ -429,16 +429,20 @@ impl Display {
 				}),
 			});
 
-			render_pass.set_bind_group(0, &self.audio_bind_group, &[]);
-			render_pass.set_bind_group(1, &self.time_bind_group, &[]);
-			render_pass.set_bind_group(2, &self.camera_bind_group, &[]);
-			for p in &self.pipelines {
-				p.draw(&mut render_pass);
+			for g in self.pipeline_groups {
+				let bg_indices = g.layout.get_bind_group_indices();
+				for i in bg_indices {
+					render_pass.set_bind_group(0, &self.bind_groups[*i], &[]);
+				}
+				for p in g.pipelines {
+					p.draw(&mut render_pass);
+				}
 			}
 		}
+
 		{
 			let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-				label: Some("Render Pass"),
+				label: Some("Post Processing"),
 				color_attachments: &[Some(wgpu::RenderPassColorAttachment {
 					view: &view,
 					resolve_target: None,
@@ -456,10 +460,10 @@ impl Display {
 				depth_stencil_attachment: None,
 			});
 
-			render_pass.set_bind_group(0, &self.audio_bind_group, &[]);
-			render_pass.set_bind_group(1, &self.time_bind_group, &[]);
-			render_pass.set_bind_group(2, &self.texture_bind_group, &[]);
-			self.post_pipeline.draw(&mut render_pass);
+			for i in &self.pipeline_post.layout.bind_group_indices {
+				render_pass.set_bind_group(0, &self.bind_groups[*i], &[]);
+			}
+			self.pipeline_post.pipeline.draw(&mut render_pass);
 		}
 
 		self.queue.submit(iter::once(encoder.finish()));

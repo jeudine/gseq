@@ -103,10 +103,13 @@ gain: vec4<f32>,
 }
 
 @group(0) @binding(0)
-	var<uniform> audio: Audio;
+var<uniform> audio: Audio;
 
-@group(1) @binding(0)
-	var<uniform> time: f32;
+@group(0) @binding(1)
+var<uniform> time: f32;
+
+@group(0) @binding(2)
+var<uniform> dimensions: vec2<u32>;
 
 struct VertexInput {
 	@location(0) position: vec3<f32>,

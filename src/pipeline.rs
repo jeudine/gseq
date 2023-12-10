@@ -15,41 +15,98 @@ pub struct Pipeline {
 	models: Vec<Model>,
 }
 
-pub struct Layouts {
-	layout_2d: wgpu::PipelineLayout,
-	layout_3d: wgpu::PipelineLayout,
-	layout_post: wgpu::PipelineLayout,
+pub struct PipelineGroup {
+	pub layout: Layout,
+	pub pipelines: Vec<Pipeline>,
 }
 
-impl Layouts {
+pub struct PipelinePost {
+	pub layout: LayoutInner,
+	pub pipeline: Pipeline,
+}
+
+pub enum Layout {
+	Pipeline2D(LayoutInner),
+	Pipeline3D(LayoutInner),
+}
+
+pub struct LayoutInner {
+	pipeline_layout: wgpu::PipelineLayout,
+	pub bind_group_indices: Vec<usize>,
+}
+
+impl PipelineGroup {
+	pub fn new_2d(
+		bind_group_layouts: &Vec<wgpu::BindGroupLayout>,
+		bind_group_indices: Vec<usize>,
+		device: &wgpu::Device,
+	) -> Self {
+		let layout = Layout::Pipeline2D(LayoutInner::new(
+			bind_group_layouts,
+			bind_group_indices,
+			device,
+		));
+		PipelineGroup {
+			layout,
+			pipelines: vec![],
+		}
+	}
+
+	pub fn add_pipeline(&mut self, models: Vec<Model>, shader_path: &std::path::Path) {}
+}
+
+impl LayoutInner {
+	fn new(
+		bind_group_layout: &Vec<wgpu::BindGroupLayout>,
+		bind_group_indices: Vec<usize>,
+		device: &wgpu::Device,
+	) -> Self {
+		let bind_groups: Vec<_> = bind_group_indices
+			.iter()
+			.map(|i| &bind_group_layout[*i])
+			.collect();
+
+		let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+			label: Some("Render Pipeline Layout"),
+			bind_group_layouts: bind_groups.as_slice(),
+			push_constant_ranges: &[],
+		});
+
+		Self {
+			pipeline_layout,
+			bind_group_indices: bind_group_indices,
+		}
+	}
+}
+
+impl Layout {
+	pub fn get_bind_group_indices(&self) -> &Vec<usize> {
+		match self {
+			Layout::Pipeline2D(l) => &l.bind_group_indices,
+			Layout::Pipeline3D(l) => &l.bind_group_indices,
+		}
+	}
+
+	/*
 	pub fn new(
 		camera_bind_group_layout: &wgpu::BindGroupLayout,
-		audio_bind_group_layout: &wgpu::BindGroupLayout,
-		time_bind_group_layout: &wgpu::BindGroupLayout,
+		universal_bind_group_layout: &wgpu::BindGroupLayout,
 		texture_bind_group_layout: &wgpu::BindGroupLayout,
 		device: &wgpu::Device,
 	) -> Layouts {
 		let layout_3d = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
 			label: Some("Render Pipeline Layout"),
-			bind_group_layouts: &[
-				&audio_bind_group_layout,
-				&time_bind_group_layout,
-				&camera_bind_group_layout,
-			],
+			bind_group_layouts: &[&universal_bind_group_layout, &camera_bind_group_layout],
 			push_constant_ranges: &[],
 		});
 		let layout_2d = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
 			label: Some("Render Pipeline Layout"),
-			bind_group_layouts: &[&audio_bind_group_layout, &time_bind_group_layout],
+			bind_group_layouts: &[&universal_bind_group_layout],
 			push_constant_ranges: &[],
 		});
 		let layout_post = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
 			label: Some("Render Pipeline Layout"),
-			bind_group_layouts: &[
-				&audio_bind_group_layout,
-				&time_bind_group_layout,
-				&texture_bind_group_layout,
-			],
+			bind_group_layouts: &[&universal_bind_group_layout, &texture_bind_group_layout],
 			push_constant_ranges: &[],
 		});
 		Layouts {
@@ -58,9 +115,11 @@ impl Layouts {
 			layout_post,
 		}
 	}
+	*/
 }
 
 impl Pipeline {
+	/*
 	pub fn new_3d(
 		layouts: &Layouts,
 		device: &wgpu::Device,
@@ -140,7 +199,7 @@ impl Pipeline {
 
 		let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
 			label: Some("2D Render Pipeline"),
-			layout: Some(&layouts.layout_3d),
+			layout: Some(&layouts.layout_2d),
 			vertex: wgpu::VertexState {
 				module: &shader,
 				entry_point: "vs_main",
@@ -250,6 +309,7 @@ impl Pipeline {
 			models: vec![Model::new_quad(device)],
 		})
 	}
+	*/
 
 	pub fn draw<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>) {
 		render_pass.set_pipeline(&self.render_pipeline);
@@ -263,3 +323,5 @@ impl Pipeline {
 		}
 	}
 }
+
+impl Pipeline
