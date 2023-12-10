@@ -222,7 +222,7 @@ impl Display {
 			&device,
 			&config,
 			models,
-			&std::path::PathBuf::from("src/shader.wgsl"),
+			&std::path::PathBuf::from("shader/2d_noise_1.wgsl"),
 		)?];
 
 		Ok(Self {
