@@ -23,6 +23,7 @@ pub struct PipelineGroup {
 pub struct PipelinePost {
 	pub layout: LayoutInner,
 	pub render_pipeline: wgpu::RenderPipeline,
+	model: Model, //quad
 }
 
 pub enum Layout {
@@ -413,11 +414,17 @@ impl PipelinePost {
 		Ok(PipelinePost {
 			layout,
 			render_pipeline,
+			model: Model::new_quad(device),
 		})
 	}
 
 	pub fn draw<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>) {
 		render_pass.set_pipeline(&self.render_pipeline);
+		for mesh in &self.model.meshes {
+			render_pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
+			render_pass.set_index_buffer(mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
+			render_pass.draw_indexed(0..mesh.num_elements, 0, 0..1 as _);
+		}
 	}
 
 	pub fn get_bind_group_indices(&self) -> &Vec<usize> {
