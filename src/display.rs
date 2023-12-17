@@ -1,6 +1,7 @@
 use crate::audio;
 use crate::camera::{Camera, CameraUniform};
 use crate::item::Item;
+use crate::model::Model;
 use crate::pipeline;
 use crate::texture::Texture;
 use crate::transform;
@@ -52,10 +53,10 @@ pub struct Display {
 	bind_groups: Vec<wgpu::BindGroup>,
 	texture_bind_group_layout: wgpu::BindGroupLayout,
 	/*
-	universal_bind_group: wgpu::BindGroup,
-	camera_bind_group: wgpu::BindGroup,
 	texture_bind_group_layout: wgpu::BindGroupLayout,
 	texture_bind_group: wgpu::BindGroup,
+	universal_bind_group: wgpu::BindGroup,
+	camera_bind_group: wgpu::BindGroup,
 	*/
 }
 
@@ -289,17 +290,38 @@ impl Display {
 
 		let bind_groups = vec![universal_bind_group, camera_bind_group, texture_bind_group];
 		let bind_group_layouts = vec![
-			universal_bind_group_layout,
-			camera_bind_group_layout,
-			texture_bind_group_layout,
+			&universal_bind_group_layout,
+			&camera_bind_group_layout,
+			&texture_bind_group_layout,
 		];
 
+		// Create pipeline 2d qith one group
 		let bind_group_indices_2d = vec![0];
 
-		let pipeline_group_2d =
+		let mut pipeline_group_2d =
 			pipeline::PipelineGroup::new_2d(&bind_group_layouts, bind_group_indices_2d, &device);
 
+		let quad = Model::new_quad(&device);
+
+		pipeline_group_2d.add_pipeline(
+			vec![quad],
+			&std::path::PathBuf::from("shader/2d_noise_1.wgsl"),
+			&device,
+			&config,
+		)?;
+
 		let pipeline_groups = vec![pipeline_group_2d];
+
+		// Create postpipeline
+		let bind_group_indices_post = vec![0, 2];
+
+		let pipeline_post = pipeline::PipelinePost::new(
+			&bind_group_layouts,
+			bind_group_indices_post,
+			&device,
+			&config,
+			&std::path::PathBuf::from("shader/post.wgsl"),
+		)?;
 
 		/*
 		let layout_2d = pipeline::Layout::new_2d();
@@ -317,13 +339,6 @@ impl Display {
 			&std::path::PathBuf::from("shader/2d_noise_1.wgsl"),
 		)?];
 		*/
-
-		let pipeline_post = pipeline::PipelinePost::new(
-			&layouts,
-			&device,
-			&config,
-			&std::path::PathBuf::from("shader/post.wgsl"),
-		)?;
 
 		Ok(Self {
 			surface,
@@ -365,7 +380,7 @@ impl Display {
 				"framebuffer texture",
 			);
 			// Update the bind group of relevant textures
-			self.texture_bind_group = self
+			self.bind_groups[2] = self
 				.framebuffer
 				.create_bind_group(&self.device, &self.texture_bind_group_layout);
 			self.surface.configure(&self.device, &self.config);
@@ -429,12 +444,13 @@ impl Display {
 				}),
 			});
 
-			for g in self.pipeline_groups {
+			for g in &self.pipeline_groups {
 				let bg_indices = g.layout.get_bind_group_indices();
-				for i in bg_indices {
-					render_pass.set_bind_group(0, &self.bind_groups[*i], &[]);
+				for (u, i) in bg_indices.iter().enumerate() {
+					render_pass.set_bind_group(u as u32, &self.bind_groups[*i], &[]);
 				}
-				for p in g.pipelines {
+				for p in &g.pipelines {
+					//println!("TEST");
 					p.draw(&mut render_pass);
 				}
 			}
@@ -460,10 +476,11 @@ impl Display {
 				depth_stencil_attachment: None,
 			});
 
-			for i in &self.pipeline_post.layout.bind_group_indices {
-				render_pass.set_bind_group(0, &self.bind_groups[*i], &[]);
+			let bg_indices = self.pipeline_post.get_bind_group_indices();
+			for (u, i) in bg_indices.iter().enumerate() {
+				render_pass.set_bind_group(u as u32, &self.bind_groups[*i], &[]);
 			}
-			self.pipeline_post.pipeline.draw(&mut render_pass);
+			self.pipeline_post.draw(&mut render_pass);
 		}
 
 		self.queue.submit(iter::once(encoder.finish()));
