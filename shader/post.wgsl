@@ -149,9 +149,10 @@ fn layered_noise(v: vec3<f32>, n_layers: i32) -> f32 {
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-	var n = 100.0 * layered_noise(vec3<f32>(in.position.xy * 0.01, time), 8);
+	var n = 30.0 * layered_noise(vec3<f32>(in.position.xy * 0.01, time), 8);
     // n = cos(10.0 * n);
     // var col = vec3(0.5 + 0.5 * vec3(n, n, n));
 	// return vec4<f32>(1.0, 1.0, 0.0, 1.0);
     return textureSample(t_framebuffer, s_framebuffer, (in.position.xy+vec2<f32>(n, 0.0)) / vec2<f32>(dimensions));
+ 	//return textureSample(t_framebuffer, s_framebuffer, in.position.xy / vec2<f32>(dimensions));
 }

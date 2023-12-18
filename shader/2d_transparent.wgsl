@@ -50,9 +50,9 @@ fn snoise(v: vec3<f32>) -> f32 {
     // Permutations
     i = mod289_3(i); 
     var p = permute( permute( permute( 
-        i.z + vec4(0.0, i1.z, i2.z, 1.0 ))
-        + i.y + vec4(0.0, i1.y, i2.y, 1.0 )) 
-        + i.x + vec4(0.0, i1.x, i2.x, 1.0 ));
+        			i.z + vec4(0.0, i1.z, i2.z, 1.0 ))
+        		+ i.y + vec4(0.0, i1.y, i2.y, 1.0 )) 
+        	+ i.x + vec4(0.0, i1.x, i2.x, 1.0 ));
 
     // Gradients: 7x7 points over a square, mapped onto an octahedron.
     // The ring size 17*17 = 289 is close to a multiple of 49 (49*6 = 294)
@@ -98,13 +98,8 @@ fn snoise(v: vec3<f32>) -> f32 {
     return 105.0 * dot(m*m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
 }
 
-struct Camera {
-	view_pos: vec4<f32>,
-	view_proj: mat4x4<f32>,
-}
-
 struct Audio {
-	gain: vec4<f32>,
+gain: vec4<f32>,
 }
 
 @group(0) @binding(0)
@@ -120,20 +115,39 @@ struct VertexInput {
 	@location(0) position: vec3<f32>,
 }
 
+struct InstanceInput {
+    @location(1) color: vec4<f32>,
+    @location(2) model_matrix_0: vec4<f32>,
+    @location(3) model_matrix_1: vec4<f32>,
+    @location(4) model_matrix_2: vec4<f32>,
+    @location(5) model_matrix_3: vec4<f32>,
+};
+
 struct VertexOutput {
 	@builtin(position) position: vec4<f32>,
+  	@location(0) color: vec4<f32>,
 }
 
 @vertex
 fn vs_main(
-	model: VertexInput,
-	) -> VertexOutput {
+		model: VertexInput,
+		instance: InstanceInput,
+		) -> VertexOutput {
+
 	var out: VertexOutput;
-	out.position = vec4<f32>(model.position, 1.0);
+	let model_matrix = mat4x4<f32>(
+		instance.model_matrix_0,
+		instance.model_matrix_1,
+		instance.model_matrix_2,
+		instance.model_matrix_3,
+	);
+
+	out.position =  model_matrix * vec4<f32>(model.position, 1.0);
+	out.color = instance.color;
 	return out;
 }
 
-// Returns a 3D perlin noise value between -1 and 1
+// Returns a 3D Simplex noise value between -1 and 1
 fn layered_noise(v: vec3<f32>, n_layers: i32) -> f32 {
     let step = vec3<f32>(1.3, 1.7, 2.9);
 	var f = 1.0;
@@ -149,8 +163,8 @@ fn layered_noise(v: vec3<f32>, n_layers: i32) -> f32 {
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-	var n = 0.7 * layered_noise(vec3<f32>(in.position.xy * 0.01, time), 8);
-    n = cos(10.0 * n);
-    var col = vec3(0.5 + 0.5 * vec3(n, n, n));
-	return vec4<f32>(col, 1.0);
+	var n = layered_noise(vec3<f32>(in.position.xy * 0.0005, 0.05 * time), 6);
+
+	n = sin(n * 30.0);
+	return vec4<f32>(1.0 - in.color.xyz * (0.5 + 0.5 * n), 0.8);
 }

@@ -1,7 +1,15 @@
-use std::error::Error;
-use std::mem;
-use tobj::load_obj;
+//use std::error::Error;
+//use std::mem;
+//use tobj::load_obj;
+use crate::instance::Instance;
+use std::f32::consts::PI;
 use wgpu::util::DeviceExt;
+
+pub struct InstanceModel {
+	pub model: Model,
+	pub instances: Vec<Instance>,
+	pub instance_buffer: wgpu::Buffer,
+}
 
 pub struct Model {
 	pub meshes: Vec<Mesh>,
@@ -13,6 +21,24 @@ pub struct Mesh {
 	pub num_elements: u32,
 }
 
+impl InstanceModel {
+	pub fn new(model: Model, instances: Vec<Instance>, device: &wgpu::Device) -> Self {
+		let instance_data = instances.iter().map(|i| i.to_raw()).collect::<Vec<_>>();
+		let instance_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+			label: Some("Instance Buffer"),
+			contents: bytemuck::cast_slice(&instance_data),
+			usage: wgpu::BufferUsages::VERTEX,
+		});
+		//println!("{:?}", instances);
+		//panic! {}
+		Self {
+			model,
+			instances,
+			instance_buffer,
+		}
+	}
+}
+
 impl Model {
 	pub fn new_quad(device: &wgpu::Device) -> Model {
 		let vertices: Vec<[f32; 3]> = vec![
@@ -22,15 +48,42 @@ impl Model {
 			[1.0, -1.0, 0.0],
 		];
 		let indices: Vec<u32> = vec![0, 2, 1, 1, 2, 3];
+
+		Self::points_to_model(device, &vertices, &indices)
+	}
+
+	pub fn new_disc(device: &wgpu::Device, nb_points: u32) -> Model {
+		let nb_points_r = if nb_points < 4 { 4 } else { nb_points };
+		let mut vertices: Vec<[f32; 3]> = vec![[0.0, 0.0, 0.0]];
+
+		let nb_points_f = nb_points_r as f32;
+		let pi_2 = 2.0 * PI;
+
+		let mut indices: Vec<u32> = vec![];
+		for i in 0..nb_points_r {
+			let angle = pi_2 * i as f32 / nb_points_f;
+			vertices.push([angle.cos(), angle.sin(), 0.0]);
+			indices.extend_from_slice(&[0, i + 1, i + 2]);
+		}
+		indices.extend_from_slice(&[0, nb_points_r, 1]);
+
+		Self::points_to_model(device, &vertices, &indices)
+	}
+
+	fn points_to_model(
+		device: &wgpu::Device,
+		vertices: &Vec<[f32; 3]>,
+		indices: &Vec<u32>,
+	) -> Self {
 		let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
 			label: Some(&format!("Quad Vertex Buffer")),
-			contents: bytemuck::cast_slice(&vertices),
+			contents: bytemuck::cast_slice(vertices),
 			usage: wgpu::BufferUsages::VERTEX,
 		});
 
 		let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
 			label: Some(&format!("Quad Index Buffer")),
-			contents: bytemuck::cast_slice(&indices),
+			contents: bytemuck::cast_slice(indices),
 			usage: wgpu::BufferUsages::INDEX,
 		});
 

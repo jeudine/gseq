@@ -1,6 +1,8 @@
 use crate::audio;
 use crate::camera::{Camera, CameraUniform};
+use crate::instance::Instance;
 use crate::item::Item;
+use crate::model::InstanceModel;
 use crate::model::Model;
 use crate::pipeline;
 use crate::texture::Texture;
@@ -295,16 +297,49 @@ impl Display {
 			&texture_bind_group_layout,
 		];
 
-		// Create pipeline 2d qith one group
+		// Create the 2d pipeline group
 		let bind_group_indices_2d = vec![0];
 
 		let mut pipeline_group_2d =
 			pipeline::PipelineGroup::new_2d(&bind_group_layouts, bind_group_indices_2d, &device);
 
-		let quad = Model::new_quad(&device);
+		// Add pieplines in the group
+		let disc = Model::new_disc(&device, 200);
+
+		let mut i_0 = Instance::new();
+		i_0.scale(0.3);
+		i_0.translate((0.5, 0.0, 0.0).into());
+		i_0.set_color([0.5, 0.0, 1.0, 1.0]);
+		let mut i_1 = Instance::new();
+		i_1.scale(0.4);
+		i_1.translate((-0.3, 0.0, 0.0).into());
+		i_1.set_color([0.8, 0.0, 1.0, 1.0]);
+
+		let mut i_2 = Instance::new();
+		i_2.scale(0.2);
+		i_2.translate((0.7, 0.6, 0.0).into());
+		i_2.set_color([0.8, 0.2, 1.0, 1.0]);
+
+		let mut i_3 = Instance::new();
+		i_3.scale(0.2);
+		i_3.translate((0.5, -0.6, 0.0).into());
+		i_3.set_color([0.3, 1.0, 1.0, 1.0]);
+
+		let instance_model = InstanceModel::new(disc, vec![i_0, i_1, i_2, i_3], &device);
 
 		pipeline_group_2d.add_pipeline(
-			vec![quad],
+			vec![instance_model],
+			&std::path::PathBuf::from("shader/2d_transparent.wgsl"),
+			&device,
+			&config,
+		)?;
+
+		let quad = Model::new_quad(&device);
+		let instance = Instance::new();
+		let instance_model = InstanceModel::new(quad, vec![instance], &device);
+
+		pipeline_group_2d.add_pipeline(
+			vec![instance_model],
 			&std::path::PathBuf::from("shader/2d_noise_1.wgsl"),
 			&device,
 			&config,
@@ -450,7 +485,6 @@ impl Display {
 					render_pass.set_bind_group(u as u32, &self.bind_groups[*i], &[]);
 				}
 				for p in &g.pipelines {
-					//println!("TEST");
 					p.draw(&mut render_pass);
 				}
 			}
@@ -490,6 +524,7 @@ impl Display {
 	}
 }
 
+/*
 fn activation_func(x: f32, min_x: f32, max_x: f32, min_y: f32, max_y: f32) -> f32 {
 	if x < min_x {
 		min_y
@@ -501,3 +536,4 @@ fn activation_func(x: f32, min_x: f32, max_x: f32, min_y: f32, max_y: f32) -> f3
 		a * x + b
 	}
 }
+*/

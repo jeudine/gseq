@@ -144,18 +144,8 @@ fn layered_noise(v: vec3<f32>, n_layers: i32) -> f32 {
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-	var n = layered_noise(vec3<f32>(in.position.xy * 0.001, 0.05 * time), 4);
+	var n = layered_noise(vec3<f32>(in.position.xy * 0.0005, 0.05 * time), 6);
 
-	var g = 1.0;
-	if (audio.gain.x > 0.0) {
-		g = audio.gain.x + 1.0;
-	}
-
-	n = g * sin(n * 20.0);
-	if (n > 1.0) {
-		n = 1.0;
-	} else if (n < -1.0) {
-		n = -1.0;
-	}
+	n = sin(n * 30.0);
 	return vec4<f32>(0.0, 0.0, 0.5 + 0.5 * n, 1.0);
 }
