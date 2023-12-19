@@ -11,14 +11,13 @@ log = "0.4"
 wgpu = "0.14"
 pollster = "0.2"
 bytemuck = { version = "1.12", features = [ "derive" ] }
-# algebra library
+# Algebra library
 cgmath = "0.18"
 # Load the .obj
 tobj = "3.2"
+# Audio
 cpal = "0.15.0"
 realfft = "3.2.0"
-libftd2xx = { version = "0.32.2", features = [ "static" ] }
-ftdi-mpsse = "0.1.1"
 rand = "0.8.5"
 promptly = "0.3.1"
 crossterm = "0.27.0"

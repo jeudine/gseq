@@ -115,16 +115,27 @@ struct VertexInput {
 	@location(0) position: vec3<f32>,
 }
 
+struct InstanceInput {
+    @location(1) color: vec4<f32>,
+    @location(2) model_matrix_0: vec4<f32>,
+    @location(3) model_matrix_1: vec4<f32>,
+    @location(4) model_matrix_2: vec4<f32>,
+    @location(5) model_matrix_3: vec4<f32>,
+};
+
 struct VertexOutput {
 	@builtin(position) position: vec4<f32>,
+	@location(0) color: vec4<f32>,
 }
 
 @vertex
 fn vs_main(
 		model: VertexInput,
+		instance: InstanceInput,
 		) -> VertexOutput {
 	var out: VertexOutput;
 	out.position = vec4<f32>(model.position, 1.0);
+	out.color = instance.color;
 	return out;
 }
 
@@ -147,5 +158,5 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 	var n = layered_noise(vec3<f32>(in.position.xy * 0.0005, 0.05 * time), 6);
 
 	n = sin(n * 30.0);
-	return vec4<f32>(0.0, 0.0, 0.5 + 0.5 * n, 1.0);
+	return vec4<f32>(in.color.xyz * (0.5 + 0.5 * n), 1.0);
 }

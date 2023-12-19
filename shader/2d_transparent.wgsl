@@ -125,7 +125,7 @@ struct InstanceInput {
 
 struct VertexOutput {
 	@builtin(position) position: vec4<f32>,
-  	@location(0) color: vec4<f32>,
+	@location(0) color: vec4<f32>,
 }
 
 @vertex
@@ -163,8 +163,11 @@ fn layered_noise(v: vec3<f32>, n_layers: i32) -> f32 {
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-	var n = layered_noise(vec3<f32>(in.position.xy * 0.0005, 0.05 * time), 6);
+	let n = layered_noise(vec3<f32>(in.position.xy * 0.0005, 0.05 * time), 6);
+	let x = sin(n * 30.0);
 
-	n = sin(n * 30.0);
-	return vec4<f32>(1.0 - in.color.xyz * (0.5 + 0.5 * n), 0.8);
+	let a = (1.0 - in.color.xyz) * 0.5;
+	let b = (1.0 + in.color.xyz) * 0.5;
+
+	return vec4<f32>(a * x + b, 0.7);
 }

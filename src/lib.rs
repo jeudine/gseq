@@ -2,14 +2,11 @@ mod audio;
 mod camera;
 mod display;
 pub mod instance;
-pub mod item;
 mod model;
 mod pipeline;
 mod texture;
-mod transform;
 use display::Display;
 pub use instance::Instance;
-pub use item::Item;
 
 use winit::{
 	event::*,
@@ -17,34 +14,20 @@ use winit::{
 	window::WindowBuilder,
 };
 
-/*
-#[repr(C)]
-// This is so we can store this in a buffer
-#[derive(Debug, Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
-pub struct Matrix4 {
-	// We can't use cgmath with bytemuck directly so we'll have
-	// to convert the Matrix4 into a 4x4 f32 array
-	m: [[f32; 4]; 4],
-}
-*/
-
-pub async fn run(mut items: Vec<Vec<Item>>) {
+pub async fn run(nb_displays: u32) {
 	let event_loop = EventLoop::new();
 
 	// Init audio
 	//TODO: remove unwrap
-	let (audio_data, stream) = audio::init(2048, 20, 20000).unwrap();
+	let (audio_data, _stream) = audio::init(2048, 20, 20000).unwrap();
 
-	// Create one state for each display
+	// Initialize the displays
 	let mut displays = vec![];
-	while !items.is_empty() {
+	for _ in 0..nb_displays {
 		let window = WindowBuilder::new().build(&event_loop).unwrap();
-		let display: Result<Display, display::DisplayError> =
-			Display::new(window, items.pop().ok_or(()).unwrap()).await;
+		let display: Result<Display, display::DisplayError> = Display::new(window).await;
 		displays.push(display.unwrap());
 	}
-
-	//Init the LED controller
 
 	event_loop.run(move |event, _, control_flow| {
 		match event {

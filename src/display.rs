@@ -1,18 +1,21 @@
 use crate::audio;
 use crate::camera::{Camera, CameraUniform};
 use crate::instance::Instance;
-use crate::item::Item;
 use crate::model::InstanceModel;
 use crate::model::Model;
 use crate::pipeline;
 use crate::texture::Texture;
-use crate::transform;
 use std::iter;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 use thiserror::Error;
 use wgpu::util::DeviceExt;
 use winit::window::Window;
+
+const COLOR_0: [f32; 4] = [0.1294, 0.2, 0.3882, 1.0];
+const COLOR_1: [f32; 4] = [0.0902, 0.3490, 0.2902, 1.0];
+const COLOR_2: [f32; 4] = [0.5569, 0.6745, 0.3137, 1.0];
+const COLOR_3: [f32; 4] = [0.8275, 0.8157, 0.3098, 1.0];
 
 #[derive(Error, Debug)]
 pub enum DisplayError {
@@ -39,7 +42,7 @@ pub struct Display {
 	pipeline_post: pipeline::PipelinePost,
 
 	// Camera
-	camera: Camera,
+	_camera: Camera,
 
 	// Textures
 	depth_texture: Texture,
@@ -49,7 +52,7 @@ pub struct Display {
 	audio_buffer: wgpu::Buffer,
 	time_buffer: wgpu::Buffer,
 	size_buffer: wgpu::Buffer,
-	camera_buffer: wgpu::Buffer,
+	_camera_buffer: wgpu::Buffer,
 
 	// Bind groups
 	bind_groups: Vec<wgpu::BindGroup>,
@@ -63,7 +66,7 @@ pub struct Display {
 }
 
 impl Display {
-	pub async fn new(window: Window, items: Vec<Item>) -> Result<Self, DisplayError> {
+	pub async fn new(window: Window) -> Result<Self, DisplayError> {
 		let size = window.inner_size();
 
 		// The instance is a handle to our GPU
@@ -255,39 +258,6 @@ impl Display {
 
 		let texture_bind_group = framebuffer.create_bind_group(&device, &texture_bind_group_layout);
 
-		// Transform_2D Bind Group
-		let transform_2d = transform::Transforms_2D::new();
-
-		let transform_2d_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-			label: Some("transform_2d_buffer"),
-			contents: bytemuck::cast_slice(&[transform_2d]),
-			usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-		});
-
-		let transform_2d_bind_group_layout =
-			device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-				entries: &[wgpu::BindGroupLayoutEntry {
-					binding: 0,
-					visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
-					ty: wgpu::BindingType::Buffer {
-						ty: wgpu::BufferBindingType::Uniform,
-						has_dynamic_offset: false,
-						min_binding_size: None,
-					},
-					count: None,
-				}],
-				label: Some("transform_2d_bind_group_layout"),
-			});
-
-		let transform_2d_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-			layout: &transform_2d_bind_group_layout,
-			entries: &[wgpu::BindGroupEntry {
-				binding: 0,
-				resource: transform_2d_buffer.as_entire_binding(),
-			}],
-			label: Some("transform_2d_bind_group"),
-		});
-
 		let depth_texture = Texture::new_depth(&device, &config, "depth_texture");
 
 		let bind_groups = vec![universal_bind_group, camera_bind_group, texture_bind_group];
@@ -307,23 +277,23 @@ impl Display {
 		let disc = Model::new_disc(&device, 200);
 
 		let mut i_0 = Instance::new();
-		i_0.scale(0.3);
-		i_0.translate((0.5, 0.0, 0.0).into());
-		i_0.set_color([0.5, 0.0, 1.0, 1.0]);
+		i_0.scale(0.35);
+		i_0.translate((0.4, -0.1, 0.0).into());
+		i_0.set_color(COLOR_1);
 		let mut i_1 = Instance::new();
 		i_1.scale(0.4);
-		i_1.translate((-0.3, 0.0, 0.0).into());
-		i_1.set_color([0.8, 0.0, 1.0, 1.0]);
+		i_1.translate((-0.6, 0.3, 0.0).into());
+		i_1.set_color(COLOR_0);
 
 		let mut i_2 = Instance::new();
-		i_2.scale(0.2);
+		i_2.scale(0.3);
 		i_2.translate((0.7, 0.6, 0.0).into());
-		i_2.set_color([0.8, 0.2, 1.0, 1.0]);
+		i_2.set_color(COLOR_2);
 
 		let mut i_3 = Instance::new();
-		i_3.scale(0.2);
-		i_3.translate((0.5, -0.6, 0.0).into());
-		i_3.set_color([0.3, 1.0, 1.0, 1.0]);
+		i_3.scale(0.24);
+		i_3.translate((-0.1, -0.6, 0.0).into());
+		i_3.set_color(COLOR_3);
 
 		let instance_model = InstanceModel::new(disc, vec![i_0, i_1, i_2, i_3], &device);
 
@@ -340,7 +310,7 @@ impl Display {
 
 		pipeline_group_2d.add_pipeline(
 			vec![instance_model],
-			&std::path::PathBuf::from("shader/2d_noise_1.wgsl"),
+			&std::path::PathBuf::from("shader/wallpaper_noise_0.wgsl"),
 			&device,
 			&config,
 		)?;
@@ -385,13 +355,13 @@ impl Display {
 			start_time,
 			pipeline_groups,
 			pipeline_post,
-			camera,
+			_camera: camera,
 			depth_texture,
 			framebuffer,
 			audio_buffer,
 			time_buffer,
 			size_buffer,
-			camera_buffer,
+			_camera_buffer: camera_buffer,
 			bind_groups,
 			texture_bind_group_layout,
 		})
