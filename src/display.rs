@@ -1,8 +1,5 @@
 use crate::audio;
 use crate::camera::{Camera, CameraUniform};
-use crate::instance::Instance;
-use crate::model::InstanceModel;
-use crate::model::Model;
 use crate::pipeline;
 use crate::texture::Texture;
 use std::iter;
@@ -12,10 +9,7 @@ use thiserror::Error;
 use wgpu::util::DeviceExt;
 use winit::window::Window;
 
-const COLOR_0: [f32; 4] = [0.1294, 0.2, 0.3882, 1.0];
-const COLOR_1: [f32; 4] = [0.0902, 0.3490, 0.2902, 1.0];
-const COLOR_2: [f32; 4] = [0.5569, 0.6745, 0.3137, 1.0];
-const COLOR_3: [f32; 4] = [0.8275, 0.8157, 0.3098, 1.0];
+use crate::vs_0;
 
 #[derive(Error, Debug)]
 pub enum DisplayError {
@@ -57,12 +51,6 @@ pub struct Display {
 	// Bind groups
 	bind_groups: Vec<wgpu::BindGroup>,
 	texture_bind_group_layout: wgpu::BindGroupLayout,
-	/*
-	texture_bind_group_layout: wgpu::BindGroupLayout,
-	texture_bind_group: wgpu::BindGroup,
-	universal_bind_group: wgpu::BindGroup,
-	camera_bind_group: wgpu::BindGroup,
-	*/
 }
 
 impl Display {
@@ -273,47 +261,8 @@ impl Display {
 		let mut pipeline_group_2d =
 			pipeline::PipelineGroup::new_2d(&bind_group_layouts, bind_group_indices_2d, &device);
 
-		// Add pieplines in the group
-		let disc = Model::new_disc(&device, 200);
-
-		let mut i_0 = Instance::new();
-		i_0.scale(0.35);
-		i_0.translate((0.4, -0.1, 0.0).into());
-		i_0.set_color(COLOR_1);
-		let mut i_1 = Instance::new();
-		i_1.scale(0.4);
-		i_1.translate((-0.6, 0.3, 0.0).into());
-		i_1.set_color(COLOR_0);
-
-		let mut i_2 = Instance::new();
-		i_2.scale(0.3);
-		i_2.translate((0.7, 0.6, 0.0).into());
-		i_2.set_color(COLOR_2);
-
-		let mut i_3 = Instance::new();
-		i_3.scale(0.24);
-		i_3.translate((-0.1, -0.6, 0.0).into());
-		i_3.set_color(COLOR_3);
-
-		let instance_model = InstanceModel::new(disc, vec![i_0, i_1, i_2, i_3], &device);
-
-		pipeline_group_2d.add_pipeline(
-			vec![instance_model],
-			&std::path::PathBuf::from("shader/2d_transparent.wgsl"),
-			&device,
-			&config,
-		)?;
-
-		let quad = Model::new_quad(&device);
-		let instance = Instance::new();
-		let instance_model = InstanceModel::new(quad, vec![instance], &device);
-
-		pipeline_group_2d.add_pipeline(
-			vec![instance_model],
-			&std::path::PathBuf::from("shader/wallpaper_noise_0.wgsl"),
-			&device,
-			&config,
-		)?;
+		// Add pieplines to the group
+		vs_0::init_2d(&mut pipeline_group_2d, &device, &config)?;
 
 		let pipeline_groups = vec![pipeline_group_2d];
 
@@ -325,25 +274,8 @@ impl Display {
 			bind_group_indices_post,
 			&device,
 			&config,
-			&std::path::PathBuf::from("shader/post.wgsl"),
+			&std::path::PathBuf::from(vs_0::POST_PATH),
 		)?;
-
-		/*
-		let layout_2d = pipeline::Layout::new_2d();
-		let layouts = pipeline::Layouts::new(
-			&camera_bind_group_layout,
-			&universal_bind_group_layout,
-			&texture_bind_group_layout,
-			&device,
-		);
-
-		let pipelines = vec![pipeline::Pipeline::new_2d(
-			&layouts,
-			&device,
-			&config,
-			&std::path::PathBuf::from("shader/2d_noise_1.wgsl"),
-		)?];
-		*/
 
 		Ok(Self {
 			surface,
@@ -493,17 +425,3 @@ impl Display {
 		Ok(())
 	}
 }
-
-/*
-fn activation_func(x: f32, min_x: f32, max_x: f32, min_y: f32, max_y: f32) -> f32 {
-	if x < min_x {
-		min_y
-	} else if x > max_x {
-		max_y
-	} else {
-		let a = (max_y - min_y) / (max_x - min_x);
-		let b = min_y - a * min_x;
-		a * x + b
-	}
-}
-*/
