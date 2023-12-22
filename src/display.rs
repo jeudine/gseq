@@ -3,6 +3,7 @@ use crate::camera::{Camera, CameraUniform};
 use crate::pipeline;
 use crate::texture::Texture;
 use std::iter;
+//use std::iter::zip;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 use thiserror::Error;
@@ -51,6 +52,9 @@ pub struct Display {
 	// Bind groups
 	bind_groups: Vec<wgpu::BindGroup>,
 	texture_bind_group_layout: wgpu::BindGroupLayout,
+
+	// Audio
+	audio_data: audio::Data,
 }
 
 impl Display {
@@ -296,6 +300,7 @@ impl Display {
 			_camera_buffer: camera_buffer,
 			bind_groups,
 			texture_bind_group_layout,
+			audio_data,
 		})
 	}
 

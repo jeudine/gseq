@@ -1,6 +1,8 @@
+use crate::audio;
 use crate::instance::Instance;
 use crate::model::{InstanceModel, Model};
 use crate::pipeline::{PipelineError, PipelineGroup};
+use std::iter::{zip, Zip};
 
 const COLOR_0: [f32; 4] = [0.1294, 0.2, 0.3882, 1.0];
 const COLOR_1: [f32; 4] = [0.0902, 0.3490, 0.2902, 1.0];
@@ -8,6 +10,13 @@ const COLOR_2: [f32; 4] = [0.5569, 0.6745, 0.3137, 1.0];
 const COLOR_3: [f32; 4] = [0.8275, 0.8157, 0.3098, 1.0];
 
 pub const POST_PATH: &str = "shader/vs_0/post.wgsl";
+
+struct Animation {
+	active: bool,
+	start_time: f32,
+	duration: f32,
+	scale_factor: f32,
+}
 
 pub fn init_2d(
 	pipeline_group: &mut PipelineGroup,
@@ -57,3 +66,12 @@ pub fn init_2d(
 
 	Ok(())
 }
+
+/*
+pub fn update_2d(pipeline_group: &mut PipelineGroup, time: f32, audio: Zip<f32, f32>) {
+	let instance_models_0 = &pipeline_group.pipelines[0].instance_models;
+	for (a0, a1) in audio {
+		if a > 1.0 {}
+	}
+}
+*/

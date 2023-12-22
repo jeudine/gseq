@@ -14,7 +14,7 @@ pub enum PipelineError {
 
 pub struct Pipeline {
 	render_pipeline: wgpu::RenderPipeline,
-	instance_models: Vec<InstanceModel>,
+	pub instance_models: Vec<InstanceModel>,
 }
 
 pub struct PipelineGroup {
