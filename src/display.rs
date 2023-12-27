@@ -4,6 +4,7 @@ use crate::pipeline;
 use crate::texture::Texture;
 use std::iter;
 //use std::iter::zip;
+use crate::instance::Instance;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 use thiserror::Error;
@@ -55,6 +56,9 @@ pub struct Display {
 
 	// Audio
 	audio_data: audio::Data,
+
+	// State
+	vs_0_state: vs_0::State,
 }
 
 impl Display {
@@ -280,6 +284,7 @@ impl Display {
 			&config,
 			&std::path::PathBuf::from(vs_0::POST_PATH),
 		)?;
+		let vs_0_state = vs_0::State::new();
 
 		Ok(Self {
 			surface,
@@ -301,6 +306,7 @@ impl Display {
 			bind_groups,
 			texture_bind_group_layout,
 			audio_data,
+			vs_0_state,
 		})
 	}
 
@@ -345,6 +351,31 @@ impl Display {
 		let time = self.start_time.elapsed().as_secs_f32();
 		self.queue
 			.write_buffer(&self.time_buffer, 0, bytemuck::cast_slice(&[time]));
+
+		// Update the InstanceModels
+		let disk_pipeline = &mut self.pipeline_groups[0].pipelines[0];
+
+		self.vs_0_state
+			.update(disk_pipeline, time, self.audio_data, audio_data);
+
+		for p_g in &self.pipeline_groups {
+			for p in &p_g.pipelines {
+				for i_m in &p.instance_models {
+					let instance_data = i_m
+						.instances
+						.iter()
+						.map(Instance::to_raw)
+						.collect::<Vec<_>>();
+					self.queue.write_buffer(
+						&i_m.instance_buffer,
+						0,
+						bytemuck::cast_slice(&instance_data),
+					);
+				}
+			}
+		}
+
+		self.audio_data = audio_data;
 	}
 
 	pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
