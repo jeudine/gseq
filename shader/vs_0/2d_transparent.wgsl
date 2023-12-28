@@ -178,5 +178,5 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 	let a = (1.0 - in.color.xyz) * 0.5;
 	let b = (1.0 + in.color.xyz) * 0.5;
 
-	return vec4<f32>(a * x + b, 0.7);
+	return vec4<f32>(a * x + b, in.color.a);
 }

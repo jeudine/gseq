@@ -23,11 +23,11 @@ pub struct Mesh {
 
 impl InstanceModel {
 	pub fn new(model: Model, instances: Vec<Instance>, device: &wgpu::Device) -> Self {
-		let instance_data = instances.iter().map(|i| i.to_raw()).collect::<Vec<_>>();
+		let instance_data = instances.iter().map(Instance::to_raw).collect::<Vec<_>>();
 		let instance_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
 			label: Some("Instance Buffer"),
 			contents: bytemuck::cast_slice(&instance_data),
-			usage: wgpu::BufferUsages::VERTEX,
+			usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
 		});
 		//println!("{:?}", instances);
 		//panic! {}
@@ -52,7 +52,7 @@ impl Model {
 		Self::points_to_model(device, &vertices, &indices)
 	}
 
-	pub fn new_disc(device: &wgpu::Device, nb_points: u32) -> Model {
+	pub fn new_disk(device: &wgpu::Device, nb_points: u32) -> Model {
 		let nb_points_r = if nb_points < 4 { 4 } else { nb_points };
 		let mut vertices: Vec<[f32; 3]> = vec![[0.0, 0.0, 0.0]];
 

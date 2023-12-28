@@ -1,10 +1,9 @@
 use crate::audio;
 use crate::camera::{Camera, CameraUniform};
+use crate::instance::Instance;
 use crate::pipeline;
 use crate::texture::Texture;
 use std::iter;
-//use std::iter::zip;
-use crate::instance::Instance;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 use thiserror::Error;
@@ -284,6 +283,7 @@ impl Display {
 			&config,
 			&std::path::PathBuf::from(vs_0::POST_PATH),
 		)?;
+
 		let vs_0_state = vs_0::State::new();
 
 		Ok(Self {
