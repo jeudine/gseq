@@ -353,10 +353,12 @@ impl Display {
 			.write_buffer(&self.time_buffer, 0, bytemuck::cast_slice(&[time]));
 
 		// Update the InstanceModels
-		let disk_pipeline = &mut self.pipeline_groups[0].pipelines[0];
-
-		self.vs_0_state
-			.update(disk_pipeline, time, self.audio_data, audio_data);
+		self.vs_0_state.update_2d(
+			&mut self.pipeline_groups[0].pipelines,
+			time,
+			&self.audio_data,
+			&audio_data,
+		);
 
 		for p_g in &self.pipeline_groups {
 			for p in &p_g.pipelines {

@@ -149,8 +149,8 @@ fn layered_noise(v: vec3<f32>, n_layers: i32) -> f32 {
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-	let noise = layered_noise(vec3<f32>(in.position.xy * 0.01, time), 4);
-	let offset = 5.0 * noise * exp(audio.gain);
+	let noise = layered_noise(vec3<f32>(in.position.xy * 0.002, time), 4);
+	let offset = 10.0 * noise * exp(audio.gain);
 	let red = textureSample(t_framebuffer, s_framebuffer, (in.position.xy + vec2<f32>(offset.x, 0.0)) / vec2<f32>(dimensions));
 	let green = textureSample(t_framebuffer, s_framebuffer, (in.position.xy + vec2<f32>(offset.y, 0.0)) / vec2<f32>(dimensions));
 	let blue = textureSample(t_framebuffer, s_framebuffer, (in.position.xy + vec2<f32>(offset.z, 0.0)) / vec2<f32>(dimensions));
