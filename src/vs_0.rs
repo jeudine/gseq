@@ -6,10 +6,10 @@ use crate::pipeline::{PipelineError, PipelineGroup};
 use rand::prelude::*;
 use std::iter::zip;
 
-const COLOR_0_0: [f32; 4] = [0.1294, 0.2, 0.3882, 0.5];
-const COLOR_0_1: [f32; 4] = [0.0902, 0.3490, 0.2902, 0.5];
-const COLOR_0_2: [f32; 4] = [0.5569, 0.6745, 0.3137, 0.5];
-const COLOR_0_3: [f32; 4] = [0.8275, 0.8157, 0.3098, 0.5];
+const COLOR_0_0: [f32; 4] = [0.1294, 0.5725, 1.0, 0.5];
+const COLOR_0_1: [f32; 4] = [0.2196, 0.8980, 0.3020, 0.5];
+const COLOR_0_2: [f32; 4] = [0.6118, 1.0, 0.1804, 0.5];
+const COLOR_0_3: [f32; 4] = [0.9922, 1.0, 0.0, 0.5];
 const COLORS_0: [[f32; 4]; 4] = [COLOR_0_0, COLOR_0_1, COLOR_0_2, COLOR_0_3];
 
 const COLOR_1_0: [f32; 4] = [0.1294, 0.5725, 1.0, 1.0];
@@ -108,10 +108,7 @@ impl State {
 		let instance = &mut i_ms[i].instances[0];
 
 		instance.color = get_color_1(&mut self.rng);
-		instance.scale = self.rng.gen::<f32>() * 0.5;
-		if instance.scale < 0.2 {
-			instance.scale = 0.2
-		}
+		instance.scale = self.rng.gen::<f32>() * 0.1 + 0.2;
 		instance.position = (
 			0.5 - 1.0 * self.rng.gen::<f32>(),
 			0.5 - 1.0 * self.rng.gen::<f32>(),
@@ -155,7 +152,7 @@ impl State {
 		for i in 0..NB_DISKS {
 			if !self.disk_activated[i] {
 				self.disk_activated[i] = true;
-				instances[i].color = get_color_1(&mut self.rng);
+				instances[i].color = get_color_0(&mut self.rng);
 				instances[i].position = (
 					1.0 - 2.0 * self.rng.gen::<f32>(),
 					1.0 - 2.0 * self.rng.gen::<f32>(),
