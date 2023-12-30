@@ -152,7 +152,11 @@ fn vs_main(
 		out.position.y = out.position.y * dims.x / dims.y;
 	}
 
-	out.color = instance.color;
+	if ((model.position.x == 0.0) && (model.position.x == 0.0)) {
+		out.color = vec4<f32>(0.0, 0.0, 0.0, instance.color.a);
+	} else {
+		out.color = instance.color;
+	}
 	return out;
 }
 
