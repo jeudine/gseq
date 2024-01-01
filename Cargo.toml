@@ -15,7 +15,7 @@ bytemuck = { version = "1.12", features = [ "derive" ] }
 # Algebra library
 cgmath = "0.18"
 # Load the .obj
-tobj = "3.2"
+tobj = "4.0"
 # Audio
 cpal = "0.15.0"
 realfft = "3.2.0"

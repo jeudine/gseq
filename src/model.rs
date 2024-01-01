@@ -1,9 +1,14 @@
-//use std::error::Error;
-//use std::mem;
-//use tobj::load_obj;
 use crate::instance::Instance;
 use std::f32::consts::PI;
+use thiserror::Error;
+use tobj::load_obj;
 use wgpu::util::DeviceExt;
+
+#[derive(Error, Debug)]
+pub enum ModelError {
+	#[error("Failed to read obj file")]
+	Reading(#[from] tobj::LoadError),
+}
 
 pub struct InstanceModel {
 	pub model: Model,
@@ -96,9 +101,8 @@ impl Model {
 		Model { meshes: vec![mesh] }
 	}
 
-	/*
-	pub fn new(file_name: &str, device: &wgpu::Device) -> Result<Model, Box<dyn Error>> {
-		let (model, materials) = load_obj(
+	pub fn import(file_name: &str, device: &wgpu::Device) -> Result<Model, ModelError> {
+		let (model, _) = load_obj(
 			file_name,
 			&tobj::LoadOptions {
 				triangulate: true,
@@ -110,30 +114,15 @@ impl Model {
 		let meshes = model
 			.into_iter()
 			.map(|m| {
-				let vertices = if m.mesh.normals.len() == m.mesh.positions.len() {
-					(0..m.mesh.positions.len() / 3)
-						.map(|i| {
-							[
-								m.mesh.positions[i * 3],
-								m.mesh.positions[i * 3 + 1],
-								m.mesh.positions[i * 3 + 2],
-							]
-						})
-						.collect::<Vec<[f32; 3]>>()
-				} else {
-					(0..m.mesh.positions.len() / 3)
-						.map(|i| {
-							[
-								m.mesh.positions[i * 3],
-								m.mesh.positions[i * 3 + 1],
-								m.mesh.positions[i * 3 + 2],
-								m.mesh.positions[i * 3],
-								m.mesh.positions[i * 3 + 1],
-								m.mesh.positions[i * 3 + 2],
-							]
-						})
-						.collect::<Vec<[f32; 6]>>()
-				};
+				let vertices = (0..m.mesh.positions.len() / 3)
+					.map(|i| {
+						[
+							m.mesh.positions[i * 3],
+							m.mesh.positions[i * 3 + 1],
+							m.mesh.positions[i * 3 + 2],
+						]
+					})
+					.collect::<Vec<[f32; 3]>>();
 
 				let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
 					label: Some(&format!("{:?} Vertex Buffer", file_name)),
@@ -163,7 +152,6 @@ impl Model {
 
 		Ok(Self { meshes })
 	}
-	*/
 
 	pub fn desc<'a>() -> wgpu::VertexBufferLayout<'a> {
 		wgpu::VertexBufferLayout {
