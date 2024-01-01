@@ -264,11 +264,8 @@ impl Display {
 
 		// Create the 2d pipeline group
 		let bind_group_indices_2d = vec![0];
-
 		let mut pipeline_group_2d =
 			pipeline::PipelineGroup::new_2d(&bind_group_layouts, bind_group_indices_2d, &device);
-
-		// Add pieplines to the group
 		vs_0::init_2d(&mut pipeline_group_2d, &device, &config)?;
 
 		let pipeline_groups = vec![pipeline_group_2d];
@@ -277,6 +274,7 @@ impl Display {
 		let bind_group_indices_3d = vec![0, 1];
 		let mut pipeline_group_3d =
 			pipeline::PipelineGroup::new_3d(&bind_group_layouts, bind_group_indices_3d, &device);
+		vs_0::init_3d(&mut pipeline_group_3d, &device, &config)?;
 
 		// Create postpipeline
 		let bind_group_indices_post = vec![0, 2];

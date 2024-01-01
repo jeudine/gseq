@@ -214,3 +214,18 @@ pub fn init_2d(
 
 	Ok(())
 }
+
+pub fn init_3d(
+	pipeline_group: &mut PipelineGroup,
+	device: &wgpu::Device,
+	config: &wgpu::SurfaceConfiguration,
+) -> Result<(), PipelineError> {
+	pipeline_group.add_pipeline(
+		vec![],
+		&std::path::PathBuf::from("shader/vs_0/3d.wgsl"),
+		&device,
+		&config,
+	)?;
+
+	Ok(())
+}
