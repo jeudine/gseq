@@ -55,6 +55,22 @@ impl PipelineGroup {
 		}
 	}
 
+	pub fn new_3d(
+		bind_group_layouts: &Vec<&wgpu::BindGroupLayout>,
+		bind_group_indices: Vec<usize>,
+		device: &wgpu::Device,
+	) -> Self {
+		let layout = Layout::Pipeline3D(LayoutInner::new(
+			bind_group_layouts,
+			bind_group_indices,
+			device,
+		));
+		PipelineGroup {
+			layout,
+			pipelines: vec![],
+		}
+	}
+
 	pub fn add_pipeline(
 		&mut self,
 		instance_models: Vec<InstanceModel>,

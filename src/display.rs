@@ -273,6 +273,11 @@ impl Display {
 
 		let pipeline_groups = vec![pipeline_group_2d];
 
+		// Create the 3d piepline group
+		let bind_group_indices_3d = vec![0, 1];
+		let mut pipeline_group_3d =
+			pipeline::PipelineGroup::new_3d(&bind_group_layouts, bind_group_indices_3d, &device);
+
 		// Create postpipeline
 		let bind_group_indices_post = vec![0, 2];
 
