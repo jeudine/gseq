@@ -64,8 +64,8 @@ impl State {
 		old_audio: &audio::Data,
 		new_audio: &audio::Data,
 	) {
-		self.update_full(&mut pipelines[0], time, old_audio, new_audio);
-		self.update_disk(&mut pipelines[1], time, old_audio, new_audio);
+		self.update_full(&mut pipelines[1], time, old_audio, new_audio);
+		self.update_disk(&mut pipelines[2], time, old_audio, new_audio);
 	}
 
 	fn update_full(
@@ -174,6 +174,17 @@ pub fn init_2d(
 	config: &wgpu::SurfaceConfiguration,
 ) -> Result<(), PipelineError> {
 	let quad = Model::new_quad(&device);
+	let instance = Instance::new();
+	let instance_model = InstanceModel::new(quad, vec![instance], &device);
+
+	pipeline_group.add_pipeline(
+		vec![instance_model],
+		&std::path::PathBuf::from("shader/vs_0/wallpaper_noise_0.wgsl"),
+		&device,
+		&config,
+	)?;
+
+	let quad = Model::new_quad(&device);
 	let q_instance = Instance::new();
 	let q_instance_model = InstanceModel::new(quad, vec![q_instance], &device);
 
@@ -200,18 +211,6 @@ pub fn init_2d(
 		&device,
 		&config,
 	)?;
-
-	let quad = Model::new_quad(&device);
-	let instance = Instance::new();
-	let instance_model = InstanceModel::new(quad, vec![instance], &device);
-
-	pipeline_group.add_pipeline(
-		vec![instance_model],
-		&std::path::PathBuf::from("shader/vs_0/wallpaper_noise_0.wgsl"),
-		&device,
-		&config,
-	)?;
-
 	Ok(())
 }
 
@@ -220,8 +219,11 @@ pub fn init_3d(
 	device: &wgpu::Device,
 	config: &wgpu::SurfaceConfiguration,
 ) -> Result<(), PipelineError> {
+	let disc = Model::new_disk(&device, 200);
+	let instance = Instance::new();
+	let instance_model = InstanceModel::new(disc, vec![instance], &device);
 	pipeline_group.add_pipeline(
-		vec![],
+		vec![instance_model],
 		&std::path::PathBuf::from("shader/vs_0/3d.wgsl"),
 		&device,
 		&config,

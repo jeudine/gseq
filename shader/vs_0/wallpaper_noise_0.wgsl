@@ -134,7 +134,7 @@ fn vs_main(
 		instance: InstanceInput,
 		) -> VertexOutput {
 	var out: VertexOutput;
-	out.position = vec4<f32>(model.position, 1.0);
+	out.position = vec4<f32>(model.position.xy, 0.999 , 1.0);
 	out.color = instance.color;
 	return out;
 }
@@ -157,6 +157,6 @@ fn layered_noise(v: vec3<f32>, n_layers: i32) -> f32 {
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 	let n = layered_noise(vec3<f32>(in.position.xy * 0.0004, 0.05 * time), 6);
 	let c = 40.0 + 20.0 * sin(0.05 * time);
-	let v = sin(n * c);
-	return vec4<f32>(in.color.xyz * (0.5 + 0.5 * v), 0.5);
+	var v = sin(n * c);
+	return vec4<f32>(in.color.xyz * (0.3 + 0.3 * v), 1.0);
 }

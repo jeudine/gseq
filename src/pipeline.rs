@@ -85,7 +85,7 @@ impl PipelineGroup {
 
 		let pipeline_layout = self.layout.get_pipeline_layout();
 		let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-			label: Some("2D Render Pipeline"),
+			label: Some("Render Pipeline"),
 			layout: Some(pipeline_layout),
 			vertex: wgpu::VertexState {
 				module: &shader,

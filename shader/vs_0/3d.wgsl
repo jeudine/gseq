@@ -155,16 +155,7 @@ fn vs_main(
 	let world_position =  model_matrix * vec4<f32>(model.position, 1.0);
 	out.position = camera.view_proj * world_position;
 
-	// To keep the aspect ratio TODO: maybe need to be modified
-	/*
-	let dims = vec2<f32>(dimensions);
-	if (dimensions.x < dimensions.y) {
-		out.position.x = out.position.x * dims.y / dims.x;
-	} else {
-		out.position.y = out.position.y * dims.x / dims.y;
-	}
-	*/
-
+	
 	out.color = instance.color;
 	return out;
 }
@@ -185,5 +176,6 @@ fn layered_noise(v: vec3<f32>, n_layers: i32) -> f32 {
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-	return in.color;
+	//return in.color;
+	return vec4<f32>(1.0, 1.0, 1.0,1.0);
 }

@@ -37,7 +37,7 @@ pub struct Display {
 	pipeline_post: pipeline::PipelinePost,
 
 	// Camera
-	_camera: Camera,
+	camera: Camera,
 
 	// Textures
 	depth_texture: Texture,
@@ -47,7 +47,7 @@ pub struct Display {
 	audio_buffer: wgpu::Buffer,
 	time_buffer: wgpu::Buffer,
 	size_buffer: wgpu::Buffer,
-	_camera_buffer: wgpu::Buffer,
+	camera_buffer: wgpu::Buffer,
 
 	// Bind groups
 	bind_groups: Vec<wgpu::BindGroup>,
@@ -108,9 +108,8 @@ impl Display {
 
 		// Camera bind group
 		let camera = Camera {
-			// position the camera one unit up and 2 units back
 			// +z is out of the screen
-			eye: (0.0, 0.0, 7.0).into(),
+			eye: (0.0, 0.0, 5.0).into(),
 			// have it look at the origin
 			target: (0.0, 0.0, 0.0).into(),
 			// which way is "up"
@@ -268,13 +267,13 @@ impl Display {
 			pipeline::PipelineGroup::new_2d(&bind_group_layouts, bind_group_indices_2d, &device);
 		vs_0::init_2d(&mut pipeline_group_2d, &device, &config)?;
 
-		let pipeline_groups = vec![pipeline_group_2d];
-
 		// Create the 3d piepline group
 		let bind_group_indices_3d = vec![0, 1];
 		let mut pipeline_group_3d =
 			pipeline::PipelineGroup::new_3d(&bind_group_layouts, bind_group_indices_3d, &device);
 		vs_0::init_3d(&mut pipeline_group_3d, &device, &config)?;
+
+		let pipeline_groups = vec![pipeline_group_2d, pipeline_group_3d];
 
 		// Create postpipeline
 		let bind_group_indices_post = vec![0, 2];
@@ -299,13 +298,13 @@ impl Display {
 			start_time,
 			pipeline_groups,
 			pipeline_post,
-			_camera: camera,
+			camera,
 			depth_texture,
 			framebuffer,
 			audio_buffer,
 			time_buffer,
 			size_buffer,
-			_camera_buffer: camera_buffer,
+			camera_buffer,
 			bind_groups,
 			texture_bind_group_layout,
 			audio_data,
@@ -340,6 +339,15 @@ impl Display {
 			let size_data: [u32; 2] = [self.size.width, self.size.height];
 			self.queue
 				.write_buffer(&self.size_buffer, 0, bytemuck::cast_slice(&[size_data]));
+
+			// Update camera
+			self.camera.aspect = self.config.width as f32 / self.config.height as f32;
+			let camera_uniform: CameraUniform = self.camera.into();
+			self.queue.write_buffer(
+				&self.camera_buffer,
+				0,
+				bytemuck::cast_slice(&[camera_uniform]),
+			);
 		}
 	}
 
