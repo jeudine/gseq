@@ -2,7 +2,7 @@ use crate::audio;
 use crate::camera::{Camera, CameraUniform};
 use crate::instance::Instance;
 use crate::pipeline;
-use crate::texture::Texture;
+use crate::texture::{Texture, TextureError};
 use std::iter;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
@@ -20,6 +20,8 @@ pub enum DisplayError {
 	AdapterRequest,
 	#[error("Failed to request a device")]
 	DeviceRequest(#[from] wgpu::RequestDeviceError),
+	#[error("Failed to load a texture")]
+	TextureLoad(#[from] TextureError),
 }
 
 pub struct Display {
@@ -234,12 +236,14 @@ impl Display {
 			label: Some("universal_bind_group"),
 		});
 
-		// Texture bind group
+		// Textures bind group
 		let framebuffer = Texture::new_framebuffer(
 			&device,
 			(config.width, config.height),
 			"framebuffer texture",
 		);
+
+		let logo = Texture::new_image("text/mf_room_logo.png", &device, &queue, "logo")?;
 
 		let texture_bind_group_layout: wgpu::BindGroupLayout =
 			device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -250,19 +254,28 @@ impl Display {
 				label: Some("texture_bind_group_layout"),
 			});
 
-		let texture_bind_group = framebuffer.create_bind_group(&device, &texture_bind_group_layout);
+		let texture_bind_group_0 =
+			framebuffer.create_bind_group(&device, &texture_bind_group_layout);
+
+		let texture_bind_group_1 = logo.create_bind_group(&device, &texture_bind_group_layout);
 
 		let depth_texture = Texture::new_depth(&device, &config, "depth_texture");
 
-		let bind_groups = vec![universal_bind_group, camera_bind_group, texture_bind_group];
+		let bind_groups = vec![
+			universal_bind_group,
+			camera_bind_group,
+			texture_bind_group_0,
+			texture_bind_group_1,
+		];
 		let bind_group_layouts = vec![
 			&universal_bind_group_layout,
 			&camera_bind_group_layout,
 			&texture_bind_group_layout,
+			&texture_bind_group_layout,
 		];
 
 		// Create the 2d pipeline group
-		let bind_group_indices_2d = vec![0];
+		let bind_group_indices_2d = vec![0, 3];
 		let mut pipeline_group_2d =
 			pipeline::PipelineGroup::new_2d(&bind_group_layouts, bind_group_indices_2d, &device);
 		vs_0::init_2d(&mut pipeline_group_2d, &device, &config)?;

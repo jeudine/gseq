@@ -11,6 +11,11 @@ var<uniform> time: f32;
 @group(0) @binding(2)
 var<uniform> dimensions: vec2<u32>;
 
+@group(1) @binding(0)
+var t_image: texture_2d<f32>;
+@group(1) @binding(1)
+var s_image: sampler;
+
 struct VertexInput {
 	@location(0) position: vec3<f32>,
 }
@@ -25,7 +30,7 @@ struct InstanceInput {
 
 struct VertexOutput {
 	@builtin(position) position: vec4<f32>,
-	@location(0) color: vec4<f32>,
+	@location(0) text: vec2<f32>,
 }
 
 @vertex
@@ -42,7 +47,7 @@ fn vs_main(
 		instance.model_matrix_3,
 	);
 
-	out.position =  model_matrix * vec4<f32>(model.position, 1.0);
+	out.position =  model_matrix * vec4<f32>(model.position.xy, 0.8, 1.0);
 
 	// To keep the aspect ratio
 	let dims = vec2<f32>(dimensions);
@@ -52,11 +57,22 @@ fn vs_main(
 		out.position.y = out.position.y * dims.x / dims.y;
 	}
 
-	out.color = instance.color;
+	if (model.position.x == -1.0) {
+		out.text.x = 0.0;
+	} else if (model.position.x == 1.0) {
+		out.text.x = 1.0;
+	}
+
+	if (model.position.y == -1.0) {
+		out.text.y = 0.0;
+	} else if (model.position.y == 1.0) {
+		out.text.y = 1.0;
+	}
+
 	return out;
 }
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-	return in.color;
+	return textureSample(t_image, s_image, in.text);
 }

@@ -6,11 +6,13 @@ use crate::pipeline::{PipelineError, PipelineGroup};
 use rand::prelude::*;
 use std::iter::zip;
 
+/*
 const COLOR_0_0: [f32; 4] = [0.1294, 0.5725, 1.0, 0.5];
 const COLOR_0_1: [f32; 4] = [0.2196, 0.8980, 0.3020, 0.5];
 const COLOR_0_2: [f32; 4] = [0.6118, 1.0, 0.1804, 0.5];
 const COLOR_0_3: [f32; 4] = [0.9922, 1.0, 0.0, 0.5];
 const COLORS_0: [[f32; 4]; 4] = [COLOR_0_0, COLOR_0_1, COLOR_0_2, COLOR_0_3];
+*/
 
 const COLOR_1_0: [f32; 4] = [0.1294, 0.5725, 1.0, 1.0];
 const COLOR_1_1: [f32; 4] = [0.2196, 0.8980, 0.3020, 1.0];
@@ -18,9 +20,11 @@ const COLOR_1_2: [f32; 4] = [0.6118, 1.0, 0.1804, 1.0];
 const COLOR_1_3: [f32; 4] = [0.9922, 1.0, 0.0, 1.0];
 const COLORS_1: [[f32; 4]; 4] = [COLOR_1_0, COLOR_1_1, COLOR_1_2, COLOR_1_3];
 
+/*
 fn get_color_0(rng: &mut ThreadRng) -> [f32; 4] {
 	COLORS_0.choose(rng).unwrap().clone()
 }
+*/
 
 fn get_color_1(rng: &mut ThreadRng) -> [f32; 4] {
 	COLORS_1.choose(rng).unwrap().clone()
@@ -64,8 +68,8 @@ impl State {
 		old_audio: &audio::Data,
 		new_audio: &audio::Data,
 	) {
-		self.update_full(&mut pipelines[1], time, old_audio, new_audio);
-		self.update_disk(&mut pipelines[2], time, old_audio, new_audio);
+		self.update_full(&mut pipelines[2], time, old_audio, new_audio);
+		self.update_disk(&mut pipelines[3], time, old_audio, new_audio);
 	}
 
 	fn update_full(
@@ -152,7 +156,7 @@ impl State {
 		for i in 0..NB_DISKS {
 			if !self.disk_activated[i] {
 				self.disk_activated[i] = true;
-				instances[i].color = get_color_0(&mut self.rng);
+				instances[i].color = get_color_1(&mut self.rng);
 				instances[i].position = (
 					1.0 - 2.0 * self.rng.gen::<f32>(),
 					1.0 - 2.0 * self.rng.gen::<f32>(),
@@ -180,6 +184,18 @@ pub fn init_2d(
 	pipeline_group.add_pipeline(
 		vec![instance_model],
 		&std::path::PathBuf::from("shader/vs_0/wallpaper_noise_0.wgsl"),
+		&device,
+		&config,
+	)?;
+
+	let quad = Model::new_quad(&device);
+	let mut instance = Instance::new();
+	instance.scale(0.2);
+	let instance_model = InstanceModel::new(quad, vec![instance], &device);
+
+	pipeline_group.add_pipeline(
+		vec![instance_model],
+		&std::path::PathBuf::from("shader/vs_0/2d_logo.wgsl"),
 		&device,
 		&config,
 	)?;
@@ -223,7 +239,7 @@ pub fn init_3d(
 	let instance = Instance::new();
 	let instance_model = InstanceModel::new(disc, vec![instance], &device);
 	pipeline_group.add_pipeline(
-		vec![instance_model],
+		vec![],
 		&std::path::PathBuf::from("shader/vs_0/3d.wgsl"),
 		&device,
 		&config,

@@ -1,5 +1,5 @@
 use image::io::Reader as ImageReader;
-use std::{num::NonZeroU32, path};
+use std::num::NonZeroU32;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -71,7 +71,7 @@ impl Texture {
 	}
 
 	pub fn new_image(
-		filename: &path::Path,
+		filename: &str,
 		device: &wgpu::Device,
 		queue: &wgpu::Queue,
 		label: &str,
