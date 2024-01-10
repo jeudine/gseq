@@ -188,7 +188,7 @@ pub fn init_2d(
 		&config,
 	)?;
 
-	let quad = Model::new_quad(&device);
+	let quad: Model = Model::new_quad(&device);
 	let mut instance = Instance::new();
 	instance.scale(0.2);
 	let instance_model = InstanceModel::new(quad, vec![instance], &device);
@@ -235,11 +235,12 @@ pub fn init_3d(
 	device: &wgpu::Device,
 	config: &wgpu::SurfaceConfiguration,
 ) -> Result<(), PipelineError> {
-	let disc = Model::new_disk(&device, 200);
+	// let disc = Model::new_disk(&device, 200);/
+	let icosphere = Model::import("models/mfroom_3d.obj", device)?;
 	let instance = Instance::new();
-	let instance_model = InstanceModel::new(disc, vec![instance], &device);
+	let instance_model = InstanceModel::new(icosphere, vec![instance], &device);
 	pipeline_group.add_pipeline(
-		vec![],
+		vec![instance_model],
 		&std::path::PathBuf::from("shader/vs_0/3d.wgsl"),
 		&device,
 		&config,

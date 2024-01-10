@@ -4,12 +4,15 @@ use thiserror::Error;
 use crate::instance::InstanceRaw;
 use crate::model::InstanceModel;
 use crate::model::Model;
+use crate::model::ModelError;
 use crate::texture::Texture;
 
 #[derive(Error, Debug)]
 pub enum PipelineError {
 	#[error("Failed to read shader")]
 	Reading(#[from] std::io::Error),
+	#[error("Failed to load model")]
+	ModelLoading(#[from] ModelError),
 }
 
 pub struct Pipeline {

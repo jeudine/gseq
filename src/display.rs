@@ -286,7 +286,7 @@ impl Display {
 			pipeline::PipelineGroup::new_3d(&bind_group_layouts, bind_group_indices_3d, &device);
 		vs_0::init_3d(&mut pipeline_group_3d, &device, &config)?;
 
-		let pipeline_groups = vec![pipeline_group_2d, pipeline_group_3d];
+		let pipeline_groups = vec![pipeline_group_3d, pipeline_group_2d];
 
 		// Create postpipeline
 		let bind_group_indices_post = vec![0, 2];
@@ -378,7 +378,7 @@ impl Display {
 
 		// Update the InstanceModels
 		self.vs_0_state.update_2d(
-			&mut self.pipeline_groups[0].pipelines,
+			&mut self.pipeline_groups[1].pipelines,
 			time,
 			&self.audio_data,
 			&audio_data,

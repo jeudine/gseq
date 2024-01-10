@@ -134,7 +134,7 @@ fn vs_main(
 		instance: InstanceInput,
 		) -> VertexOutput {
 	var out: VertexOutput;
-	out.position = vec4<f32>(model.position.xy, 0.999 , 1.0);
+	out.position = vec4<f32>(model.position.xy, 0.99999 , 1.0);
 	out.color = instance.color;
 	return out;
 }

@@ -43,6 +43,7 @@ fn vs_main(
 	);
 
 	out.position =  model_matrix * vec4<f32>(model.position, 1.0);
+	out.position.z = 0.999;
 
 	// To keep the aspect ratio
 	let dims = vec2<f32>(dimensions);
