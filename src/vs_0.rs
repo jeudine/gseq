@@ -6,32 +6,18 @@ use crate::pipeline::{PipelineError, PipelineGroup};
 use rand::prelude::*;
 use std::iter::zip;
 
-/*
-const COLOR_0_0: [f32; 4] = [0.1294, 0.5725, 1.0, 0.5];
-const COLOR_0_1: [f32; 4] = [0.2196, 0.8980, 0.3020, 0.5];
-const COLOR_0_2: [f32; 4] = [0.6118, 1.0, 0.1804, 0.5];
-const COLOR_0_3: [f32; 4] = [0.9922, 1.0, 0.0, 0.5];
+const COLOR_0_0: [f32; 4] = [0.1294, 0.5725, 1.0, 1.0];
+const COLOR_0_1: [f32; 4] = [0.2196, 0.8980, 0.3020, 1.0];
+const COLOR_0_2: [f32; 4] = [0.6118, 1.0, 0.1804, 1.0];
+const COLOR_0_3: [f32; 4] = [0.9922, 1.0, 0.0, 1.0];
 const COLORS_0: [[f32; 4]; 4] = [COLOR_0_0, COLOR_0_1, COLOR_0_2, COLOR_0_3];
-*/
 
-const COLOR_1_0: [f32; 4] = [0.1294, 0.5725, 1.0, 1.0];
-const COLOR_1_1: [f32; 4] = [0.2196, 0.8980, 0.3020, 1.0];
-const COLOR_1_2: [f32; 4] = [0.6118, 1.0, 0.1804, 1.0];
-const COLOR_1_3: [f32; 4] = [0.9922, 1.0, 0.0, 1.0];
-const COLORS_1: [[f32; 4]; 4] = [COLOR_1_0, COLOR_1_1, COLOR_1_2, COLOR_1_3];
-
-/*
 fn get_color_0(rng: &mut ThreadRng) -> [f32; 4] {
 	COLORS_0.choose(rng).unwrap().clone()
 }
-*/
-
-fn get_color_1(rng: &mut ThreadRng) -> [f32; 4] {
-	COLORS_1.choose(rng).unwrap().clone()
-}
 
 pub const POST_PATH: &str = "shader/vs_0/post.wgsl";
-const NB_DISKS: usize = 4;
+const NB_DISKS: usize = 3;
 const DISK_SPEED: f32 = 0.3;
 
 pub struct State {
@@ -99,6 +85,16 @@ impl State {
 		}
 	}
 
+	pub fn update_3d(
+		&mut self,
+		pipelines: &mut Vec<Pipeline>,
+		time: f32,
+		old_audio: &audio::Data,
+		new_audio: &audio::Data,
+	) {
+		let pipeline = &mut pipelines[0];
+	}
+
 	fn activate_full(&mut self, time: f32, i_ms: &mut Vec<InstanceModel>) {
 		let i = (0..i_ms.len()).choose(&mut self.rng).unwrap();
 		self.full_activated = (true, i);
@@ -111,7 +107,7 @@ impl State {
 
 		let instance = &mut i_ms[i].instances[0];
 
-		instance.color = get_color_1(&mut self.rng);
+		instance.color = get_color_0(&mut self.rng);
 		instance.scale = self.rng.gen::<f32>() * 0.1 + 0.2;
 		instance.position = (
 			0.5 - 1.0 * self.rng.gen::<f32>(),
@@ -156,7 +152,7 @@ impl State {
 		for i in 0..NB_DISKS {
 			if !self.disk_activated[i] {
 				self.disk_activated[i] = true;
-				instances[i].color = get_color_1(&mut self.rng);
+				instances[i].color = get_color_0(&mut self.rng);
 				instances[i].position = (
 					1.0 - 2.0 * self.rng.gen::<f32>(),
 					1.0 - 2.0 * self.rng.gen::<f32>(),
@@ -236,11 +232,22 @@ pub fn init_3d(
 	config: &wgpu::SurfaceConfiguration,
 ) -> Result<(), PipelineError> {
 	// let disc = Model::new_disk(&device, 200);/
-	let icosphere = Model::import("models/mfroom_3d.obj", device)?;
+	let cube = Model::import("models/cube.obj", device)?;
+	let icosphere = Model::import("models/icosphere.obj", device)?;
+	let mf_room = Model::import("models/mfroom_3d.obj", device)?;
+	let pyramide = Model::import("models/pyramide.obj", device)?;
+
 	let instance = Instance::new();
-	let instance_model = InstanceModel::new(icosphere, vec![instance], &device);
+	let cube = InstanceModel::new(cube, vec![instance], &device);
+	let instance = Instance::new();
+	let icosphere = InstanceModel::new(icosphere, vec![instance], &device);
+	let instance = Instance::new();
+	let mf_room = InstanceModel::new(mf_room, vec![instance], &device);
+	let instance = Instance::new();
+	let pyramide = InstanceModel::new(pyramide, vec![instance], &device);
+
 	pipeline_group.add_pipeline(
-		vec![instance_model],
+		vec![cube, icosphere, mf_room, pyramide],
 		&std::path::PathBuf::from("shader/vs_0/3d.wgsl"),
 		&device,
 		&config,

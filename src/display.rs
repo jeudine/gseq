@@ -243,7 +243,7 @@ impl Display {
 			"framebuffer texture",
 		);
 
-		let logo = Texture::new_image("text/mf_room_logo.png", &device, &queue, "logo")?;
+		let logo = Texture::new_image("image/mf_room_logo.png", &device, &queue, "logo")?;
 
 		let texture_bind_group_layout: wgpu::BindGroupLayout =
 			device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
