@@ -6,7 +6,6 @@ use crate::pipeline::{PipelineError, PipelineGroup};
 use cgmath::Rotation3;
 use cgmath::Zero;
 use rand::prelude::*;
-use std::iter::zip;
 
 const COLOR_0_0: [f32; 4] = [0.1294, 0.5725, 1.0, 1.0];
 const COLOR_0_1: [f32; 4] = [0.2196, 0.8980, 0.3020, 1.0];
@@ -16,6 +15,18 @@ const COLORS_0: [[f32; 4]; 4] = [COLOR_0_0, COLOR_0_1, COLOR_0_2, COLOR_0_3];
 
 fn get_color_0(rng: &mut ThreadRng) -> [f32; 4] {
 	COLORS_0.choose(rng).unwrap().clone()
+}
+
+fn get_switch_time(time: f32, rng: &mut ThreadRng) -> f32 {
+	rng.gen::<f32>() + 10.0 + time
+}
+
+fn deactivate_pipeline(pipeline: &mut Pipeline) {
+	for i_m in &mut pipeline.instance_models {
+		for i in &mut i_m.instances {
+			i.scale = 0.0;
+		}
+	}
 }
 
 pub const POST_PATH: &str = "shader/vs_0/post.wgsl";
@@ -36,12 +47,97 @@ pub struct State {
 	disk_start_time: [f32; NB_DISKS],
 	disk_duration: [f32; NB_DISKS],
 	disk_scale: [f32; NB_DISKS],
+
+	dyn_pipelines: Vec<usize>,
+	active_pipelines: [usize; audio::NB_AUDIO_CHANNELS],
+	pipeline_switch_time: f32,
 	rng: ThreadRng,
 }
 
 impl State {
-	pub fn new() -> State {
-		State {
+	pub fn new(
+		pipeline_group: &mut PipelineGroup,
+		device: &wgpu::Device,
+		config: &wgpu::SurfaceConfiguration,
+	) -> Result<State, PipelineError> {
+		let quad = Model::new_quad(&device);
+		let instance = Instance::new();
+		let instance_model = InstanceModel::new(quad, vec![instance], &device);
+
+		pipeline_group.add_pipeline(
+			vec![instance_model],
+			&std::path::PathBuf::from("shader/vs_0/wallpaper_noise_0.wgsl"),
+			&device,
+			&config,
+		)?;
+
+		let quad: Model = Model::new_quad(&device);
+		let mut instance = Instance::new();
+		instance.scale = 0.2;
+		let instance_model = InstanceModel::new(quad, vec![instance], &device);
+
+		pipeline_group.add_pipeline(
+			vec![instance_model],
+			&std::path::PathBuf::from("shader/vs_0/2d_logo.wgsl"),
+			&device,
+			&config,
+		)?;
+
+		let quad = Model::new_quad(&device);
+		let q_instance = Instance::new();
+		let q_instance_model = InstanceModel::new(quad, vec![q_instance], &device);
+
+		let disk = Model::new_disk(&device, 200);
+		let d_instance = Instance::new();
+		let d_instance_model = InstanceModel::new(disk, vec![d_instance], &device);
+
+		pipeline_group.add_pipeline(
+			vec![q_instance_model, d_instance_model],
+			&std::path::PathBuf::from("shader/vs_0/2d_full.wgsl"),
+			&device,
+			&config,
+		)?;
+
+		let disk = Model::new_disk(&device, 200);
+
+		let instances = (0..NB_DISKS).map(|_| Instance::new()).collect();
+
+		let instance_model = InstanceModel::new(disk, instances, &device);
+
+		pipeline_group.add_pipeline(
+			vec![instance_model],
+			&std::path::PathBuf::from("shader/vs_0/2d_transparent.wgsl"),
+			&device,
+			&config,
+		)?;
+
+		let cube = Model::import("models/cube.obj", device)?;
+		let icosphere = Model::import("models/icosphere.obj", device)?;
+		let mf_room = Model::import("models/mfroom_3d.obj", device)?;
+		let pyramide = Model::import("models/pyramide.obj", device)?;
+
+		let instance = Instance::new();
+		let cube = InstanceModel::new(cube, vec![instance], &device);
+		let instance = Instance::new();
+		let icosphere = InstanceModel::new(icosphere, vec![instance], &device);
+		let instance = Instance::new();
+		let mf_room = InstanceModel::new(mf_room, vec![instance], &device);
+		let instance = Instance::new();
+		let pyramide = InstanceModel::new(pyramide, vec![instance], &device);
+
+		pipeline_group.add_pipeline(
+			vec![cube, icosphere, mf_room, pyramide],
+			&std::path::PathBuf::from("shader/vs_0/3d.wgsl"),
+			&device,
+			&config,
+		)?;
+
+		let dyn_pipelines = vec![2, 3, 4];
+		for i in dyn_pipelines {
+			deactivate_pipeline(&mut pipeline_group.pipelines[i]);
+		}
+
+		Ok(State {
 			full_activated: (false, 0),
 			full_start_time: 0.0,
 			full_duration: 0.0,
@@ -55,34 +151,41 @@ impl State {
 			disk_start_time: [0.0; NB_DISKS],
 			disk_duration: [0.0; NB_DISKS],
 			disk_scale: [0.0; NB_DISKS],
+
+			dyn_pipelines: vec![2, 3, 4],
+			active_pipelines: [2, 3, 4],
 			rng: rand::thread_rng(),
-		}
+
+			pipeline_switch_time: 0.0,
+		})
 	}
 
-	pub fn update_2d(
+	pub fn update(
 		&mut self,
 		pipelines: &mut Vec<Pipeline>,
 		time: f32,
 		old_audio: &audio::Data,
 		new_audio: &audio::Data,
 	) {
-		self.update_full(&mut pipelines[2], time, old_audio, new_audio);
-		self.update_disk(&mut pipelines[3], time, old_audio, new_audio);
+		if time > self.pipeline_switch_time
+			&& self.dyn_pipelines.len() > self.active_pipelines.len()
+		{}
+
+		for (i, a) in self.active_pipelines.clone().iter().enumerate() {
+			let o_a = old_audio.gain[i];
+			let n_a = new_audio.gain[i];
+			match a {
+				2 => self.update_full(&mut pipelines[2], time, o_a, n_a),
+				3 => self.update_disk(&mut pipelines[3], time, o_a, n_a),
+				4 => self.update_wf_3d(&mut pipelines[4], time, o_a, n_a),
+				_ => unreachable!(),
+			}
+		}
 	}
 
-	fn update_full(
-		&mut self,
-		pipeline: &mut Pipeline,
-		time: f32,
-		old_audio: &audio::Data,
-		new_audio: &audio::Data,
-	) {
-		let audio_iter = zip(old_audio.gain, new_audio.gain);
-		for (o, n) in audio_iter {
-			if n > 2.0 && o < 2.0 {
-				self.activate_full(time, &mut pipeline.instance_models);
-				break;
-			}
+	fn update_full(&mut self, pipeline: &mut Pipeline, time: f32, old_audio: f32, new_audio: f32) {
+		if new_audio > 2.0 && old_audio < 2.0 {
+			self.activate_full(time, &mut pipeline.instance_models);
 		}
 
 		if self.full_activated.0 {
@@ -97,20 +200,9 @@ impl State {
 		}
 	}
 
-	pub fn update_3d(
-		&mut self,
-		pipelines: &mut Vec<Pipeline>,
-		time: f32,
-		old_audio: &audio::Data,
-		new_audio: &audio::Data,
-	) {
-		let pipeline = &mut pipelines[0];
-		let audio_iter = zip(old_audio.gain, new_audio.gain);
-		for (o, n) in audio_iter {
-			if n > 3.0 && o < 3.0 {
-				self.activate_wf_3d(time, &mut pipeline.instance_models);
-				break;
-			}
+	fn update_wf_3d(&mut self, pipeline: &mut Pipeline, time: f32, old_audio: f32, new_audio: f32) {
+		if new_audio > 2.5 && old_audio < 2.5 {
+			self.activate_wf_3d(time, &mut pipeline.instance_models);
 		}
 
 		if self.wf_3d_activated.0 {
@@ -183,20 +275,11 @@ impl State {
 			.into();
 	}
 
-	fn update_disk(
-		&mut self,
-		pipeline: &mut Pipeline,
-		time: f32,
-		old_audio: &audio::Data,
-		new_audio: &audio::Data,
-	) {
+	fn update_disk(&mut self, pipeline: &mut Pipeline, time: f32, old_audio: f32, new_audio: f32) {
 		let disks_i = &mut pipeline.instance_models[0].instances;
 
-		let audio_iter = zip(old_audio.gain, new_audio.gain);
-		for (o, n) in audio_iter {
-			if n > 2.0 && o < 2.0 {
-				self.activate_disk(time, disks_i);
-			}
+		if new_audio > 2.0 && old_audio < 2.0 {
+			self.activate_disk(time, disks_i);
 		}
 
 		for i in 0..NB_DISKS {
@@ -232,92 +315,4 @@ impl State {
 			}
 		}
 	}
-}
-
-pub fn init_2d(
-	pipeline_group: &mut PipelineGroup,
-	device: &wgpu::Device,
-	config: &wgpu::SurfaceConfiguration,
-) -> Result<(), PipelineError> {
-	let quad = Model::new_quad(&device);
-	let instance = Instance::new();
-	let instance_model = InstanceModel::new(quad, vec![instance], &device);
-
-	pipeline_group.add_pipeline(
-		vec![instance_model],
-		&std::path::PathBuf::from("shader/vs_0/wallpaper_noise_0.wgsl"),
-		&device,
-		&config,
-	)?;
-
-	let quad: Model = Model::new_quad(&device);
-	let mut instance = Instance::new();
-	instance.scale = 0.2;
-	let instance_model = InstanceModel::new(quad, vec![instance], &device);
-
-	pipeline_group.add_pipeline(
-		vec![instance_model],
-		&std::path::PathBuf::from("shader/vs_0/2d_logo.wgsl"),
-		&device,
-		&config,
-	)?;
-
-	let quad = Model::new_quad(&device);
-	let q_instance = Instance::new();
-	let q_instance_model = InstanceModel::new(quad, vec![q_instance], &device);
-
-	let disk = Model::new_disk(&device, 200);
-	let d_instance = Instance::new();
-	let d_instance_model = InstanceModel::new(disk, vec![d_instance], &device);
-
-	pipeline_group.add_pipeline(
-		vec![q_instance_model, d_instance_model],
-		&std::path::PathBuf::from("shader/vs_0/2d_full.wgsl"),
-		&device,
-		&config,
-	)?;
-
-	let disk = Model::new_disk(&device, 200);
-
-	let instances = (0..NB_DISKS).map(|_| Instance::new()).collect();
-
-	let instance_model = InstanceModel::new(disk, instances, &device);
-
-	pipeline_group.add_pipeline(
-		vec![instance_model],
-		&std::path::PathBuf::from("shader/vs_0/2d_transparent.wgsl"),
-		&device,
-		&config,
-	)?;
-	Ok(())
-}
-
-pub fn init_3d(
-	pipeline_group: &mut PipelineGroup,
-	device: &wgpu::Device,
-	config: &wgpu::SurfaceConfiguration,
-) -> Result<(), PipelineError> {
-	// let disc = Model::new_disk(&device, 200);/
-	let cube = Model::import("models/cube.obj", device)?;
-	let icosphere = Model::import("models/icosphere.obj", device)?;
-	let mf_room = Model::import("models/mfroom_3d.obj", device)?;
-	let pyramide = Model::import("models/pyramide.obj", device)?;
-
-	let instance = Instance::new();
-	let cube = InstanceModel::new(cube, vec![instance], &device);
-	let instance = Instance::new();
-	let icosphere = InstanceModel::new(icosphere, vec![instance], &device);
-	let instance = Instance::new();
-	let mf_room = InstanceModel::new(mf_room, vec![instance], &device);
-	let instance = Instance::new();
-	let pyramide = InstanceModel::new(pyramide, vec![instance], &device);
-
-	pipeline_group.add_pipeline(
-		vec![cube, icosphere, mf_room, pyramide],
-		&std::path::PathBuf::from("shader/vs_0/3d.wgsl"),
-		&device,
-		&config,
-	)?;
-
-	Ok(())
 }

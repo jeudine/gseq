@@ -99,7 +99,8 @@ fn snoise(v: vec3<f32>) -> f32 {
 }
 
 struct Audio {
-	gain: vec4<f32>,
+	gain: vec3<f32>,
+	_offset: f32,
 }
 
 @group(0) @binding(0)

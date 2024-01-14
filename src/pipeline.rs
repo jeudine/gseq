@@ -32,8 +32,7 @@ pub struct PipelinePost {
 }
 
 pub enum Layout {
-	Pipeline2D(LayoutInner),
-	Pipeline3D(LayoutInner),
+	Pipeline0(LayoutInner),
 }
 
 pub struct LayoutInner {
@@ -42,28 +41,12 @@ pub struct LayoutInner {
 }
 
 impl PipelineGroup {
-	pub fn new_2d(
+	pub fn new_0(
 		bind_group_layouts: &Vec<&wgpu::BindGroupLayout>,
 		bind_group_indices: Vec<usize>,
 		device: &wgpu::Device,
 	) -> Self {
-		let layout = Layout::Pipeline2D(LayoutInner::new(
-			bind_group_layouts,
-			bind_group_indices,
-			device,
-		));
-		PipelineGroup {
-			layout,
-			pipelines: vec![],
-		}
-	}
-
-	pub fn new_3d(
-		bind_group_layouts: &Vec<&wgpu::BindGroupLayout>,
-		bind_group_indices: Vec<usize>,
-		device: &wgpu::Device,
-	) -> Self {
-		let layout = Layout::Pipeline3D(LayoutInner::new(
+		let layout = Layout::Pipeline0(LayoutInner::new(
 			bind_group_layouts,
 			bind_group_indices,
 			device,
@@ -170,13 +153,13 @@ impl LayoutInner {
 impl Layout {
 	pub fn get_bind_group_indices(&self) -> &Vec<usize> {
 		match self {
-			Layout::Pipeline2D(l) | Layout::Pipeline3D(l) => &l.bind_group_indices,
+			Layout::Pipeline0(l) => &l.bind_group_indices,
 		}
 	}
 
 	fn get_pipeline_layout(&self) -> &wgpu::PipelineLayout {
 		match self {
-			Layout::Pipeline2D(l) | Layout::Pipeline3D(l) => &l.pipeline_layout,
+			Layout::Pipeline0(l) => &l.pipeline_layout,
 		}
 	}
 }

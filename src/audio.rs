@@ -13,19 +13,21 @@ use std::io::{stdout, Write};
 use std::sync::{Arc, Mutex};
 
 // mean and var: mean and var over 70 samples
-const NB_AUDIO_CHANNELS: u32 = 4;
+pub const NB_AUDIO_CHANNELS: usize = 3;
 const STAT_WINDOW_SIZE: u32 = 70;
 
 #[repr(C)]
 #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Data {
-	pub gain: [f32; NB_AUDIO_CHANNELS as usize],
+	pub gain: [f32; NB_AUDIO_CHANNELS],
+	_offset: f32,
 }
 
 impl Data {
 	pub fn new() -> Data {
 		Data {
-			gain: [0.0; NB_AUDIO_CHANNELS as usize],
+			gain: [0.0; NB_AUDIO_CHANNELS],
+			_offset: 0.0,
 		}
 	}
 }
@@ -41,7 +43,6 @@ struct Buffer {
 	mean: Vec<f32>,
 	var: Vec<f32>,
 	count: u64,
-	nb_channels: u32,
 	index_limits: Vec<usize>,
 	stat_window: Vec<VecDeque<f32>>,
 	stat_window_size: u32,
@@ -82,7 +83,7 @@ pub fn init(
 	let input = r2c.make_input_vec();
 	let output = r2c.make_output_vec();
 	let scratch = r2c.make_scratch_vec();
-	let stat_window = vec![VecDeque::new(); NB_AUDIO_CHANNELS as usize];
+	let stat_window = vec![VecDeque::new(); NB_AUDIO_CHANNELS];
 	let hanning_window = (0..input.len())
 		.map(|i| 0.5 * (1.0 - ((2.0 * PI * i as f32) / (input.len() - 1) as f32).cos()))
 		.collect();
@@ -94,15 +95,14 @@ pub fn init(
 		len: chunck_size as usize,
 		pos: 0,
 		r2c,
-		mean: vec![0.0; NB_AUDIO_CHANNELS as usize],
-		var: vec![0.0; NB_AUDIO_CHANNELS as usize],
+		mean: vec![0.0; NB_AUDIO_CHANNELS],
+		var: vec![0.0; NB_AUDIO_CHANNELS],
 		count: 0,
 		window: hanning_window,
-		nb_channels: NB_AUDIO_CHANNELS,
 		index_limits: calculate_channel_index(
 			min_freq,
 			max_freq,
-			NB_AUDIO_CHANNELS,
+			NB_AUDIO_CHANNELS as u32,
 			config.sample_rate().0,
 			chunck_size,
 		),
@@ -115,7 +115,8 @@ pub fn init(
 	};
 
 	let audio_data = Data {
-		gain: [0.0; NB_AUDIO_CHANNELS as usize],
+		gain: [0.0; NB_AUDIO_CHANNELS],
+		_offset: 0.0,
 	};
 	let audio_data_arc = Arc::new(Mutex::new(audio_data));
 	let audio_data_arc1 = audio_data_arc.clone();
@@ -172,16 +173,6 @@ fn calculate_channel_index(
 		})
 		.collect();
 
-	/*
-	for i in &index_limits {
-		println!(
-			"index: {}, freq: {}",
-			i,
-			i * sample_rate as usize / chunck_size as usize
-		);
-	}
-	*/
-
 	index_limits
 }
 
@@ -203,14 +194,9 @@ where
 				.r2c
 				.process_with_scratch(&mut buffer.input, &mut buffer.output, &mut buffer.scratch)
 				.unwrap();
-			/*
-			for (i, el) in buffer.output.iter().enumerate() {
-				println!("{}: {}", i, el.norm());
-			}
-			*/
 
 			// compute levels
-			let levels: Vec<_> = (0..buffer.nb_channels as usize)
+			let levels: Vec<_> = (0..NB_AUDIO_CHANNELS)
 				.map(|x| {
 					(buffer.index_limits[x] + 1..buffer.index_limits[x + 1])
 						.fold(0.0, |acc, i| acc + buffer.output[i].norm())
@@ -222,7 +208,7 @@ where
 
 			// Initialization
 			if buffer.count <= buffer.stat_window_size as u64 {
-				for i in 0..buffer.nb_channels as usize {
+				for i in 0..NB_AUDIO_CHANNELS {
 					buffer.stat_window[i].push_front(levels[i]);
 					buffer.mean[i] += tmp_inv * levels[i];
 					buffer.var[i] += tmp_inv * levels[i].powi(2);
@@ -231,7 +217,7 @@ where
 					}
 				}
 			} else {
-				for i in 0..buffer.nb_channels as usize {
+				for i in 0..NB_AUDIO_CHANNELS {
 					let last_val = buffer.stat_window[i].pop_back().unwrap();
 					buffer.stat_window[i].push_front(levels[i]);
 
@@ -258,42 +244,13 @@ where
 				}
 			}
 
-			let mut gain = [f32::MIN; NB_AUDIO_CHANNELS as usize];
+			let mut gain = [f32::MIN; NB_AUDIO_CHANNELS];
 			if over {
-				for i in 0..NB_AUDIO_CHANNELS as usize {
+				for i in 0..NB_AUDIO_CHANNELS {
 					gain[i] = (levels[i] - buffer.mean[i]) / buffer.var[i].sqrt();
 				}
 			}
 
-			/*
-
-			if !over {
-				let new_level: Vec<_> = (0..buffer.nb_channels as usize)
-					.map(|i| Level {
-						val: 0.0,
-						mean: buffer.mean[i],
-						sd: buffer.var[i].sqrt(),
-					})
-					.collect();
-				let mut level = level.lock().unwrap();
-				*level = new_level;
-				return;
-			}
-			*/
-
-			/*
-			for (i, &l) in levels.iter().enumerate() {
-				println! {"c: {}, l: {}", i, l};
-			}
-			*/
-
-			/*
-			for (i, g) in gain.into_iter().enumerate() {
-				if i == 0 {
-					println! {"c: {}, g: {}", i, g};
-				}
-			}
-			*/
 			let mut stdout = stdout();
 			stdout.execute(cursor::MoveUp(gain.len() as u16)).unwrap();
 			stdout

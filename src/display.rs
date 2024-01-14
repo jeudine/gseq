@@ -274,19 +274,15 @@ impl Display {
 			&texture_bind_group_layout,
 		];
 
-		// Create the 2d pipeline group
-		let bind_group_indices_2d = vec![0, 3];
-		let mut pipeline_group_2d =
-			pipeline::PipelineGroup::new_2d(&bind_group_layouts, bind_group_indices_2d, &device);
-		vs_0::init_2d(&mut pipeline_group_2d, &device, &config)?;
+		// Create the pipeline group
+		let bind_group_indices_0 = vec![0, 1, 3];
+		let mut pipeline_group_0 =
+			pipeline::PipelineGroup::new_0(&bind_group_layouts, bind_group_indices_0, &device);
 
-		// Create the 3d piepline group
-		let bind_group_indices_3d = vec![0, 1];
-		let mut pipeline_group_3d =
-			pipeline::PipelineGroup::new_3d(&bind_group_layouts, bind_group_indices_3d, &device);
-		vs_0::init_3d(&mut pipeline_group_3d, &device, &config)?;
+		// Create the pipelines in pipeline group 0
+		let vs_0_state = vs_0::State::new(&mut pipeline_group_0, &device, &config)?;
 
-		let pipeline_groups = vec![pipeline_group_2d, pipeline_group_3d];
+		let pipeline_groups = vec![pipeline_group_0];
 
 		// Create postpipeline
 		let bind_group_indices_post = vec![0, 2];
@@ -298,8 +294,6 @@ impl Display {
 			&config,
 			&std::path::PathBuf::from(vs_0::POST_PATH),
 		)?;
-
-		let vs_0_state = vs_0::State::new();
 
 		Ok(Self {
 			surface,
@@ -377,15 +371,8 @@ impl Display {
 			.write_buffer(&self.time_buffer, 0, bytemuck::cast_slice(&[time]));
 
 		// Update the InstanceModels
-		self.vs_0_state.update_2d(
+		self.vs_0_state.update(
 			&mut self.pipeline_groups[0].pipelines,
-			time,
-			&self.audio_data,
-			&audio_data,
-		);
-
-		self.vs_0_state.update_3d(
-			&mut self.pipeline_groups[1].pipelines,
 			time,
 			&self.audio_data,
 			&audio_data,

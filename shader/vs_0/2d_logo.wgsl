@@ -1,19 +1,9 @@
-struct Audio {
-gain: vec4<f32>,
-}
-
-@group(0) @binding(0)
-var<uniform> audio: Audio;
-
-@group(0) @binding(1)
-var<uniform> time: f32;
-
 @group(0) @binding(2)
 var<uniform> dimensions: vec2<u32>;
 
-@group(1) @binding(0)
+@group(2) @binding(0)
 var t_image: texture_2d<f32>;
-@group(1) @binding(1)
+@group(2) @binding(1)
 var s_image: sampler;
 
 struct VertexInput {
@@ -41,14 +31,14 @@ fn vs_main(
 
 	var out: VertexOutput;
 	let model_matrix = mat4x4<f32>(
-		instance.model_matrix_0,  
+		instance.model_matrix_0,
 		instance.model_matrix_1,
 		instance.model_matrix_2,
 		instance.model_matrix_3,
 	);
 
 	out.position =  model_matrix * vec4<f32>(model.position, 1.0);
-	out.position.z = 0.9999;	
+	out.position.z = 0.9999;
 
 	// To keep the aspect ratio
 	let dims = vec2<f32>(dimensions);
