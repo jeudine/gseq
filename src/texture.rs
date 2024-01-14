@@ -186,10 +186,6 @@ impl Texture {
 		return &self.inner().view;
 	}
 
-	pub fn sampler(&self) -> &wgpu::Sampler {
-		return &self.inner().sampler;
-	}
-
 	pub fn create_texture_bind_group_layout_entry(binding: u32) -> wgpu::BindGroupLayoutEntry {
 		wgpu::BindGroupLayoutEntry {
 			binding,
@@ -233,4 +229,48 @@ impl Texture {
 			label: Some("texture_bind_group"),
 		})
 	}
+}
+
+pub fn create_texture_image_bind_group_layout(
+	nb_textures: usize,
+	device: &wgpu::Device,
+) -> wgpu::BindGroupLayout {
+	let mut v: Vec<wgpu::BindGroupLayoutEntry> = vec![];
+	for i in 0..nb_textures {
+		v.push(Texture::create_texture_bind_group_layout_entry(
+			2 * i as u32,
+		));
+		v.push(Texture::create_sampler_bind_group_layout_entry(
+			(2 * i + 1) as u32,
+		));
+	}
+
+	device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+		entries: &v[..],
+		label: Some("texture_image_bind_group_layout"),
+	})
+}
+
+pub fn create_texture_image_bind_group(
+	texture_images: &Vec<Texture>,
+	device: &wgpu::Device,
+	bind_group_layout: &wgpu::BindGroupLayout,
+) -> wgpu::BindGroup {
+	let mut v: Vec<wgpu::BindGroupEntry> = vec![];
+	for i in 0..texture_images.len() {
+		let texture = texture_images[i].inner();
+		v.push(wgpu::BindGroupEntry {
+			binding: (2 * i) as u32,
+			resource: wgpu::BindingResource::TextureView(&texture.view),
+		});
+		v.push(wgpu::BindGroupEntry {
+			binding: (2 * i + 1) as u32,
+			resource: wgpu::BindingResource::Sampler(&texture.sampler),
+		});
+	}
+	device.create_bind_group(&wgpu::BindGroupDescriptor {
+		layout: bind_group_layout,
+		entries: &v[..],
+		label: Some("texture_image_bind_group"),
+	})
 }

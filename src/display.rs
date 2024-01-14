@@ -2,6 +2,7 @@ use crate::audio;
 use crate::camera::{Camera, CameraUniform};
 use crate::instance::Instance;
 use crate::pipeline;
+use crate::texture;
 use crate::texture::{Texture, TextureError};
 use std::iter;
 use std::sync::{Arc, Mutex};
@@ -243,8 +244,6 @@ impl Display {
 			"framebuffer texture",
 		);
 
-		let logo = Texture::new_image("image/mf_room_logo.png", &device, &queue, "logo")?;
-
 		let texture_bind_group_layout: wgpu::BindGroupLayout =
 			device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
 				entries: &[
@@ -254,24 +253,38 @@ impl Display {
 				label: Some("texture_bind_group_layout"),
 			});
 
-		let texture_bind_group_0 =
+		let framebuffer_texture_bind_group =
 			framebuffer.create_bind_group(&device, &texture_bind_group_layout);
 
-		let texture_bind_group_1 = logo.create_bind_group(&device, &texture_bind_group_layout);
+		let logo = Texture::new_image("image/mf_room_logo.png", &device, &queue, "logo")?;
+		let f_letter = Texture::new_image("image/f_pos.png", &device, &queue, "f_pos")?;
+		let p_letter = Texture::new_image("image/p_pos.png", &device, &queue, "p_pos")?;
+		let g_letter = Texture::new_image("image/g_pos.png", &device, &queue, "g_pos")?;
+		let a_letter = Texture::new_image("image/a_pos.png", &device, &queue, "a_pos")?;
+
+		let texture_images = vec![logo, f_letter, p_letter, g_letter, a_letter];
+		let texture_image_bind_group_layout =
+			texture::create_texture_image_bind_group_layout(texture_images.len(), &device);
+		let texture_image_bind_group = texture::create_texture_image_bind_group(
+			&texture_images,
+			&device,
+			&texture_image_bind_group_layout,
+		);
 
 		let depth_texture = Texture::new_depth(&device, &config, "depth_texture");
 
 		let bind_groups = vec![
 			universal_bind_group,
 			camera_bind_group,
-			texture_bind_group_0,
-			texture_bind_group_1,
+			framebuffer_texture_bind_group,
+			texture_image_bind_group,
 		];
+
 		let bind_group_layouts = vec![
 			&universal_bind_group_layout,
 			&camera_bind_group_layout,
 			&texture_bind_group_layout,
-			&texture_bind_group_layout,
+			&texture_image_bind_group_layout,
 		];
 
 		// Create the pipeline group

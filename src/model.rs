@@ -53,7 +53,12 @@ impl Model {
 			[1.0, -1.0, 0.0],
 		];
 		let indices: Vec<u32> = vec![0, 2, 1, 1, 2, 3];
+		Self::points_to_model(device, &vertices, &indices)
+	}
 
+	pub fn new_rectangle(device: &wgpu::Device, x: f32, y: f32) -> Model {
+		let vertices: Vec<[f32; 3]> = vec![[-x, y, 0.0], [x, y, 0.0], [-x, -y, 0.0], [x, -y, 0.0]];
+		let indices: Vec<u32> = vec![0, 2, 1, 1, 2, 3];
 		Self::points_to_model(device, &vertices, &indices)
 	}
 
