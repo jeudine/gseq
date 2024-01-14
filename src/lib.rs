@@ -1,13 +1,12 @@
 mod audio;
 mod camera;
 mod display;
-pub mod instance;
+mod instance;
 mod model;
 mod pipeline;
 mod texture;
 mod vs_0;
 use display::Display;
-pub use instance::Instance;
 
 use winit::{
 	event::*,

@@ -3,6 +3,8 @@ use crate::instance::Instance;
 use crate::model::{InstanceModel, Model};
 use crate::pipeline::Pipeline;
 use crate::pipeline::{PipelineError, PipelineGroup};
+use cgmath::Rotation3;
+use cgmath::Zero;
 use rand::prelude::*;
 use std::iter::zip;
 
@@ -25,6 +27,11 @@ pub struct State {
 	full_start_time: f32,
 	full_duration: f32,
 
+	wf_3d_activated: (bool, usize),
+	wf_3d_start_time: f32,
+	wf_3d_duration: f32,
+	wf_3d_axis: cgmath::Vector3<f32>,
+
 	disk_activated: [bool; NB_DISKS],
 	disk_start_time: [f32; NB_DISKS],
 	disk_duration: [f32; NB_DISKS],
@@ -38,6 +45,11 @@ impl State {
 			full_activated: (false, 0),
 			full_start_time: 0.0,
 			full_duration: 0.0,
+
+			wf_3d_activated: (false, 0),
+			wf_3d_start_time: 0.0,
+			wf_3d_duration: 0.0,
+			wf_3d_axis: [0.0, 1.0, 0.0].into(),
 
 			disk_activated: [false; NB_DISKS],
 			disk_start_time: [0.0; NB_DISKS],
@@ -93,6 +105,60 @@ impl State {
 		new_audio: &audio::Data,
 	) {
 		let pipeline = &mut pipelines[0];
+		let audio_iter = zip(old_audio.gain, new_audio.gain);
+		for (o, n) in audio_iter {
+			if n > 3.0 && o < 3.0 {
+				self.activate_wf_3d(time, &mut pipeline.instance_models);
+				break;
+			}
+		}
+
+		if self.wf_3d_activated.0 {
+			let i = &mut pipeline.instance_models[self.wf_3d_activated.1].instances[0];
+			i.rotation = cgmath::Basis3::from_axis_angle(self.wf_3d_axis, cgmath::Rad(0.5 * time));
+			let t = time - self.wf_3d_start_time;
+			if t > self.wf_3d_duration {
+				self.wf_3d_activated.0 = false;
+			}
+		} else {
+			for i_m in &mut pipeline.instance_models {
+				i_m.instances[0].scale = 0.0;
+			}
+		}
+	}
+
+	fn activate_wf_3d(&mut self, time: f32, i_ms: &mut Vec<InstanceModel>) {
+		let i = (0..i_ms.len()).choose(&mut self.rng).unwrap();
+		self.wf_3d_activated = (true, i);
+		self.wf_3d_start_time = time;
+		self.wf_3d_duration = 3.0 * self.rng.gen::<f32>() + 3.0;
+		self.wf_3d_axis = {
+			let mut axis = cgmath::Vector3::<f32>::zero();
+			while axis == cgmath::Vector3::<f32>::zero() {
+				axis = cgmath::Vector3::<f32>::from([
+					self.rng.gen::<f32>(),
+					self.rng.gen::<f32>(),
+					self.rng.gen::<f32>(),
+				]);
+			}
+			let norm = (axis.x.powi(2) + axis.y.powi(2) + axis.z.powi(2)).sqrt();
+			(1.0 / norm) * axis
+		};
+
+		for i_m in &mut *i_ms {
+			i_m.instances[0].scale = 0.0;
+		}
+
+		let instance = &mut i_ms[i].instances[0];
+
+		instance.color = get_color_0(&mut self.rng);
+		instance.scale = 1.0;
+		instance.position = (
+			0.5 - 1.0 * self.rng.gen::<f32>(),
+			0.5 - 1.0 * self.rng.gen::<f32>(),
+			0.0,
+		)
+			.into();
 	}
 
 	fn activate_full(&mut self, time: f32, i_ms: &mut Vec<InstanceModel>) {
@@ -186,7 +252,7 @@ pub fn init_2d(
 
 	let quad: Model = Model::new_quad(&device);
 	let mut instance = Instance::new();
-	instance.scale(0.2);
+	instance.scale = 0.2;
 	let instance_model = InstanceModel::new(quad, vec![instance], &device);
 
 	pipeline_group.add_pipeline(

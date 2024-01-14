@@ -30,18 +30,6 @@ impl Instance {
 		}
 	}
 
-	pub fn translate(&mut self, t: cgmath::Vector3<f32>) {
-		self.position = self.position + t;
-	}
-
-	pub fn scale(&mut self, f: f32) {
-		self.scale = self.scale * f;
-	}
-
-	pub fn set_color(&mut self, c: [f32; 4]) {
-		self.color = c;
-	}
-
 	pub fn to_raw(&self) -> InstanceRaw {
 		InstanceRaw {
 			color: self.color,

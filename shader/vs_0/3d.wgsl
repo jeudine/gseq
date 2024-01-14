@@ -176,6 +176,5 @@ fn layered_noise(v: vec3<f32>, n_layers: i32) -> f32 {
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-	//return in.color;
-	return vec4<f32>(1.0, 1.0, 1.0,1.0);
+	return in.color;
 }
