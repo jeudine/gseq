@@ -55,9 +55,9 @@ fn vs_main(
 	}
 
 	if (model.position.y == -1.0) {
-		out.text.y = 0.0;
-	} else if (model.position.y == 1.0) {
 		out.text.y = 1.0;
+	} else if (model.position.y == 1.0) {
+		out.text.y = 0.0;
 	}
 
 	return out;

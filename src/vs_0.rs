@@ -30,8 +30,9 @@ fn deactivate_pipeline(pipeline: &mut Pipeline) {
 }
 
 pub const POST_PATH: &str = "shader/vs_0/post.wgsl";
-const NB_DISKS: usize = 3;
+const NB_DISKS: usize = 4;
 const DISK_SPEED: f32 = 0.3;
+const NB_LETTERS: usize = 2;
 
 pub struct State {
 	full_activated: (bool, usize),
@@ -42,6 +43,10 @@ pub struct State {
 	wf_3d_start_time: f32,
 	wf_3d_duration: f32,
 	wf_3d_axis: cgmath::Vector3<f32>,
+
+	letter_activated: [bool; NB_LETTERS],
+	letter_start_time: [f32; NB_LETTERS],
+	letter_duration: [f32; NB_LETTERS],
 
 	disk_activated: [bool; NB_DISKS],
 	disk_start_time: [f32; NB_DISKS],
@@ -132,10 +137,22 @@ impl State {
 			&config,
 		)?;
 
+		let rectangle = Model::new_rectangle(device, 0.5, 0.7);
+		let instances = (0..NB_LETTERS).map(|_| Instance::new()).collect();
+		let instance_model = InstanceModel::new(rectangle, instances, &device);
+
+		pipeline_group.add_pipeline(
+			vec![instance_model],
+			&std::path::PathBuf::from("shader/vs_0/2d_letter.wgsl"),
+			&device,
+			&config,
+		)?;
+
 		let dyn_pipelines = vec![2, 3, 4];
 		for i in dyn_pipelines {
 			deactivate_pipeline(&mut pipeline_group.pipelines[i]);
 		}
+		deactivate_pipeline(&mut pipeline_group.pipelines[5]);
 
 		Ok(State {
 			full_activated: (false, 0),
@@ -146,6 +163,10 @@ impl State {
 			wf_3d_start_time: 0.0,
 			wf_3d_duration: 0.0,
 			wf_3d_axis: [0.0, 1.0, 0.0].into(),
+
+			letter_activated: [false; NB_LETTERS],
+			letter_duration: [0.0; NB_LETTERS],
+			letter_start_time: [0.0; NB_LETTERS],
 
 			disk_activated: [false; NB_DISKS],
 			disk_start_time: [0.0; NB_DISKS],
@@ -171,6 +192,13 @@ impl State {
 			&& self.dyn_pipelines.len() > self.active_pipelines.len()
 		{}
 
+		self.update_letter(
+			&mut pipelines[5],
+			time,
+			old_audio.gain[0],
+			new_audio.gain[0],
+		);
+
 		for (i, a) in self.active_pipelines.clone().iter().enumerate() {
 			let o_a = old_audio.gain[i];
 			let n_a = new_audio.gain[i];
@@ -192,10 +220,7 @@ impl State {
 			let t = time - self.full_start_time;
 			if t > self.full_duration {
 				self.full_activated.0 = false;
-			}
-		} else {
-			for i_m in &mut pipeline.instance_models {
-				i_m.instances[0].scale = 0.0;
+				pipeline.instance_models[self.full_activated.1].instances[0].scale = 0.0;
 			}
 		}
 	}
@@ -211,10 +236,7 @@ impl State {
 			let t = time - self.wf_3d_start_time;
 			if t > self.wf_3d_duration {
 				self.wf_3d_activated.0 = false;
-			}
-		} else {
-			for i_m in &mut pipeline.instance_models {
-				i_m.instances[0].scale = 0.0;
+				pipeline.instance_models[self.wf_3d_activated.1].instances[0].scale = 0.0;
 			}
 		}
 	}
@@ -257,7 +279,7 @@ impl State {
 		let i = (0..i_ms.len()).choose(&mut self.rng).unwrap();
 		self.full_activated = (true, i);
 		self.full_start_time = time;
-		self.full_duration = self.rng.gen::<f32>();
+		self.full_duration = 0.6 * self.rng.gen::<f32>() + 0.4;
 
 		for i_m in &mut *i_ms {
 			i_m.instances[0].scale = 0.0;
@@ -273,6 +295,39 @@ impl State {
 			0.0,
 		)
 			.into();
+	}
+
+	fn update_letter(
+		&mut self,
+		pipeline: &mut Pipeline,
+		time: f32,
+		old_audio: f32,
+		new_audio: f32,
+	) {
+		let letter_i = &mut pipeline.instance_models[0].instances;
+
+		if new_audio > 2.0 && old_audio < 2.0 {
+			self.activate_letter(time, letter_i);
+		}
+
+		for i in 0..NB_LETTERS {
+			if self.letter_activated[i] {
+				let t = time - self.letter_start_time[i];
+				if t > self.letter_duration[i] {
+					self.letter_activated[i] = false;
+					letter_i[i].scale = 0.0;
+					continue;
+				}
+				letter_i[i].scale = 0.5;
+			}
+		}
+	}
+
+	fn activate_letter(&mut self, time: f32, instances: &mut Vec<Instance>) {
+		let i = (0..NB_LETTERS).choose(&mut self.rng).unwrap();
+		self.letter_activated[i] = true;
+		self.letter_start_time[i] = time;
+		self.letter_duration[i] = 0.6 * self.rng.gen::<f32>() + 0.4;
 	}
 
 	fn update_disk(&mut self, pipeline: &mut Pipeline, time: f32, old_audio: f32, new_audio: f32) {
@@ -291,8 +346,6 @@ impl State {
 					continue;
 				}
 				disks_i[i].scale = self.disk_scale[i] + DISK_SPEED * t;
-			} else {
-				disks_i[i].scale = 0.0;
 			}
 		}
 	}
@@ -310,7 +363,7 @@ impl State {
 					.into();
 				self.disk_start_time[i] = time;
 				self.disk_scale[i] = 0.1;
-				self.disk_duration[i] = self.rng.gen::<f32>();
+				self.disk_duration[i] = self.rng.gen::<f32>() + 0.5;
 				return;
 			}
 		}
