@@ -195,8 +195,8 @@ impl State {
 		self.update_letter(
 			&mut pipelines[5],
 			time,
-			old_audio.gain[0],
-			new_audio.gain[0],
+			old_audio.gain[1],
+			new_audio.gain[1],
 		);
 
 		for (i, a) in self.active_pipelines.clone().iter().enumerate() {
@@ -318,7 +318,6 @@ impl State {
 					letter_i[i].scale = 0.0;
 					continue;
 				}
-				letter_i[i].scale = 0.5;
 			}
 		}
 	}
@@ -328,6 +327,20 @@ impl State {
 		self.letter_activated[i] = true;
 		self.letter_start_time[i] = time;
 		self.letter_duration[i] = 0.6 * self.rng.gen::<f32>() + 0.4;
+
+		let instance = &mut instances[i];
+
+		let color = get_color_0(&mut self.rng);
+		let reverse = self.rng.gen::<f32>();
+		instance.color = [color[0], color[1], color[2], reverse];
+		instance.scale = self.rng.gen::<f32>() * 0.1 + 0.2;
+		let letter_type = [0.0, 1.0, 2.0, 3.0].choose(&mut self.rng).unwrap();
+		instance.position = (
+			0.5 - 1.0 * self.rng.gen::<f32>(),
+			0.5 - 1.0 * self.rng.gen::<f32>(),
+			*letter_type,
+		)
+			.into();
 	}
 
 	fn update_disk(&mut self, pipeline: &mut Pipeline, time: f32, old_audio: f32, new_audio: f32) {
