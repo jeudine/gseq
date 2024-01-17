@@ -18,7 +18,7 @@ fn get_color_0(rng: &mut ThreadRng) -> [f32; 4] {
 }
 
 fn get_switch_time(time: f32, rng: &mut ThreadRng) -> f32 {
-	rng.gen::<f32>() + 10.0 + time
+	600.0 * rng.gen::<f32>() + 600.0 + time
 }
 
 fn deactivate_pipeline(pipeline: &mut Pipeline) {
@@ -148,11 +148,10 @@ impl State {
 			&config,
 		)?;
 
-		let dyn_pipelines = vec![2, 3, 4];
-		for i in dyn_pipelines {
-			deactivate_pipeline(&mut pipeline_group.pipelines[i]);
+		let dyn_pipelines = vec![2, 3, 4, 5];
+		for i in &dyn_pipelines {
+			deactivate_pipeline(&mut pipeline_group.pipelines[*i]);
 		}
-		deactivate_pipeline(&mut pipeline_group.pipelines[5]);
 
 		Ok(State {
 			full_activated: (false, 0),
@@ -173,7 +172,7 @@ impl State {
 			disk_duration: [0.0; NB_DISKS],
 			disk_scale: [0.0; NB_DISKS],
 
-			dyn_pipelines: vec![2, 3, 4],
+			dyn_pipelines,
 			active_pipelines: [2, 3, 4],
 			rng: rand::thread_rng(),
 
@@ -181,6 +180,26 @@ impl State {
 		})
 	}
 
+	pub fn switch_pipelines(&mut self, pipelines: &mut Vec<Pipeline>) {
+		let i = (0..audio::NB_AUDIO_CHANNELS).choose(&mut self.rng).unwrap();
+		let old_index = self.active_pipelines[i];
+		deactivate_pipeline(&mut pipelines[old_index]);
+		let mut candidate_pipelines = vec![];
+		for i in &self.dyn_pipelines {
+			let mut is_active = false;
+			for j in &self.active_pipelines {
+				if *i == *j {
+					is_active = true;
+					break;
+				}
+			}
+			if !is_active {
+				candidate_pipelines.push(*i);
+			}
+		}
+		let new_index = candidate_pipelines.choose(&mut self.rng).unwrap();
+		self.active_pipelines[i] = *new_index;
+	}
 	pub fn update(
 		&mut self,
 		pipelines: &mut Vec<Pipeline>,
@@ -190,14 +209,10 @@ impl State {
 	) {
 		if time > self.pipeline_switch_time
 			&& self.dyn_pipelines.len() > self.active_pipelines.len()
-		{}
-
-		self.update_letter(
-			&mut pipelines[5],
-			time,
-			old_audio.gain[1],
-			new_audio.gain[1],
-		);
+		{
+			self.pipeline_switch_time = get_switch_time(time, &mut self.rng);
+			self.switch_pipelines(pipelines);
+		}
 
 		for (i, a) in self.active_pipelines.clone().iter().enumerate() {
 			let o_a = old_audio.gain[i];
@@ -206,6 +221,7 @@ impl State {
 				2 => self.update_full(&mut pipelines[2], time, o_a, n_a),
 				3 => self.update_disk(&mut pipelines[3], time, o_a, n_a),
 				4 => self.update_wf_3d(&mut pipelines[4], time, o_a, n_a),
+				5 => self.update_letter(&mut pipelines[5], time, o_a, n_a),
 				_ => unreachable!(),
 			}
 		}
@@ -333,7 +349,7 @@ impl State {
 		let color = get_color_0(&mut self.rng);
 		let reverse = self.rng.gen::<f32>();
 		instance.color = [color[0], color[1], color[2], reverse];
-		instance.scale = self.rng.gen::<f32>() * 0.1 + 0.2;
+		instance.scale = self.rng.gen::<f32>() * 0.1 + 0.3;
 		let letter_type = [0.0, 1.0, 2.0, 3.0].choose(&mut self.rng).unwrap();
 		instance.position = (
 			0.5 - 1.0 * self.rng.gen::<f32>(),
