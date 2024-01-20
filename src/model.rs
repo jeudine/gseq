@@ -146,7 +146,7 @@ impl Model {
 					num_elements: m.mesh.indices.len() as u32,
 				};
 
-				let id = match m.mesh.material_id {
+				let _id = match m.mesh.material_id {
 					Some(x) => x,
 					None => 0,
 				};

@@ -46,7 +46,7 @@ pub async fn run(nb_displays: u32) {
 										..
 									},
 								..
-							} => { /*TODO*/ }
+							} => {}
 							WindowEvent::CloseRequested
 							| WindowEvent::KeyboardInput {
 								input:

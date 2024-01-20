@@ -2,11 +2,11 @@
 
 GSeq is a realtime visual performance program written in [Rust](https://www.rust-lang.org/) based on [wgpu](https://wgpu.rs/). GSeq uses the audio input to animate the visuals.
 
-## Usage
+## Installation
 
-To run GSeq use the following command:
+### Cargo
+
+If you already have a Rust environment set up, you can use the `cargo install` command:
 ```bash
-./run.sh
+cargo install gseq
 ```
-
-*More features and documentation coming soon!*

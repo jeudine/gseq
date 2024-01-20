@@ -98,7 +98,7 @@ impl State {
 
 		pipeline_group.add_pipeline(
 			vec![q_instance_model, d_instance_model],
-			&std::path::PathBuf::from("shader/vs_0/2d_full.wgsl"),
+			&std::path::PathBuf::from("shader/vs_0/2d_noise.wgsl"),
 			&device,
 			&config,
 		)?;
@@ -228,7 +228,7 @@ impl State {
 	}
 
 	fn update_full(&mut self, pipeline: &mut Pipeline, time: f32, old_audio: f32, new_audio: f32) {
-		if new_audio > 2.0 && old_audio < 2.0 {
+		if new_audio > 1.5 && old_audio < 1.5 {
 			self.activate_full(time, &mut pipeline.instance_models);
 		}
 
@@ -242,7 +242,7 @@ impl State {
 	}
 
 	fn update_wf_3d(&mut self, pipeline: &mut Pipeline, time: f32, old_audio: f32, new_audio: f32) {
-		if new_audio > 2.5 && old_audio < 2.5 {
+		if new_audio > 2.0 && old_audio < 2.0 {
 			self.activate_wf_3d(time, &mut pipeline.instance_models);
 		}
 
@@ -308,7 +308,7 @@ impl State {
 		instance.position = (
 			0.5 - 1.0 * self.rng.gen::<f32>(),
 			0.5 - 1.0 * self.rng.gen::<f32>(),
-			0.0,
+			0.0001 + 0.0008 * self.rng.gen::<f32>(),
 		)
 			.into();
 	}
@@ -322,7 +322,7 @@ impl State {
 	) {
 		let letter_i = &mut pipeline.instance_models[0].instances;
 
-		if new_audio > 2.0 && old_audio < 2.0 {
+		if new_audio > 1.5 && old_audio < 1.5 {
 			self.activate_letter(time, letter_i);
 		}
 
@@ -362,7 +362,7 @@ impl State {
 	fn update_disk(&mut self, pipeline: &mut Pipeline, time: f32, old_audio: f32, new_audio: f32) {
 		let disks_i = &mut pipeline.instance_models[0].instances;
 
-		if new_audio > 2.0 && old_audio < 2.0 {
+		if new_audio > 1.5 && old_audio < 1.5 {
 			self.activate_disk(time, disks_i);
 		}
 

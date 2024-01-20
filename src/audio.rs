@@ -257,7 +257,11 @@ where
 				.execute(terminal::Clear(terminal::ClearType::FromCursorDown))
 				.unwrap();
 			for (i, g) in gain.iter().enumerate() {
-				writeln!(stdout, "[{}]: {}", i, g).unwrap();
+				if *g == f32::MIN {
+					writeln!(stdout, "audio_channel[{}]: -INF", i).unwrap();
+				} else {
+					writeln!(stdout, "audio_channel[{}]: {}", i, g).unwrap();
+				}
 			}
 			let mut audio_data = audio_data.lock().unwrap();
 			audio_data.gain = gain;
