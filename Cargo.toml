@@ -8,6 +8,7 @@ repository = "https://github.com/jeudine/gseq"
 authors = ["Julien Eudine <julien@eudine.fr>", "Marius Debussche <marius.debussche@gmail.com>"]
 categories = ["rendering", "multimedia","graphics" ]
 description = "A realtime visual performance program using the audio input to animate the visuals."
+include = ["/shader", "/models", "/image"]
 
 [dependencies]
 winit = "0.27"

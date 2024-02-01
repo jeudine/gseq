@@ -4,16 +4,10 @@ GSeq is a realtime visual performance program written in [Rust](https://www.rust
 
 ## Installation
 
-You need the Rust environment to be installed.
+### Cargo
 
-Clone the repository with the following command:
+If you already have a Rust environment set up, you can use the `cargo install` command:
+
 ```bash
-git clone git@github.com:jeudine/gseq.git
-```
-
-## Usage
-
-To run GSeq use the following command:
-```bash
-./run.sh
+cargo install gseq
 ```
