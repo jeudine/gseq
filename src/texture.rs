@@ -1,4 +1,4 @@
-use image::io::Reader as ImageReader;
+use image::load_from_memory;
 use std::num::NonZeroU32;
 use thiserror::Error;
 
@@ -71,12 +71,12 @@ impl Texture {
 	}
 
 	pub fn new_image(
-		filename: &str,
+		image: &[u8],
 		device: &wgpu::Device,
 		queue: &wgpu::Queue,
 		label: &str,
 	) -> Result<Self, TextureError> {
-		let img = ImageReader::open(filename)?.decode()?.into_rgba8();
+		let img = load_from_memory(image)?.into_rgba8();
 
 		let size = wgpu::Extent3d {
 			width: img.width(),

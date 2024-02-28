@@ -256,11 +256,36 @@ impl Display {
 		let framebuffer_texture_bind_group =
 			framebuffer.create_bind_group(&device, &texture_bind_group_layout);
 
-		let logo = Texture::new_image("image/mf_room_logo.png", &device, &queue, "logo")?;
-		let f_letter = Texture::new_image("image/f_pos.png", &device, &queue, "f_pos")?;
-		let p_letter = Texture::new_image("image/p_pos.png", &device, &queue, "p_pos")?;
-		let g_letter = Texture::new_image("image/g_pos.png", &device, &queue, "g_pos")?;
-		let a_letter = Texture::new_image("image/a_pos.png", &device, &queue, "a_pos")?;
+		let logo = Texture::new_image(
+			include_bytes!("../image/mf_room_logo.png"),
+			&device,
+			&queue,
+			"logo",
+		)?;
+		let f_letter = Texture::new_image(
+			include_bytes!("../image/f_pos.png"),
+			&device,
+			&queue,
+			"f_pos",
+		)?;
+		let p_letter = Texture::new_image(
+			include_bytes!("../image/p_pos.png"),
+			&device,
+			&queue,
+			"p_pos",
+		)?;
+		let g_letter = Texture::new_image(
+			include_bytes!("../image/g_pos.png"),
+			&device,
+			&queue,
+			"g_pos",
+		)?;
+		let a_letter = Texture::new_image(
+			include_bytes!("../image/a_pos.png"),
+			&device,
+			&queue,
+			"a_pos",
+		)?;
 
 		let texture_images = vec![logo, f_letter, p_letter, g_letter, a_letter];
 		let texture_image_bind_group_layout =
@@ -305,7 +330,7 @@ impl Display {
 			bind_group_indices_post,
 			&device,
 			&config,
-			&std::path::PathBuf::from(vs_0::POST_PATH),
+			vs_0::POST_SHADER,
 		)?;
 
 		Ok(Self {

@@ -1,4 +1,3 @@
-use fs_err as fs;
 use thiserror::Error;
 
 use crate::instance::InstanceRaw;
@@ -60,13 +59,13 @@ impl PipelineGroup {
 	pub fn add_pipeline(
 		&mut self,
 		instance_models: Vec<InstanceModel>,
-		shader_path: &std::path::Path,
+		shader_path: &str,
 		device: &wgpu::Device,
 		config: &wgpu::SurfaceConfiguration,
 	) -> Result<(), PipelineError> {
 		let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
 			label: Some("Shader"),
-			source: wgpu::ShaderSource::Wgsl(fs::read_to_string(shader_path)?.into()),
+			source: wgpu::ShaderSource::Wgsl(shader_path.into()),
 		});
 
 		let pipeline_layout = self.layout.get_pipeline_layout();
@@ -186,7 +185,7 @@ impl PipelinePost {
 		bind_group_indices: Vec<usize>,
 		device: &wgpu::Device,
 		config: &wgpu::SurfaceConfiguration,
-		shader_path: &std::path::Path,
+		shader_path: &str,
 	) -> Result<Self, PipelineError> {
 		let bind_groups: Vec<_> = bind_group_indices
 			.iter()
@@ -201,7 +200,7 @@ impl PipelinePost {
 
 		let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
 			label: Some("Shader"),
-			source: wgpu::ShaderSource::Wgsl(fs::read_to_string(shader_path)?.into()),
+			source: wgpu::ShaderSource::Wgsl(shader_path.into()),
 		});
 
 		let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
