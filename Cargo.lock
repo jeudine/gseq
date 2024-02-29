@@ -967,6 +967,7 @@ dependencies = [
 name = "gseq"
 version = "0.1.2"
 dependencies = [
+ "ahash",
  "bytemuck",
  "cgmath",
  "cpal",

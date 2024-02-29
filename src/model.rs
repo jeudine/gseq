@@ -1,7 +1,8 @@
 use crate::instance::Instance;
+use ahash;
 use std::f32::consts::PI;
 use thiserror::Error;
-use tobj::load_obj;
+use tobj::load_obj_buf;
 use wgpu::util::DeviceExt;
 
 #[derive(Error, Debug)]
@@ -106,14 +107,15 @@ impl Model {
 		Model { meshes: vec![mesh] }
 	}
 
-	pub fn import(file_name: &str, device: &wgpu::Device) -> Result<Model, ModelError> {
-		let (model, _) = load_obj(
-			file_name,
+	pub fn import(mut obj: &[u8], device: &wgpu::Device) -> Result<Model, ModelError> {
+		let (model, _) = load_obj_buf(
+			&mut obj,
 			&tobj::LoadOptions {
 				triangulate: true,
 				single_index: true,
 				..Default::default()
 			},
+			|_| tobj::MTLLoadResult::Ok((vec![], ahash::AHashMap::new())),
 		)?;
 
 		let meshes = model
@@ -130,13 +132,13 @@ impl Model {
 					.collect::<Vec<[f32; 3]>>();
 
 				let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-					label: Some(&format!("{:?} Vertex Buffer", file_name)),
+					label: Some(&format!("Vertex Buffer")),
 					contents: bytemuck::cast_slice(&vertices),
 					usage: wgpu::BufferUsages::VERTEX,
 				});
 
 				let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-					label: Some(&format!("{:?} Index Buffer", file_name)),
+					label: Some(&format!("Index Buffer")),
 					contents: bytemuck::cast_slice(&m.mesh.indices),
 					usage: wgpu::BufferUsages::INDEX,
 				});

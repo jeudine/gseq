@@ -116,10 +116,10 @@ impl State {
 			&config,
 		)?;
 
-		let cube = Model::import("models/cube.obj", device)?;
-		let icosphere = Model::import("models/icosphere.obj", device)?;
-		let mf_room = Model::import("models/mfroom_3d.obj", device)?;
-		let pyramide = Model::import("models/pyramide.obj", device)?;
+		let cube = Model::import(include_bytes!("../models/cube.obj"), device)?;
+		let icosphere = Model::import(include_bytes!("../models/icosphere.obj"), device)?;
+		let mf_room = Model::import(include_bytes!("../models/mfroom_3d.obj"), device)?;
+		let pyramide = Model::import(include_bytes!("../models/pyramide.obj"), device)?;
 
 		let instance = Instance::new();
 		let cube = InstanceModel::new(cube, vec![instance], &device);
