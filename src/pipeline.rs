@@ -8,9 +8,9 @@ use crate::texture::Texture;
 
 #[derive(Error, Debug)]
 pub enum PipelineError {
-	#[error("Failed to read shader")]
+	#[error("Failed to read shader [{}: {}]\n\t{0}", file!(), line!())]
 	Reading(#[from] std::io::Error),
-	#[error("Failed to load model")]
+	#[error("Failed to load model [{}: {}]\n\t{0}", file!(), line!())]
 	ModelLoading(#[from] ModelError),
 }
 

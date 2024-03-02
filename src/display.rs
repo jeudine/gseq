@@ -15,13 +15,13 @@ use crate::vs_0;
 
 #[derive(Error, Debug)]
 pub enum DisplayError {
-	#[error("Failed to create a pipeline")]
+	#[error("Failed to create a pipeline [{}: {}]\n\t{0}", file!(), line!())]
 	PipelineCreation(#[from] pipeline::PipelineError),
-	#[error("Failed to request an adapter")]
+	#[error("Failed to request an adapter [{}: {}]", file!(), line!())]
 	AdapterRequest,
-	#[error("Failed to request a device")]
+	#[error("Failed to request a device [{}: {}]\n\t{0}", file!(), line!())]
 	DeviceRequest(#[from] wgpu::RequestDeviceError),
-	#[error("Failed to load a texture")]
+	#[error("Failed to load a texture [{}: {}]\n\t{0}", file!(), line!())]
 	TextureLoad(#[from] TextureError),
 }
 
