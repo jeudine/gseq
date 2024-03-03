@@ -26,7 +26,13 @@ pub async fn run(nb_displays: u32) {
 	for _ in 0..nb_displays {
 		let window = WindowBuilder::new().build(&event_loop).unwrap();
 		let display: Result<Display, display::DisplayError> = Display::new(window).await;
-		displays.push(display.unwrap());
+		match display {
+			Ok(d) => displays.push(d),
+			Err(e) => {
+				eprintln!("[ERROR] {e}");
+				std::process::exit(1);
+			}
+		}
 	}
 
 	event_loop.run(move |event, _, control_flow| {

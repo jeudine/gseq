@@ -29,7 +29,7 @@ fn deactivate_pipeline(pipeline: &mut Pipeline) {
 	}
 }
 
-pub const POST_PATH: &str = "shader/vs_0/post.wgsl";
+pub const POST_SHADER: &str = include_str!("../shader/vs_0/post.wgsl");
 const NB_DISKS: usize = 4;
 const DISK_SPEED: f32 = 0.3;
 const NB_LETTERS: usize = 2;
@@ -71,7 +71,7 @@ impl State {
 
 		pipeline_group.add_pipeline(
 			vec![instance_model],
-			&std::path::PathBuf::from("shader/vs_0/wallpaper_noise_0.wgsl"),
+			include_str!("../shader/vs_0/wallpaper_noise_0.wgsl"),
 			&device,
 			&config,
 		)?;
@@ -83,7 +83,7 @@ impl State {
 
 		pipeline_group.add_pipeline(
 			vec![instance_model],
-			&std::path::PathBuf::from("shader/vs_0/2d_logo.wgsl"),
+			include_str!("../shader/vs_0/2d_logo.wgsl"),
 			&device,
 			&config,
 		)?;
@@ -98,7 +98,7 @@ impl State {
 
 		pipeline_group.add_pipeline(
 			vec![q_instance_model, d_instance_model],
-			&std::path::PathBuf::from("shader/vs_0/2d_noise.wgsl"),
+			include_str!("../shader/vs_0/2d_noise.wgsl"),
 			&device,
 			&config,
 		)?;
@@ -111,15 +111,15 @@ impl State {
 
 		pipeline_group.add_pipeline(
 			vec![instance_model],
-			&std::path::PathBuf::from("shader/vs_0/2d_transparent.wgsl"),
+			include_str!("../shader/vs_0/2d_transparent.wgsl"),
 			&device,
 			&config,
 		)?;
 
-		let cube = Model::import("models/cube.obj", device)?;
-		let icosphere = Model::import("models/icosphere.obj", device)?;
-		let mf_room = Model::import("models/mfroom_3d.obj", device)?;
-		let pyramide = Model::import("models/pyramide.obj", device)?;
+		let cube = Model::import(include_bytes!("../models/cube.obj"), device)?;
+		let icosphere = Model::import(include_bytes!("../models/icosphere.obj"), device)?;
+		let mf_room = Model::import(include_bytes!("../models/mfroom_3d.obj"), device)?;
+		let pyramide = Model::import(include_bytes!("../models/pyramide.obj"), device)?;
 
 		let instance = Instance::new();
 		let cube = InstanceModel::new(cube, vec![instance], &device);
@@ -132,7 +132,7 @@ impl State {
 
 		pipeline_group.add_pipeline(
 			vec![cube, icosphere, mf_room, pyramide],
-			&std::path::PathBuf::from("shader/vs_0/3d.wgsl"),
+			include_str!("../shader/vs_0/3d.wgsl"),
 			&device,
 			&config,
 		)?;
@@ -143,7 +143,7 @@ impl State {
 
 		pipeline_group.add_pipeline(
 			vec![instance_model],
-			&std::path::PathBuf::from("shader/vs_0/2d_letter.wgsl"),
+			include_str!("../shader/vs_0/2d_letter.wgsl"),
 			&device,
 			&config,
 		)?;
