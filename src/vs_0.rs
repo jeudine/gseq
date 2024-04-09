@@ -13,12 +13,21 @@ const COLOR_0_2: [f32; 4] = [0.6118, 1.0, 0.1804, 1.0];
 const COLOR_0_3: [f32; 4] = [0.9922, 1.0, 0.0, 1.0];
 const COLORS_0: [[f32; 4]; 4] = [COLOR_0_0, COLOR_0_1, COLOR_0_2, COLOR_0_3];
 
+const COLOR_1_0: [f32; 4] = [0.5, 0.5, 0.5, 1.0];
+const COLOR_1_1: [f32; 4] = [0.0, 0.0, 1.0, 1.0];
+
+const COLOR_SHADING_PERIOD: f64 = 3600.0;
+
 fn get_color_0(rng: &mut ThreadRng) -> [f32; 4] {
 	COLORS_0.choose(rng).unwrap().clone()
 }
 
 fn get_switch_time(time: f32, rng: &mut ThreadRng) -> f32 {
 	600.0 * rng.gen::<f32>() + 600.0 + time
+}
+
+fn get_bg_switch_time(time: f32, rng: &mut ThreadRng) -> f32 {
+	1000.0 * rng.gen::<f32>() + 1000.0 + time
 }
 
 fn deactivate_pipeline(pipeline: &mut Pipeline) {
@@ -56,6 +65,7 @@ pub struct State {
 	dyn_pipelines: Vec<usize>,
 	active_pipelines: [usize; audio::NB_AUDIO_CHANNELS],
 	pipeline_switch_time: f32,
+	bg_switch_time: f32,
 	rng: ThreadRng,
 }
 
@@ -177,6 +187,7 @@ impl State {
 			rng: rand::thread_rng(),
 
 			pipeline_switch_time: 0.0,
+			bg_switch_time: 0.0,
 		})
 	}
 
@@ -214,6 +225,10 @@ impl State {
 			self.switch_pipelines(pipelines);
 		}
 
+		if time > self.bg_switch_time {
+			self.bg_switch_time = get_bg_switch_time(time, &mut self.rng);
+			Self::switch_background(&mut pipelines[0]);
+		}
 		for (i, a) in self.active_pipelines.clone().iter().enumerate() {
 			let o_a = old_audio.gain[i];
 			let n_a = new_audio.gain[i];
@@ -225,6 +240,24 @@ impl State {
 				_ => unreachable!(),
 			}
 		}
+
+		Self::update_background_color(&mut pipelines[0], time);
+	}
+
+	fn update_background_color(pipeline: &mut Pipeline, time: f32) {
+		let bg = &mut pipeline.instance_models[0].instances[0];
+		let pi = std::f64::consts::PI;
+		let t: f64 = 2.0 * pi * time as f64 / COLOR_SHADING_PERIOD;
+		let x = t.cos() as f32;
+
+		for i in 0..4 {
+			bg.color[i] = COLOR_1_1[i] * x + (1.0 - x) * COLOR_1_0[i];
+		}
+	}
+
+	fn switch_background(pipeline: &mut Pipeline) {
+		let bg = &mut pipeline.instance_models[0].instances[0];
+		bg.position[2] = 1.0 - bg.position[2];
 	}
 
 	fn update_full(&mut self, pipeline: &mut Pipeline, time: f32, old_audio: f32, new_audio: f32) {
@@ -304,7 +337,7 @@ impl State {
 		let instance = &mut i_ms[i].instances[0];
 
 		instance.color = get_color_0(&mut self.rng);
-		instance.scale = self.rng.gen::<f32>() * 0.1 + 0.2;
+		instance.scale = self.rng.gen::<f32>() * 0.1 + 0.1;
 		instance.position = (
 			0.5 - 1.0 * self.rng.gen::<f32>(),
 			0.5 - 1.0 * self.rng.gen::<f32>(),
@@ -349,7 +382,7 @@ impl State {
 		let color = get_color_0(&mut self.rng);
 		let reverse = self.rng.gen::<f32>();
 		instance.color = [color[0], color[1], color[2], reverse];
-		instance.scale = self.rng.gen::<f32>() * 0.1 + 0.3;
+		instance.scale = self.rng.gen::<f32>() * 0.1 + 0.2;
 		let letter_type = [0.0, 1.0, 2.0, 3.0].choose(&mut self.rng).unwrap();
 		instance.position = (
 			0.5 - 1.0 * self.rng.gen::<f32>(),

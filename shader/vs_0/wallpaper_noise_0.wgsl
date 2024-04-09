@@ -162,7 +162,7 @@ fn vs_main(
 	var out: VertexOutput;
 	out.position = vec4<f32>(model.position.xy, 0.99999 , 1.0);
 	out.color = instance.color;
-	out.mode = model.position.z;
+	out.mode = instance.model_matrix_2.z;
 	return out;
 }
 
@@ -190,5 +190,5 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 	} else {
 		v = kbmarcher(vec3<f32>(in.position.xy * 0.0008, time));
 	}
-	return vec4<f32>(in.color.xyz * (0.3 + 0.3 * v), 1.0);
+	return vec4<f32>(in.color.xyz * (0.5 + 0.5 * v), 1.0);
 }
