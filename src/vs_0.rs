@@ -26,10 +26,6 @@ fn get_switch_time(time: f32, rng: &mut ThreadRng) -> f32 {
 	600.0 * rng.gen::<f32>() + 600.0 + time
 }
 
-fn get_bg_switch_time(time: f32, rng: &mut ThreadRng) -> f32 {
-	1000.0 * rng.gen::<f32>() + 1000.0 + time
-}
-
 fn deactivate_pipeline(pipeline: &mut Pipeline) {
 	for i_m in &mut pipeline.instance_models {
 		for i in &mut i_m.instances {
@@ -65,7 +61,6 @@ pub struct State {
 	dyn_pipelines: Vec<usize>,
 	active_pipelines: [usize; audio::NB_AUDIO_CHANNELS],
 	pipeline_switch_time: f32,
-	bg_switch_time: f32,
 	rng: ThreadRng,
 }
 
@@ -187,7 +182,6 @@ impl State {
 			rng: rand::thread_rng(),
 
 			pipeline_switch_time: 0.0,
-			bg_switch_time: 0.0,
 		})
 	}
 
@@ -225,10 +219,6 @@ impl State {
 			self.switch_pipelines(pipelines);
 		}
 
-		if time > self.bg_switch_time {
-			self.bg_switch_time = get_bg_switch_time(time, &mut self.rng);
-			Self::switch_background(&mut pipelines[0]);
-		}
 		for (i, a) in self.active_pipelines.clone().iter().enumerate() {
 			let o_a = old_audio.gain[i];
 			let n_a = new_audio.gain[i];
@@ -253,11 +243,6 @@ impl State {
 		for i in 0..4 {
 			bg.color[i] = COLOR_1_1[i] * x + (1.0 - x) * COLOR_1_0[i];
 		}
-	}
-
-	fn switch_background(pipeline: &mut Pipeline) {
-		let bg = &mut pipeline.instance_models[0].instances[0];
-		bg.position[2] = 1.0 - bg.position[2];
 	}
 
 	fn update_full(&mut self, pipeline: &mut Pipeline, time: f32, old_audio: f32, new_audio: f32) {
