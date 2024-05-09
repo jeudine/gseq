@@ -11,7 +11,3 @@ If you already have a Rust environment set up, you can use the `cargo install` c
 ```bash
 cargo install gseq
 ```
-
-## TO DO
-
-* Add LFO in the post processing shader on the intensity of the effect
