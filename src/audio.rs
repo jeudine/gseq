@@ -13,7 +13,7 @@ use std::io::{stdout, Write};
 use std::sync::{Arc, Mutex};
 
 pub const NB_AUDIO_CHANNELS: usize = 3;
-const STAT_WINDOW_DURATION: usize = 10; // In seconds
+const STAT_WINDOW_DURATION: usize = 5; // In seconds
 
 #[repr(C)]
 #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
