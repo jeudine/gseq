@@ -1,5 +1,5 @@
 use gseq::run;
 
 fn main() {
-	pollster::block_on(run(1));
+    pollster::block_on(run(1));
 }
