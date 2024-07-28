@@ -94,6 +94,17 @@ impl State {
         )?;
 
         let quad = Model::new_quad(&device);
+        let instance = Instance::new();
+        let instance_model = InstanceModel::new(quad, vec![instance], &device);
+
+        pipeline_group.add_pipeline(
+            vec![instance_model],
+            include_str!("../shader/vs_0/2d_octopus.wgsl"),
+            &device,
+            &config,
+        )?;
+
+        let quad = Model::new_quad(&device);
         let q_instance = Instance::new();
         let q_instance_model = InstanceModel::new(quad, vec![q_instance], &device);
 
@@ -153,7 +164,7 @@ impl State {
             &config,
         )?;
 
-        let dyn_pipelines = vec![2, 3, 4, 5];
+        let dyn_pipelines = vec![3, 4, 5, 6];
         for i in &dyn_pipelines {
             deactivate_pipeline(&mut pipeline_group.pipelines[*i]);
         }
@@ -178,7 +189,7 @@ impl State {
             disk_scale: [0.0; NB_DISKS],
 
             dyn_pipelines,
-            active_pipelines: [2, 3, 4],
+            active_pipelines: [3, 4, 5],
             rng: rand::thread_rng(),
 
             pipeline_switch_time: 0.0,
@@ -223,10 +234,10 @@ impl State {
             let o_a = old_audio.gain[i];
             let n_a = new_audio.gain[i];
             match a {
-                2 => self.update_full(&mut pipelines[2], time, o_a, n_a),
-                3 => self.update_disk(&mut pipelines[3], time, o_a, n_a),
-                4 => self.update_wf_3d(&mut pipelines[4], time, o_a, n_a),
-                5 => self.update_letter(&mut pipelines[5], time, o_a, n_a),
+                3 => self.update_full(&mut pipelines[2], time, o_a, n_a),
+                4 => self.update_disk(&mut pipelines[3], time, o_a, n_a),
+                5 => self.update_wf_3d(&mut pipelines[4], time, o_a, n_a),
+                6 => self.update_letter(&mut pipelines[5], time, o_a, n_a),
                 _ => unreachable!(),
             }
         }
