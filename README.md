@@ -1,6 +1,6 @@
 # GSeq
 
-GSeq is a realtime visual performance program written in [Rust](https://www.rust-lang.org/) based on [wgpu](https://wgpu.rs/). GSeq uses the audio input to animate the visuals.
+GSeq is a realtime visual performance program written in [Rust](https://www.rust-lang.org/) based on [wgpu](https://wgpu.rs/). GSeq reacts on the audio input to animate the visuals.
 
 ## Installation
 
