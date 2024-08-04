@@ -7,7 +7,7 @@ readme = "README.md"
 repository = "https://github.com/jeudine/gseq"
 authors = ["Julien Eudine <julien@eudine.fr>", "Marius Debussche <marius.debussche@gmail.com>"]
 categories = ["rendering", "multimedia","graphics" ]
-description = "A realtime visual performance program reacting on the audio input."
+description = "A realtime visual performance program reacting to the audio input."
 include = ["/src", "/shader", "/models", "/image", "LICENSE", "README"]
 
 [dependencies]
