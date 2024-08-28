@@ -7,19 +7,24 @@ use cgmath::Rotation3;
 use cgmath::Zero;
 use rand::prelude::*;
 
-const COLOR_0_0: [f32; 4] = [0.1294, 0.5725, 1.0, 1.0];
-const COLOR_0_1: [f32; 4] = [0.2196, 0.8980, 0.3020, 1.0];
-const COLOR_0_2: [f32; 4] = [0.6118, 1.0, 0.1804, 1.0];
-const COLOR_0_3: [f32; 4] = [0.9922, 1.0, 0.0, 1.0];
-const COLORS_0: [[f32; 4]; 4] = [COLOR_0_0, COLOR_0_1, COLOR_0_2, COLOR_0_3];
+const COLOR_0_0: [u8; 4] = [0x9f, 0x56, 0xff, 0xff];
+const COLOR_1_0: [u8; 4] = [0xb5, 0x82, 0xff, 0xff];
+const COLOR_2_0: [u8; 4] = [0xca, 0xad, 0xff, 0xff];
+const COLOR_3_0: [u8; 4] = [0xff, 0xad, 0xc7, 0xff];
+const COLOR_4_0: [u8; 4] = [0xff, 0x99, 0xb6, 0xff];
 
-const COLOR_1_0: [f32; 4] = [0.5, 0.5, 0.5, 1.0];
-const COLOR_1_1: [f32; 4] = [1.0, 1.0, 1.0, 1.0];
+const COLORS_0: [[u8; 4]; 5] = [COLOR_0_0, COLOR_1_0, COLOR_2_0, COLOR_3_0, COLOR_4_0];
 
 const COLOR_SHADING_PERIOD: f64 = 3600.0;
 
 fn get_color_0(rng: &mut ThreadRng) -> [f32; 4] {
-    COLORS_0.choose(rng).unwrap().clone()
+    let v = COLORS_0
+        .choose(rng)
+        .unwrap()
+        .iter()
+        .map(|c| hex_to_f(*c))
+        .collect::<Vec<_>>();
+    [v[0], v[1], v[2], v[3]]
 }
 
 fn get_switch_time(time: f32, rng: &mut ThreadRng) -> f32 {
@@ -37,7 +42,6 @@ fn deactivate_pipeline(pipeline: &mut Pipeline) {
 pub const POST_SHADER: &str = include_str!("../shader/vs_0/post.wgsl");
 const NB_DISKS: usize = 4;
 const DISK_SPEED: f32 = 0.3;
-const NB_LETTERS: usize = 2;
 
 pub struct State {
     full_activated: (bool, usize),
@@ -48,10 +52,6 @@ pub struct State {
     wf_3d_start_time: f32,
     wf_3d_duration: f32,
     wf_3d_axis: cgmath::Vector3<f32>,
-
-    letter_activated: [bool; NB_LETTERS],
-    letter_start_time: [f32; NB_LETTERS],
-    letter_duration: [f32; NB_LETTERS],
 
     disk_activated: [bool; NB_DISKS],
     disk_start_time: [f32; NB_DISKS],
@@ -153,18 +153,7 @@ impl State {
             &config,
         )?;
 
-        let rectangle = Model::new_rectangle(device, 0.5, 0.7);
-        let instances = (0..NB_LETTERS).map(|_| Instance::new()).collect();
-        let instance_model = InstanceModel::new(rectangle, instances, &device);
-
-        pipeline_group.add_pipeline(
-            vec![instance_model],
-            include_str!("../shader/vs_0/2d_letter.wgsl"),
-            &device,
-            &config,
-        )?;
-
-        let dyn_pipelines = vec![3, 4, 5, 6];
+        let dyn_pipelines = vec![2, 3, 4, 5];
         for i in &dyn_pipelines {
             deactivate_pipeline(&mut pipeline_group.pipelines[*i]);
         }
@@ -178,10 +167,6 @@ impl State {
             wf_3d_start_time: 0.0,
             wf_3d_duration: 0.0,
             wf_3d_axis: [0.0, 1.0, 0.0].into(),
-
-            letter_activated: [false; NB_LETTERS],
-            letter_duration: [0.0; NB_LETTERS],
-            letter_start_time: [0.0; NB_LETTERS],
 
             disk_activated: [false; NB_DISKS],
             disk_start_time: [0.0; NB_DISKS],
@@ -234,10 +219,10 @@ impl State {
             let o_a = old_audio.gain[i];
             let n_a = new_audio.gain[i];
             match a {
-                3 => {} //self.update_full(&mut pipelines[2], time, o_a, n_a),
-                4 => {} //self.update_disk(&mut pipelines[3], time, o_a, n_a),
-                5 => {} //self.update_wf_3d(&mut pipelines[4], time, o_a, n_a),
-                6 => {} //self.update_letter(&mut pipelines[5], time, o_a, n_a),
+                2 => {}
+                3 => self.update_full(&mut pipelines[*a], time, o_a, n_a),
+                4 => self.update_disk(&mut pipelines[*a], time, o_a, n_a),
+                5 => self.update_wf_3d(&mut pipelines[*a], time, o_a, n_a),
                 _ => unreachable!(),
             }
         }
@@ -252,7 +237,7 @@ impl State {
         let x = t.cos() as f32;
 
         for i in 0..4 {
-            bg.color[i] = COLOR_1_1[i] * x + (1.0 - x) * COLOR_1_0[i];
+            bg.color[i] = hex_to_f(COLOR_0_0[i]) * x + (1.0 - x) * hex_to_f(COLOR_4_0[i]);
         }
     }
 
@@ -342,52 +327,6 @@ impl State {
             .into();
     }
 
-    fn update_letter(
-        &mut self,
-        pipeline: &mut Pipeline,
-        time: f32,
-        old_audio: f32,
-        new_audio: f32,
-    ) {
-        let letter_i = &mut pipeline.instance_models[0].instances;
-
-        if new_audio > 1.5 && old_audio < 1.5 {
-            self.activate_letter(time, letter_i);
-        }
-
-        for i in 0..NB_LETTERS {
-            if self.letter_activated[i] {
-                let t = time - self.letter_start_time[i];
-                if t > self.letter_duration[i] {
-                    self.letter_activated[i] = false;
-                    letter_i[i].scale = 0.0;
-                    continue;
-                }
-            }
-        }
-    }
-
-    fn activate_letter(&mut self, time: f32, instances: &mut Vec<Instance>) {
-        let i = (0..NB_LETTERS).choose(&mut self.rng).unwrap();
-        self.letter_activated[i] = true;
-        self.letter_start_time[i] = time;
-        self.letter_duration[i] = 0.6 * self.rng.gen::<f32>() + 0.4;
-
-        let instance = &mut instances[i];
-
-        let color = get_color_0(&mut self.rng);
-        let reverse = self.rng.gen::<f32>();
-        instance.color = [color[0], color[1], color[2], reverse];
-        instance.scale = self.rng.gen::<f32>() * 0.1 + 0.2;
-        let letter_type = [0.0, 1.0, 2.0, 3.0].choose(&mut self.rng).unwrap();
-        instance.position = (
-            0.5 - 1.0 * self.rng.gen::<f32>(),
-            0.5 - 1.0 * self.rng.gen::<f32>(),
-            *letter_type,
-        )
-            .into();
-    }
-
     fn update_disk(&mut self, pipeline: &mut Pipeline, time: f32, old_audio: f32, new_audio: f32) {
         let disks_i = &mut pipeline.instance_models[0].instances;
 
@@ -426,4 +365,8 @@ impl State {
             }
         }
     }
+}
+
+fn hex_to_f(c: u8) -> f32 {
+    c as f32 / 255.0
 }

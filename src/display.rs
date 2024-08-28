@@ -262,32 +262,34 @@ impl Display {
             &queue,
             "logo",
         )?;
-        let f_letter = Texture::new_image(
-            include_bytes!("../image/f_pos.png"),
-            &device,
-            &queue,
-            "f_pos",
-        )?;
-        let p_letter = Texture::new_image(
-            include_bytes!("../image/p_pos.png"),
-            &device,
-            &queue,
-            "p_pos",
-        )?;
-        let g_letter = Texture::new_image(
-            include_bytes!("../image/g_pos.png"),
-            &device,
-            &queue,
-            "g_pos",
-        )?;
-        let a_letter = Texture::new_image(
-            include_bytes!("../image/a_pos.png"),
-            &device,
-            &queue,
-            "a_pos",
-        )?;
+        /*
+                let f_letter = Texture::new_image(
+                    include_bytes!("../image/f_pos.png"),
+                    &device,
+                    &queue,
+                    "f_pos",
+                )?;
+                let p_letter = Texture::new_image(
+                    include_bytes!("../image/p_pos.png"),
+                    &device,
+                    &queue,
+                    "p_pos",
+                )?;
+                let g_letter = Texture::new_image(
+                    include_bytes!("../image/g_pos.png"),
+                    &device,
+                    &queue,
+                    "g_pos",
+                )?;
+                let a_letter = Texture::new_image(
+                    include_bytes!("../image/a_pos.png"),
+                    &device,
+                    &queue,
+                    "a_pos",
+                )?;
+        */
 
-        let texture_images = vec![logo, f_letter, p_letter, g_letter, a_letter];
+        let texture_images = vec![logo];
         let texture_image_bind_group_layout =
             texture::create_texture_image_bind_group_layout(texture_images.len(), &device);
         let texture_image_bind_group = texture::create_texture_image_bind_group(
