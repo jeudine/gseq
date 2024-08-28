@@ -14,7 +14,7 @@ const COLOR_0_3: [f32; 4] = [0.9922, 1.0, 0.0, 1.0];
 const COLORS_0: [[f32; 4]; 4] = [COLOR_0_0, COLOR_0_1, COLOR_0_2, COLOR_0_3];
 
 const COLOR_1_0: [f32; 4] = [0.5, 0.5, 0.5, 1.0];
-const COLOR_1_1: [f32; 4] = [0.0, 0.0, 1.0, 1.0];
+const COLOR_1_1: [f32; 4] = [1.0, 1.0, 1.0, 1.0];
 
 const COLOR_SHADING_PERIOD: f64 = 3600.0;
 
@@ -234,10 +234,10 @@ impl State {
             let o_a = old_audio.gain[i];
             let n_a = new_audio.gain[i];
             match a {
-                3 => self.update_full(&mut pipelines[2], time, o_a, n_a),
-                4 => self.update_disk(&mut pipelines[3], time, o_a, n_a),
-                5 => self.update_wf_3d(&mut pipelines[4], time, o_a, n_a),
-                6 => self.update_letter(&mut pipelines[5], time, o_a, n_a),
+                3 => {} //self.update_full(&mut pipelines[2], time, o_a, n_a),
+                4 => {} //self.update_disk(&mut pipelines[3], time, o_a, n_a),
+                5 => {} //self.update_wf_3d(&mut pipelines[4], time, o_a, n_a),
+                6 => {} //self.update_letter(&mut pipelines[5], time, o_a, n_a),
                 _ => unreachable!(),
             }
         }
