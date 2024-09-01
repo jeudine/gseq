@@ -99,7 +99,7 @@ impl State {
 
         pipeline_group.add_pipeline(
             vec![instance_model],
-            include_str!("../shader/vs_0/2d_octopus.wgsl"),
+            include_str!("../shader/vs_0/3d_noise_geometry.wgsl"),
             &device,
             &config,
         )?;
