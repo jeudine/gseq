@@ -1,4 +1,10 @@
-let maxSteps: i32 = 64;
+@group(0) @binding(1)
+var<uniform> time: f32;
+
+@group(0) @binding(2)
+var<uniform> dimensions: vec2<u32>;
+
+let maxSteps: i32 = 32;
 let hitThreshold: f32 = 0.01;
 let minStep: f32 = 0.01;
 let PI: f32 = 3.14159;
@@ -7,30 +13,106 @@ fn difference(a: f32, b: f32) -> f32 {
     return max(a, -b);
 } 
 
-/*
-fn noise(x: vec3<f32>) -> f32 {
-    var p: vec3<f32> = floor(x);
-    var f: vec3<f32> = fract(x);
-    f = f * f * (3. - 2. * f);
-    let uv: vec2<f32> = p.xy + vec2<f32>(37., 17.) * p.z + f.xy;
-    let rg: vec2<f32> = textureSampleLevel(BUFFER_iChannel0, buffer_sampler, (uv + 0.5) / 256., f32(0.)).yx;
-    return mix(rg.x, rg.y, f.z) * 2. - 1.;
-} 
+fn mod289_3(x: vec3<f32>) -> vec3<f32> {
+    return x - floor(x * (1.0 / 289.0)) * 289.0;
+}
 
-let m: mat3x3<f32> = mat3x3<f32>(0., 0.8, 0.6, -0.8, 0.36, -0.48, -0.6, -0.48, 0.64);
-fn fbm(p: vec3<f32>) -> f32 {
-    var p_var = p;
-    var f: f32;
-    f = 0.5 * noise(p_var);
-    p_var = p_var * (m * 2.02);
-    f = f + (0.25 * noise(p_var));
-    p_var = p_var * (m * 2.03);
-    f = f + (0.125 * noise(p_var));
-    p_var = p_var * (m * 2.01);
-    f = f + (0.0625 * noise(p_var));
-    return f;
-} 
-*/
+fn mod289_4(x: vec4<f32>) -> vec4<f32> {
+    return x - floor(x * (1.0 / 289.0)) * 289.0;
+}
+
+fn permute(x: vec4<f32>) -> vec4<f32> {
+    return mod289_4(((x * 34.0) + 10.0) * x);
+}
+
+fn taylorInvSqrt(r: vec4<f32>) -> vec4<f32> {
+    return 1.79284291400159 - 0.85373472095314 * r;
+}
+
+fn snoise(v: vec3<f32>) -> f32 {
+    let C = vec2<f32>(1.0 / 6.0, 1.0 / 3.0) ;
+    let D = vec4<f32>(0.0, 0.5, 1.0, 2.0);
+
+    // First corner
+    var i = floor(v + dot(v, C.yyy));
+    var x0 = v - i + dot(i, C.xxx) ;
+
+    // Other corners
+    var g = step(x0.yzx, x0.xyz);
+    var l = 1.0 - g;
+    var i1 = min(g.xyz, l.zxy);
+    var i2 = max(g.xyz, l.zxy);
+
+    //   x0 = x0 - 0.0 + 0.0 * C.xxx;
+    //   x1 = x0 - i1  + 1.0 * C.xxx;
+    //   x2 = x0 - i2  + 2.0 * C.xxx;
+    //   x3 = x0 - 1.0 + 3.0 * C.xxx;
+    var x1 = x0 - i1 + C.xxx;
+    var x2 = x0 - i2 + C.yyy; // 2.0*C.x = 1/3 = C.y
+    var x3 = x0 - D.yyy;      // -1.0+3.0*C.x = -0.5 = -D.y
+
+    // Permutations
+    i = mod289_3(i);
+    var p = permute(permute(permute(
+        i.z + vec4(0.0, i1.z, i2.z, 1.0)
+    ) + i.y + vec4(0.0, i1.y, i2.y, 1.0)) + i.x + vec4(0.0, i1.x, i2.x, 1.0));
+
+    // Gradients: 7x7 points over a square, mapped onto an octahedron.
+    // The ring size 17*17 = 289 is close to a multiple of 49 (49*6 = 294)
+    var n_ = 0.142857142857; // 1.0/7.0
+    var ns = n_ * D.wyz - D.xzx;
+
+    var j = p - 49.0 * floor(p * ns.z * ns.z);  //  mod(p,7*7)
+
+    var x_ = floor(j * ns.z);
+    var y_ = floor(j - 7.0 * x_);    // mod(j,N)
+
+    var x = x_ * ns.x + ns.yyyy;
+    var y = y_ * ns.x + ns.yyyy;
+    var h = 1.0 - abs(x) - abs(y);
+
+    var b0 = vec4(x.xy, y.xy);
+    var b1 = vec4(x.zw, y.zw);
+
+    //vec4 s0 = vec4(lessThan(b0,0.0))*2.0 - 1.0;
+    //vec4 s1 = vec4(lessThan(b1,0.0))*2.0 - 1.0;
+    var s0 = floor(b0) * 2.0 + 1.0;
+    var s1 = floor(b1) * 2.0 + 1.0;
+    var sh = -step(h, vec4(0.0));
+
+    var a0 = b0.xzyw + s0.xzyw * sh.xxyy ;
+    var a1 = b1.xzyw + s1.xzyw * sh.zzww ;
+
+    var p0 = vec3<f32>(a0.xy, h.x);
+    var p1 = vec3<f32>(a0.zw, h.y);
+    var p2 = vec3<f32>(a1.xy, h.z);
+    var p3 = vec3<f32>(a1.zw, h.w);
+
+    //Normalise gradients
+    var norm = taylorInvSqrt(vec4<f32>(dot(p0, p0), dot(p1, p1), dot(p2, p2), dot(p3, p3)));
+    p0 *= norm.x;
+    p1 *= norm.y;
+    p2 *= norm.z;
+    p3 *= norm.w;
+
+    // Mix final noise value
+    var m = max(vec4<f32>(0.5, 0.5, 0.5, 0.5) - vec4<f32>(dot(x0, x0), dot(x1, x1), dot(x2, x2), dot(x3, x3)), vec4<f32>(0.0, 0.0, 0.0, 0.0));
+    m = m * m;
+    return 105.0 * dot(m * m, vec4(dot(p0, x0), dot(p1, x1), dot(p2, x2), dot(p3, x3)));
+}
+
+fn layered_noise(v: vec3<f32>, n_layers: i32) -> f32 {
+    let step = vec3<f32>(1.3, 1.7, 2.9);
+    var f = 1.0;
+    var ampl = 1.0;
+    var n = 0.0;
+    for (var i: i32 = 0; i < n_layers; i++) {
+        n += ampl * snoise(f * v - f32(i) * step);
+        ampl *= 0.5;
+        f *= 2.0;
+    }
+    return n;
+}
 
 fn rotateX(p: vec3<f32>, a: f32) -> vec3<f32> {
     var sa: f32 = sin(a);
@@ -58,7 +140,8 @@ fn scene(p: vec3<f32>) -> f32 {
     d = sphere(p, 1.);
     d = difference(box(p, vec3<f32>(1.1)), d);
     d = min(d, sphere(p, 0.5));
-    let np: vec3<f32> = p;
+    let np: vec3<f32> = vec3<f32>(p.xy, time);
+    d += layered_noise(np, 2) * 0.1;
     return d;
 } 
 
@@ -114,11 +197,7 @@ fn background(rd: vec3<f32>) -> vec3<f32> {
 } 
 
 
-@group(0) @binding(1)
-var<uniform> time: f32;
 
-@group(0) @binding(2)
-var<uniform> dimensions: vec2<u32>;
 
 struct VertexInput {
 	@location(0) position: vec3<f32>,
@@ -150,11 +229,10 @@ fn vs_main(
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    let x: f32 = in.position.x / f32(dimensions.x) * 2. - 1.;
-    let y: f32 = in.position.y / f32(dimensions.y) * 2. - 1.;
+    let pos: vec2<f32> = in.position.xy / vec2<f32>(dimensions.xy) * 2. - 1.;
     let asp = f32(dimensions.x) / f32(dimensions.y);
-    let rd: vec3<f32> = normalize(vec3<f32>(asp * x, y, -1.5));
-    let ro: vec3<f32> = vec3<f32>(0., 0., 2.5);
+    let rd: vec3<f32> = normalize(vec3<f32>(asp * pos.x, pos.y, -1.5));
+    let ro: vec3<f32> = vec3<f32>(0., 0., 4.5);
     var hit: bool;
     var dist: f32;
     let hitPos: vec3<f32> = traceInside(ro, rd, &hit, &dist);

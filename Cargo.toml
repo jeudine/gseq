@@ -11,7 +11,7 @@ description = "A realtime visual performance program reacting to the audio input
 include = ["/src", "/shader", "/models", "/image", "LICENSE", "README"]
 
 [dependencies]
-winit = "0.27"
+winit = "0.28.7"
 env_logger = "0.10"
 log = "0.4"
 wgpu = "0.14"
