@@ -44,6 +44,10 @@ const NB_DISKS: usize = 4;
 const DISK_SPEED: f32 = 0.3;
 
 pub struct State {
+    noise_3d_activated: bool,
+    noise_3d_start_time: f32,
+    noise_3d_duration: f32,
+
     full_activated: (bool, usize),
     full_start_time: f32,
     full_duration: f32,
@@ -159,6 +163,10 @@ impl State {
         }
 
         Ok(State {
+            noise_3d_activated: false,
+            noise_3d_start_time: 0.0,
+            noise_3d_duration: 0.0,
+
             full_activated: (false, 0),
             full_start_time: 0.0,
             full_duration: 0.0,
@@ -219,7 +227,7 @@ impl State {
             let o_a = old_audio.gain[i];
             let n_a = new_audio.gain[i];
             match a {
-                2 => {}
+                2 => self.update_noise_3d(&mut pipelines[*a], time, o_a, n_a),
                 3 => self.update_full(&mut pipelines[*a], time, o_a, n_a),
                 4 => self.update_disk(&mut pipelines[*a], time, o_a, n_a),
                 5 => self.update_wf_3d(&mut pipelines[*a], time, o_a, n_a),
@@ -238,6 +246,26 @@ impl State {
 
         for i in 0..4 {
             bg.color[i] = hex_to_f(COLOR_0_0[i]) * x + (1.0 - x) * hex_to_f(COLOR_4_0[i]);
+        }
+    }
+
+    fn update_noise_3d(
+        &mut self,
+        pipeline: &mut Pipeline,
+        time: f32,
+        old_audio: f32,
+        new_audio: f32,
+    ) {
+        if new_audio > 1.5 && old_audio < 1.5 {
+            self.activate_noise_3d(time, &mut pipeline.instance_models);
+        }
+
+        if self.noise_3d_activated {
+            let t = time - self.full_start_time;
+            if t > self.noise_3d_duration {
+                self.noise_3d_activated = false;
+                pipeline.instance_models[0].instances[0].scale = 0.0;
+            }
         }
     }
 
@@ -303,6 +331,17 @@ impl State {
             0.0,
         )
             .into();
+    }
+
+    fn activate_noise_3d(&mut self, time: f32, i_ms: &mut Vec<InstanceModel>) {
+        self.noise_3d_activated = true;
+        self.noise_3d_start_time = time;
+        self.noise_3d_duration = 0.6 * self.rng.gen::<f32>() + 0.4;
+
+        let instance = &mut i_ms[0].instances[0];
+
+        instance.color = get_color_0(&mut self.rng);
+        instance.scale = 1.0;
     }
 
     fn activate_full(&mut self, time: f32, i_ms: &mut Vec<InstanceModel>) {

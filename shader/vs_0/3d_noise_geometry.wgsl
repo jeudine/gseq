@@ -219,7 +219,15 @@ fn vs_main(
     instance: InstanceInput,
 ) -> VertexOutput {
     var out: VertexOutput;
-    out.position = vec4<f32>(model.position.xy, 0.9995, 1.0);
+    let model_matrix = mat4x4<f32>(
+        instance.model_matrix_0,
+        instance.model_matrix_1,
+        instance.model_matrix_2,
+        instance.model_matrix_3,
+    );
+
+    out.position = model_matrix * vec4<f32>(model.position, 1.0);
+    out.position.z = 0.993;
     out.color = instance.color;
     out.pos = vec2<f32>(0.4, 0.);
     out.rotation = vec2<f32>(0.4, 0.);
