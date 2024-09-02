@@ -8,7 +8,7 @@ let maxSteps: i32 = 32;
 let hitThreshold: f32 = 0.01;
 let minStep: f32 = 0.01;
 let PI: f32 = 3.14159;
-let translucentColor: vec4<f32> = vec4<f32>(1.2, 0.6, 0.3, 0.5);
+let translucentColor: vec4<f32> = vec4<f32>(1.0, 0.6, 0.3, 0.5);
 fn difference(a: f32, b: f32) -> f32 {
     return max(a, -b);
 } 
@@ -141,7 +141,7 @@ fn scene(p: vec3<f32>) -> f32 {
     d = difference(box(p, vec3<f32>(1.1)), d);
     d = min(d, sphere(p, 0.5));
     let np: vec3<f32> = vec3<f32>(p.xy, time);
-    d += layered_noise(np, 2) * 0.1;
+    d += layered_noise(np, 3) * 0.1;
     return d;
 } 
 
@@ -192,12 +192,6 @@ fn traceInside(ro: vec3<f32>, rd: vec3<f32>, hit: ptr<function, bool>, insideDis
     return hitPos;
 } 
 
-fn background(rd: vec3<f32>) -> vec3<f32> {
-    return vec3<f32>(0.0);
-} 
-
-
-
 
 struct VertexInput {
 	@location(0) position: vec3<f32>,
@@ -214,6 +208,8 @@ struct InstanceInput {
 struct VertexOutput {
 	@builtin(position) position: vec4<f32>,
 	@location(0) color: vec4<f32>,
+	@location(1) pos: vec2<f32>,
+	@location(2) rotation: vec2<f32>,
 }
 
 @vertex
@@ -224,17 +220,24 @@ fn vs_main(
     var out: VertexOutput;
     out.position = vec4<f32>(model.position.xy, 0.9995, 1.0);
     out.color = instance.color;
+    out.pos = vec2<f32>(0.4, 0.);
+    out.rotation = vec2<f32>(0.4, 0.);
     return out;
 }
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    let pos: vec2<f32> = in.position.xy / vec2<f32>(dimensions.xy) * 2. - 1.;
+    let pos: vec2<f32> = (in.position.xy / vec2<f32>(dimensions.xy) * 2. - 1.) - in.pos;
     let asp = f32(dimensions.x) / f32(dimensions.y);
-    let rd: vec3<f32> = normalize(vec3<f32>(asp * pos.x, pos.y, -1.5));
-    let ro: vec3<f32> = vec3<f32>(0., 0., 4.5);
+    var rd: vec3<f32> = normalize(vec3<f32>(asp * pos.x, pos.y, -1.5));
+    var ro: vec3<f32> = vec3<f32>(0., 0., 4.5);
     var hit: bool;
     var dist: f32;
+
+    rd = rotateX(rd, time * in.rotation.x);
+    ro = rotateX(ro, time * in.rotation.x);
+    rd = rotateY(rd, time * in.rotation.y);
+    ro = rotateY(ro, time * in.rotation.y);
     let hitPos: vec3<f32> = traceInside(ro, rd, &hit, &dist);
     var rgba: vec4<f32> = vec4<f32>(0.);
     if hit {
