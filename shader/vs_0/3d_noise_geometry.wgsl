@@ -9,9 +9,6 @@ let hitThreshold: f32 = 0.01;
 let minStep: f32 = 0.01;
 let PI: f32 = 3.14159;
 let translucentColor: vec4<f32> = vec4<f32>(1.0, 0.6, 0.3, 0.5);
-fn difference(a: f32, b: f32) -> f32 {
-    return max(a, -b);
-} 
 
 fn mod289_3(x: vec3<f32>) -> vec3<f32> {
     return x - floor(x * (1.0 / 289.0)) * 289.0;
@@ -113,6 +110,10 @@ fn layered_noise(v: vec3<f32>, n_layers: i32) -> f32 {
     }
     return n;
 }
+
+fn difference(a: f32, b: f32) -> f32 {
+    return max(a, -b);
+} 
 
 fn rotateX(p: vec3<f32>, a: f32) -> vec3<f32> {
     var sa: f32 = sin(a);
