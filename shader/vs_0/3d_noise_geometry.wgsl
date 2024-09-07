@@ -4,7 +4,7 @@ var<uniform> time: f32;
 @group(0) @binding(2)
 var<uniform> dimensions: vec2<u32>;
 
-let maxSteps: i32 = 32;
+let maxSteps: i32 = 16;
 let hitThreshold: f32 = 0.01;
 let minStep: f32 = 0.01;
 let PI: f32 = 3.14159;
@@ -142,7 +142,7 @@ fn scene(p: vec3<f32>) -> f32 {
     d = difference(box(p, vec3<f32>(1.1)), d);
     d = min(d, sphere(p, 0.5));
     let np: vec3<f32> = vec3<f32>(p.xy, time);
-    d += layered_noise(np, 3) * 0.1;
+    d += layered_noise(np, 2) * 0.15;
     return d;
 } 
 
