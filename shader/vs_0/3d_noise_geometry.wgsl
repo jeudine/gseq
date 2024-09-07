@@ -8,7 +8,6 @@ let maxSteps: i32 = 16;
 let hitThreshold: f32 = 0.01;
 let minStep: f32 = 0.01;
 let PI: f32 = 3.14159;
-let translucentColor: vec4<f32> = vec4<f32>(1.0, 0.6, 0.3, 0.5);
 
 fn mod289_3(x: vec3<f32>) -> vec3<f32> {
     return x - floor(x * (1.0 / 289.0)) * 289.0;
@@ -146,31 +145,6 @@ fn scene(p: vec3<f32>) -> f32 {
     return d;
 } 
 
-fn sceneNormal(pos: vec3<f32>) -> vec3<f32> {
-    let eps: f32 = 0.05;
-    var n: vec3<f32>;
-    var d: f32 = scene(pos);
-    n.x = scene(vec3<f32>(pos.x + eps, pos.y, pos.z)) - d;
-    n.y = scene(vec3<f32>(pos.x, pos.y + eps, pos.z)) - d;
-    n.z = scene(vec3<f32>(pos.x, pos.y, pos.z + eps)) - d;
-    return normalize(n);
-} 
-
-fn trace(ro: vec3<f32>, rd: vec3<f32>, hit: ptr<function, bool>) -> vec3<f32> {
-    (*hit) = false;
-    var pos: vec3<f32> = ro;
-
-    for (var i: i32 = 0; i < maxSteps; i = i + 1) {
-        var d: f32 = scene(pos);
-        if abs(d) < hitThreshold {
-            (*hit) = true;
-        }
-        pos = pos + (d * rd);
-    }
-
-    return pos;
-} 
-
 fn traceInside(ro: vec3<f32>, rd: vec3<f32>, hit: ptr<function, bool>, insideDist: ptr<function, f32>) -> vec3<f32> {
     (*hit) = false;
     (*insideDist) = 0.;
@@ -219,18 +193,15 @@ fn vs_main(
     instance: InstanceInput,
 ) -> VertexOutput {
     var out: VertexOutput;
-    let model_matrix = mat4x4<f32>(
-        instance.model_matrix_0,
-        instance.model_matrix_1,
-        instance.model_matrix_2,
-        instance.model_matrix_3,
-    );
-
-    out.position = model_matrix * vec4<f32>(model.position, 1.0);
+    if instance.model_matrix_3[0] == 0.0 {
+        out.position = vec4<f32>(0.0);
+    } else {
+        out.position = vec4<f32>(model.position, 1.0);
+    }
     out.position.z = 0.993;
     out.color = instance.color;
-    out.pos = vec2<f32>(0.4, 0.);
-    out.rotation = vec2<f32>(0.4, 0.);
+    out.pos = vec2<f32>(instance.model_matrix_3[1], instance.model_matrix_3[2]);
+    out.rotation = vec2<f32>(layered_noise(3.0 * vec3<f32>(0.1 * time, 0.0, 0.0), 1), layered_noise(3.0 * vec3<f32>(0.1 * time, 1.0, 0.0), 1));
     return out;
 }
 
@@ -243,14 +214,14 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     var hit: bool;
     var dist: f32;
 
-    rd = rotateX(rd, time * in.rotation.x);
-    ro = rotateX(ro, time * in.rotation.x);
-    rd = rotateY(rd, time * in.rotation.y);
-    ro = rotateY(ro, time * in.rotation.y);
+    rd = rotateX(rd, in.rotation.x);
+    ro = rotateX(ro, in.rotation.x);
+    rd = rotateY(rd, in.rotation.y);
+    ro = rotateY(ro, in.rotation.y);
     let hitPos: vec3<f32> = traceInside(ro, rd, &hit, &dist);
     var rgba: vec4<f32> = vec4<f32>(0.);
     if hit {
-        rgba = exp(-dist * dist * translucentColor);
+        rgba = exp(-dist * dist * in.color * 3.0);
     } else {
         rgba = vec4<f32>(0.0);
     }

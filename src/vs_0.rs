@@ -35,6 +35,7 @@ fn deactivate_pipeline(pipeline: &mut Pipeline) {
     for i_m in &mut pipeline.instance_models {
         for i in &mut i_m.instances {
             i.scale = 0.0;
+            i.position[0] = 0.0;
         }
     }
 }
@@ -261,10 +262,10 @@ impl State {
         }
 
         if self.noise_3d_activated {
-            let t = time - self.full_start_time;
+            let t = time - self.noise_3d_start_time;
             if t > self.noise_3d_duration {
                 self.noise_3d_activated = false;
-                pipeline.instance_models[0].instances[0].scale = 0.0;
+                pipeline.instance_models[0].instances[0].position[0] = 0.0;
             }
         }
     }
@@ -336,12 +337,15 @@ impl State {
     fn activate_noise_3d(&mut self, time: f32, i_ms: &mut Vec<InstanceModel>) {
         self.noise_3d_activated = true;
         self.noise_3d_start_time = time;
-        self.noise_3d_duration = 0.6 * self.rng.gen::<f32>() + 0.4;
+        self.noise_3d_duration = 1.0 * self.rng.gen::<f32>() + 1.0;
 
         let instance = &mut i_ms[0].instances[0];
 
         instance.color = get_color_0(&mut self.rng);
         instance.scale = 1.0;
+        instance.position[0] = 1.0;
+        instance.position[1] = 0.5 - 1.0 * self.rng.gen::<f32>();
+        instance.position[2] = 0.5 - 1.0 * self.rng.gen::<f32>();
     }
 
     fn activate_full(&mut self, time: f32, i_ms: &mut Vec<InstanceModel>) {
