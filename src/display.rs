@@ -4,14 +4,13 @@ use crate::instance::Instance;
 use crate::pipeline;
 use crate::texture;
 use crate::texture::{Texture, TextureError};
+use crate::vs_0;
 use std::iter;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 use thiserror::Error;
 use wgpu::util::DeviceExt;
 use winit::window::Window;
-
-use crate::vs_0;
 
 #[derive(Error, Debug)]
 pub enum DisplayError {
@@ -262,32 +261,6 @@ impl Display {
             &queue,
             "logo",
         )?;
-        /*
-                let f_letter = Texture::new_image(
-                    include_bytes!("../image/f_pos.png"),
-                    &device,
-                    &queue,
-                    "f_pos",
-                )?;
-                let p_letter = Texture::new_image(
-                    include_bytes!("../image/p_pos.png"),
-                    &device,
-                    &queue,
-                    "p_pos",
-                )?;
-                let g_letter = Texture::new_image(
-                    include_bytes!("../image/g_pos.png"),
-                    &device,
-                    &queue,
-                    "g_pos",
-                )?;
-                let a_letter = Texture::new_image(
-                    include_bytes!("../image/a_pos.png"),
-                    &device,
-                    &queue,
-                    "a_pos",
-                )?;
-        */
 
         let texture_images = vec![logo];
         let texture_image_bind_group_layout =
@@ -320,7 +293,12 @@ impl Display {
             pipeline::PipelineGroup::new_0(&bind_group_layouts, bind_group_indices_0, &device);
 
         // Create the pipelines in pipeline group 0
-        let vs_0_state = vs_0::State::new(&mut pipeline_group_0, &device, &config)?;
+        let vs_0_state = vs_0::State::new(
+            &mut pipeline_group_0,
+            &device,
+            &config,
+            vs_0::Show::MariusJulien,
+        )?;
 
         let pipeline_groups = vec![pipeline_group_0];
 

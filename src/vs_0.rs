@@ -7,6 +7,13 @@ use cgmath::Rotation3;
 use cgmath::Zero;
 use rand::prelude::*;
 
+pub enum Show {
+    Lua,
+    MariusJulien,
+}
+
+use Show::*;
+
 const COLOR_0_0: [u8; 4] = [0x9f, 0x56, 0xff, 0xff];
 const COLOR_1_0: [u8; 4] = [0xb5, 0x82, 0xff, 0xff];
 const COLOR_2_0: [u8; 4] = [0xca, 0xad, 0xff, 0xff];
@@ -74,17 +81,18 @@ impl State {
         pipeline_group: &mut PipelineGroup,
         device: &wgpu::Device,
         config: &wgpu::SurfaceConfiguration,
+        show: Show,
     ) -> Result<State, PipelineError> {
         let quad = Model::new_quad(device);
         let instance = Instance::new();
         let instance_model = InstanceModel::new(quad, vec![instance], device);
 
-        pipeline_group.add_pipeline(
-            vec![instance_model],
-            include_str!("../shader/vs_0/wallpaper_noise_0.wgsl"),
-            device,
-            config,
-        )?;
+        let shader = match show {
+            Lua => include_str!("../shader/vs_0/wallpaper_noise_0.wgsl"),
+            MariusJulien => include_str!("../shader/vs_0/wallpaper_noise_1.wgsl"),
+        };
+
+        pipeline_group.add_pipeline(vec![instance_model], shader, device, config)?;
 
         let quad: Model = Model::new_quad(device);
         let mut instance = Instance::new();
