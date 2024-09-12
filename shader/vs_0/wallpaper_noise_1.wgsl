@@ -1,7 +1,6 @@
 let maxSteps: i32 = 16;
 let hitThreshold: f32 = 0.01;
 let minStep: f32 = 0.01;
-let translucentColor: vec3<f32> = vec3<f32>(2.4, 0.6, 0.3);
 
 @group(0) @binding(1)
 var<uniform> time: f32;
@@ -174,7 +173,7 @@ fn vs_main(
 ) -> VertexOutput {
     var out: VertexOutput;
     out.position = vec4<f32>(model.position.xy, 0.99999, 1.0);
-    out.color = instance.color;
+    out.color = vec4<f32>(vec3<f32>(1.0) - instance.color.xyz, 1.);
     return out;
 }
 
@@ -193,11 +192,11 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     var hit: bool;
     var dist: f32;
     let hitPos: vec3<f32> = traceInside(ro, rd, &hit, &dist);
-    var rgb: vec3<f32> = vec3<f32>(0.);
+    var rgba: vec4<f32> = vec4<f32>(0.);
     if hit {
-        rgb = exp(-dist * dist * translucentColor * 5.0);
+        rgba = exp(-dist * dist * in.color * 5.0);
     } else {
-        rgb = vec3<f32>(1.0, 1.0, 1.0);
+        rgba = vec4<f32>(1.0, 1.0, 1.0, 1.0);
     }
-    return vec4<f32>(rgb, 1.);
+    return rgba;
 }

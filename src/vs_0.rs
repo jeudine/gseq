@@ -21,12 +21,28 @@ const COLOR_2_0: [u8; 4] = [0xca, 0xad, 0xff, 0xff];
 const COLOR_3_0: [u8; 4] = [0xff, 0xad, 0xc7, 0xff];
 const COLOR_4_0: [u8; 4] = [0xff, 0x99, 0xb6, 0xff];
 
+const COLOR_0_1: [u8; 4] = [0x9f, 0x86, 0xfa, 0xff];
+const COLOR_1_1: [u8; 4] = [0x60, 0x64, 0xfc, 0xff];
+const COLOR_2_1: [u8; 4] = [0x1b, 0x59, 0xff, 0xff];
+const COLOR_3_1: [u8; 4] = [0x00, 0x05, 0xf1, 0xff];
+const COLOR_4_1: [u8; 4] = [0x2f, 0x08, 0x85, 0xff];
+
 const COLORS_0: [[u8; 4]; 5] = [COLOR_0_0, COLOR_1_0, COLOR_2_0, COLOR_3_0, COLOR_4_0];
+const COLORS_1: [[u8; 4]; 5] = [COLOR_0_1, COLOR_1_1, COLOR_2_1, COLOR_3_1, COLOR_4_1];
 
 const COLOR_SHADING_PERIOD: f64 = 3600.0;
 
 fn get_color_0(rng: &mut ThreadRng) -> [f32; 4] {
     let v = COLORS_0
+        .choose(rng)
+        .unwrap()
+        .iter()
+        .map(|c| hex_to_f(*c))
+        .collect::<Vec<_>>();
+    [v[0], v[1], v[2], v[3]]
+}
+fn get_color_1(rng: &mut ThreadRng) -> [f32; 4] {
+    let v = COLORS_1
         .choose(rng)
         .unwrap()
         .iter()
@@ -75,6 +91,7 @@ pub struct State {
     dyn_pipelines: Vec<usize>,
     active_pipelines: [usize; audio::NB_AUDIO_CHANNELS],
     pipeline_switch_time: f32,
+    show: Show,
     rng: ThreadRng,
 }
 
@@ -197,6 +214,7 @@ impl State {
             rng: rand::thread_rng(),
 
             pipeline_switch_time: 0.0,
+            show,
         })
     }
 
@@ -246,17 +264,24 @@ impl State {
             }
         }
 
-        Self::update_background_color(&mut pipelines[0], time);
+        self.update_background_color(&mut pipelines[0], time);
     }
 
-    fn update_background_color(pipeline: &mut Pipeline, time: f32) {
+    fn update_background_color(&self, pipeline: &mut Pipeline, time: f32) {
         let bg = &mut pipeline.instance_models[0].instances[0];
         let pi = std::f64::consts::PI;
         let t: f64 = 2.0 * pi * time as f64 / COLOR_SHADING_PERIOD;
         let x = t.cos() as f32;
 
         for i in 0..4 {
-            bg.color[i] = hex_to_f(COLOR_0_0[i]) * x + (1.0 - x) * hex_to_f(COLOR_4_0[i]);
+            match self.show {
+                Show::Lua => {
+                    bg.color[i] = hex_to_f(COLOR_0_0[i]) * x + (1.0 - x) * hex_to_f(COLOR_4_0[i])
+                }
+                Show::MariusJulien => {
+                    bg.color[i] = hex_to_f(COLOR_2_1[i]) * x + (1.0 - x) * hex_to_f(COLOR_4_1[i])
+                }
+            }
         }
     }
 
@@ -334,7 +359,10 @@ impl State {
 
         let instance = &mut i_ms[i].instances[0];
 
-        instance.color = get_color_0(&mut self.rng);
+        instance.color = match self.show {
+            Lua => get_color_0(&mut self.rng),
+            MariusJulien => get_color_1(&mut self.rng),
+        };
         instance.scale = 1.0;
         instance.position = (
             0.5 - 1.0 * self.rng.gen::<f32>(),
@@ -351,7 +379,11 @@ impl State {
 
         let instance = &mut i_ms[0].instances[0];
 
-        instance.color = get_color_0(&mut self.rng);
+        instance.color = match self.show {
+            Lua => get_color_0(&mut self.rng),
+            MariusJulien => get_color_1(&mut self.rng),
+        };
+
         instance.scale = 1.0;
         instance.position[0] = 1.0;
         instance.position[1] = 0.5 - 1.0 * self.rng.gen::<f32>();
@@ -370,7 +402,10 @@ impl State {
 
         let instance = &mut i_ms[i].instances[0];
 
-        instance.color = get_color_0(&mut self.rng);
+        instance.color = match self.show {
+            Lua => get_color_0(&mut self.rng),
+            MariusJulien => get_color_1(&mut self.rng),
+        };
         instance.scale = self.rng.gen::<f32>() * 0.1 + 0.1;
         instance.position = (
             0.5 - 1.0 * self.rng.gen::<f32>(),
@@ -404,7 +439,10 @@ impl State {
         for (i, d) in instances.iter_mut().enumerate().take(NB_DISKS) {
             if !self.disk_activated[i] {
                 self.disk_activated[i] = true;
-                d.color = get_color_0(&mut self.rng);
+                d.color = match self.show {
+                    Lua => get_color_0(&mut self.rng),
+                    MariusJulien => get_color_1(&mut self.rng),
+                };
                 d.position = (
                     1.0 - 2.0 * self.rng.gen::<f32>(),
                     1.0 - 2.0 * self.rng.gen::<f32>(),
