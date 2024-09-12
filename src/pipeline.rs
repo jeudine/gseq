@@ -144,7 +144,7 @@ impl LayoutInner {
 
         Self {
             pipeline_layout,
-            bind_group_indices: bind_group_indices,
+            bind_group_indices,
         }
     }
 }
@@ -243,8 +243,8 @@ impl PipelinePost {
         });
 
         let layout = LayoutInner {
-            pipeline_layout: pipeline_layout,
-            bind_group_indices: bind_group_indices,
+            pipeline_layout,
+            bind_group_indices,
         };
 
         Ok(PipelinePost {

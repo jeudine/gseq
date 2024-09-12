@@ -148,7 +148,7 @@ pub fn init(
     };
 
     for _ in 0..NB_AUDIO_CHANNELS {
-        println!("");
+        println!();
     }
 
     stream.play()?;
@@ -164,14 +164,14 @@ fn calculate_channel_index(
 ) -> Vec<usize> {
     let nb_octaves = (max_freq as f32 / min_freq as f32).log2();
     let nb_octaves_per_channel = nb_octaves / nb_channels as f32;
-    let index_limits = (0..nb_channels + 1)
+    
+
+    (0..nb_channels + 1)
         .map(|i| {
             min_freq as usize * 2_f32.powf(nb_octaves_per_channel * i as f32) as usize * chunck_size
                 / sample_rate as usize
         })
-        .collect();
-
-    index_limits
+        .collect()
 }
 
 fn handle_input<T>(input: &[T], buffer: &mut Buffer, audio_data: &Arc<Mutex<Data>>)

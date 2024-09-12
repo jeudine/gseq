@@ -1,5 +1,4 @@
 use crate::instance::Instance;
-use ahash;
 use std::f32::consts::PI;
 use thiserror::Error;
 use tobj::load_obj_buf;
@@ -87,13 +86,13 @@ impl Model {
         indices: &Vec<u32>,
     ) -> Self {
         let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some(&format!("Quad Vertex Buffer")),
+            label: Some("Quad Vertex Buffer"),
             contents: bytemuck::cast_slice(vertices),
             usage: wgpu::BufferUsages::VERTEX,
         });
 
         let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some(&format!("Quad Index Buffer")),
+            label: Some("Quad Index Buffer"),
             contents: bytemuck::cast_slice(indices),
             usage: wgpu::BufferUsages::INDEX,
         });
@@ -132,13 +131,13 @@ impl Model {
                     .collect::<Vec<[f32; 3]>>();
 
                 let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                    label: Some(&format!("Vertex Buffer")),
+                    label: Some("Vertex Buffer"),
                     contents: bytemuck::cast_slice(&vertices),
                     usage: wgpu::BufferUsages::VERTEX,
                 });
 
                 let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                    label: Some(&format!("Index Buffer")),
+                    label: Some("Index Buffer"),
                     contents: bytemuck::cast_slice(&m.mesh.indices),
                     usage: wgpu::BufferUsages::INDEX,
                 });
@@ -148,10 +147,7 @@ impl Model {
                     num_elements: m.mesh.indices.len() as u32,
                 };
 
-                let _id = match m.mesh.material_id {
-                    Some(x) => x,
-                    None => 0,
-                };
+                let _id = m.mesh.material_id.unwrap_or_default();
 
                 mesh
             })

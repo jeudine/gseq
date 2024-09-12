@@ -454,7 +454,7 @@ impl Display {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Render Pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &self.framebuffer.view(),
+                    view: self.framebuffer.view(),
                     resolve_target: None,
                     ops: wgpu::Operations {
                         //load: wgpu::LoadOp::Load,
@@ -468,7 +468,7 @@ impl Display {
                     },
                 })],
                 depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-                    view: &self.depth_texture.view(),
+                    view: self.depth_texture.view(),
                     depth_ops: Some(wgpu::Operations {
                         load: wgpu::LoadOp::Clear(1.0),
                         store: true,

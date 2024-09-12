@@ -75,66 +75,66 @@ impl State {
         device: &wgpu::Device,
         config: &wgpu::SurfaceConfiguration,
     ) -> Result<State, PipelineError> {
-        let quad = Model::new_quad(&device);
+        let quad = Model::new_quad(device);
         let instance = Instance::new();
-        let instance_model = InstanceModel::new(quad, vec![instance], &device);
+        let instance_model = InstanceModel::new(quad, vec![instance], device);
 
         pipeline_group.add_pipeline(
             vec![instance_model],
             include_str!("../shader/vs_0/wallpaper_noise_0.wgsl"),
-            &device,
-            &config,
+            device,
+            config,
         )?;
 
-        let quad: Model = Model::new_quad(&device);
+        let quad: Model = Model::new_quad(device);
         let mut instance = Instance::new();
         instance.scale = 0.2;
-        let instance_model = InstanceModel::new(quad, vec![instance], &device);
+        let instance_model = InstanceModel::new(quad, vec![instance], device);
 
         pipeline_group.add_pipeline(
             vec![instance_model],
             include_str!("../shader/vs_0/2d_logo.wgsl"),
-            &device,
-            &config,
+            device,
+            config,
         )?;
 
-        let quad = Model::new_quad(&device);
+        let quad = Model::new_quad(device);
         let instance = Instance::new();
-        let instance_model = InstanceModel::new(quad, vec![instance], &device);
+        let instance_model = InstanceModel::new(quad, vec![instance], device);
 
         pipeline_group.add_pipeline(
             vec![instance_model],
             include_str!("../shader/vs_0/3d_noise_geometry.wgsl"),
-            &device,
-            &config,
+            device,
+            config,
         )?;
 
-        let quad = Model::new_quad(&device);
+        let quad = Model::new_quad(device);
         let q_instance = Instance::new();
-        let q_instance_model = InstanceModel::new(quad, vec![q_instance], &device);
+        let q_instance_model = InstanceModel::new(quad, vec![q_instance], device);
 
-        let disk = Model::new_disk(&device, 200);
+        let disk = Model::new_disk(device, 200);
         let d_instance = Instance::new();
-        let d_instance_model = InstanceModel::new(disk, vec![d_instance], &device);
+        let d_instance_model = InstanceModel::new(disk, vec![d_instance], device);
 
         pipeline_group.add_pipeline(
             vec![q_instance_model, d_instance_model],
             include_str!("../shader/vs_0/2d_noise.wgsl"),
-            &device,
-            &config,
+            device,
+            config,
         )?;
 
-        let disk = Model::new_disk(&device, 200);
+        let disk = Model::new_disk(device, 200);
 
         let instances = (0..NB_DISKS).map(|_| Instance::new()).collect();
 
-        let instance_model = InstanceModel::new(disk, instances, &device);
+        let instance_model = InstanceModel::new(disk, instances, device);
 
         pipeline_group.add_pipeline(
             vec![instance_model],
             include_str!("../shader/vs_0/2d_transparent.wgsl"),
-            &device,
-            &config,
+            device,
+            config,
         )?;
 
         let cube = Model::import(include_bytes!("../models/cube.obj"), device)?;
@@ -143,19 +143,19 @@ impl State {
         let pyramide = Model::import(include_bytes!("../models/pyramide.obj"), device)?;
 
         let instance = Instance::new();
-        let cube = InstanceModel::new(cube, vec![instance], &device);
+        let cube = InstanceModel::new(cube, vec![instance], device);
         let instance = Instance::new();
-        let icosphere = InstanceModel::new(icosphere, vec![instance], &device);
+        let icosphere = InstanceModel::new(icosphere, vec![instance], device);
         let instance = Instance::new();
-        let mf_room = InstanceModel::new(mf_room, vec![instance], &device);
+        let mf_room = InstanceModel::new(mf_room, vec![instance], device);
         let instance = Instance::new();
-        let pyramide = InstanceModel::new(pyramide, vec![instance], &device);
+        let pyramide = InstanceModel::new(pyramide, vec![instance], device);
 
         pipeline_group.add_pipeline(
             vec![cube, icosphere, mf_room, pyramide],
             include_str!("../shader/vs_0/3d.wgsl"),
-            &device,
-            &config,
+            device,
+            config,
         )?;
 
         let dyn_pipelines = vec![2, 3, 4, 5];
