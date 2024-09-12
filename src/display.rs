@@ -65,6 +65,7 @@ pub struct Display {
 impl Display {
     pub async fn new(window: Window) -> Result<Self, DisplayError> {
         let size = window.inner_size();
+        let show = vs_0::Show::MariusJulien;
 
         // The instance is a handle to our GPU
         // BackendBit::PRIMARY => Vulkan + Metal + DX12 + Browser WebGPU
@@ -293,12 +294,7 @@ impl Display {
             pipeline::PipelineGroup::new_0(&bind_group_layouts, bind_group_indices_0, &device);
 
         // Create the pipelines in pipeline group 0
-        let vs_0_state = vs_0::State::new(
-            &mut pipeline_group_0,
-            &device,
-            &config,
-            vs_0::Show::MariusJulien,
-        )?;
+        let vs_0_state = vs_0::State::new(&mut pipeline_group_0, &device, &config, show)?;
 
         let pipeline_groups = vec![pipeline_group_0];
 
@@ -310,7 +306,10 @@ impl Display {
             bind_group_indices_post,
             &device,
             &config,
-            vs_0::POST_SHADER,
+            match show {
+                vs_0::Show::Lua => vs_0::POST_SHADER_0,
+                vs_0::Show::MariusJulien => vs_0::POST_SHADER_1,
+            },
         )?;
 
         Ok(Self {

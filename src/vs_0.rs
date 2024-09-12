@@ -7,6 +7,7 @@ use cgmath::Rotation3;
 use cgmath::Zero;
 use rand::prelude::*;
 
+#[derive(Copy, Clone, Debug)]
 pub enum Show {
     Lua,
     MariusJulien,
@@ -47,7 +48,8 @@ fn deactivate_pipeline(pipeline: &mut Pipeline) {
     }
 }
 
-pub const POST_SHADER: &str = include_str!("../shader/vs_0/post.wgsl");
+pub const POST_SHADER_0: &str = include_str!("../shader/vs_0/post_0.wgsl");
+pub const POST_SHADER_1: &str = include_str!("../shader/vs_0/post_1.wgsl");
 const NB_DISKS: usize = 4;
 const DISK_SPEED: f32 = 0.3;
 
