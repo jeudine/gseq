@@ -198,7 +198,7 @@ fn vs_main(
     } else {
         out.position = vec4<f32>(model.position, 1.0);
     }
-    out.position.z = 0.993;
+    out.position.z = 0.9998;
     out.color = instance.color;
     out.pos = vec2<f32>(instance.model_matrix_3[1], instance.model_matrix_3[2]);
     out.rotation = vec2<f32>(layered_noise(3.0 * vec3<f32>(0.1 * time, 0.0, 0.0), 1), layered_noise(3.0 * vec3<f32>(0.1 * time, 1.0, 0.0), 1));

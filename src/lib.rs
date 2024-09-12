@@ -8,13 +8,15 @@ mod texture;
 mod vs_0;
 use display::Display;
 
+pub use vs_0::Show;
+
 use winit::{
     event::*,
     event_loop::{ControlFlow, EventLoop},
     window::WindowBuilder,
 };
 
-pub async fn run(nb_displays: u32) {
+pub async fn run(nb_displays: u32, show: vs_0::Show) {
     let event_loop = EventLoop::new();
 
     // Init audio
@@ -25,7 +27,7 @@ pub async fn run(nb_displays: u32) {
     let mut displays = vec![];
     for _ in 0..nb_displays {
         let window = WindowBuilder::new().build(&event_loop).unwrap();
-        let display: Result<Display, display::DisplayError> = Display::new(window).await;
+        let display: Result<Display, display::DisplayError> = Display::new(window, show).await;
         match display {
             Ok(d) => displays.push(d),
             Err(e) => {

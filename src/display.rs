@@ -63,9 +63,8 @@ pub struct Display {
 }
 
 impl Display {
-    pub async fn new(window: Window) -> Result<Self, DisplayError> {
+    pub async fn new(window: Window, show: vs_0::Show) -> Result<Self, DisplayError> {
         let size = window.inner_size();
-        let show = vs_0::Show::MariusJulien;
 
         // The instance is a handle to our GPU
         // BackendBit::PRIMARY => Vulkan + Metal + DX12 + Browser WebGPU
