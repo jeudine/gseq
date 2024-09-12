@@ -390,12 +390,12 @@ impl State {
         }
     }
 
-    fn activate_disk(&mut self, time: f32, instances: &mut Vec<Instance>) {
-        for i in 0..NB_DISKS {
+    fn activate_disk(&mut self, time: f32, instances: &mut [Instance]) {
+        for (i, d) in instances.iter_mut().enumerate().take(NB_DISKS) {
             if !self.disk_activated[i] {
                 self.disk_activated[i] = true;
-                instances[i].color = get_color_0(&mut self.rng);
-                instances[i].position = (
+                d.color = get_color_0(&mut self.rng);
+                d.position = (
                     1.0 - 2.0 * self.rng.gen::<f32>(),
                     1.0 - 2.0 * self.rng.gen::<f32>(),
                     0.0,
