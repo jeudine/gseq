@@ -124,7 +124,7 @@ fn rotateY(p: vec3<f32>, a: f32) -> vec3<f32> {
 } 
 
 fn scene(p: vec3<f32>) -> f32 {
-    let np: vec3<f32> = p + vec3<f32>(0., 0., -time);
+    let np: vec3<f32> = p + vec3<f32>(0., 0., -time * 0.01);
     return layered_noise(np, 2) * 0.8 + 0.2;
 } 
 
@@ -184,7 +184,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     let asp = f32(dimensions.x) / f32(dimensions.y);
     var rd: vec3<f32> = normalize(vec3<f32>(asp * pos.x, pos.y, -1.5));
     var ro: vec3<f32> = vec3<f32>(0., 0., 2.5);
-    let roty: f32 = -time * 0.2;
+    let roty: f32 = -time * 0.08;
     let rotx: f32 = 0.;
     rd = rotateX(rd, rotx);
     ro = rotateX(ro, rotx);
@@ -195,7 +195,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     let hitPos: vec3<f32> = traceInside(ro, rd, &hit, &dist);
     var rgb: vec3<f32> = vec3<f32>(0.);
     if hit {
-        rgb = exp(-dist * dist * translucentColor * 3.0);
+        rgb = exp(-dist * dist * translucentColor * 5.0);
     } else {
         rgb = vec3<f32>(1.0, 1.0, 1.0);
     }
