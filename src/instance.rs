@@ -30,7 +30,7 @@ impl Instance {
         }
     }
 
-    pub fn to_raw(&self) -> InstanceRaw {
+    pub fn raw(&self) -> InstanceRaw {
         InstanceRaw {
             color: self.color,
             model: (cgmath::Matrix4::from_translation(self.position)

@@ -397,11 +397,7 @@ impl Display {
         for p_g in &self.pipeline_groups {
             for p in &p_g.pipelines {
                 for i_m in &p.instance_models {
-                    let instance_data = i_m
-                        .instances
-                        .iter()
-                        .map(Instance::to_raw)
-                        .collect::<Vec<_>>();
+                    let instance_data = i_m.instances.iter().map(Instance::raw).collect::<Vec<_>>();
                     self.queue.write_buffer(
                         &i_m.instance_buffer,
                         0,

@@ -14,7 +14,7 @@ pub enum TextureError {
 
 #[derive(Debug)]
 pub struct TextureInner {
-    pub texture: wgpu::Texture,
+    pub _texture: wgpu::Texture,
     pub view: wgpu::TextureView,
     pub sampler: wgpu::Sampler,
 }
@@ -64,7 +64,7 @@ impl Texture {
         });
 
         Self::Depth(TextureInner {
-            texture,
+            _texture: texture,
             view,
             sampler,
         })
@@ -129,7 +129,7 @@ impl Texture {
         );
 
         Ok(Self::Image(TextureInner {
-            texture,
+            _texture: texture,
             view,
             sampler,
         }))
@@ -168,7 +168,7 @@ impl Texture {
         });
 
         Self::Framebuffer(TextureInner {
-            texture,
+            _texture: texture,
             view,
             sampler,
         })
@@ -252,13 +252,13 @@ pub fn create_texture_image_bind_group_layout(
 }
 
 pub fn create_texture_image_bind_group(
-    texture_images: &Vec<Texture>,
+    texture_images: &[Texture],
     device: &wgpu::Device,
     bind_group_layout: &wgpu::BindGroupLayout,
 ) -> wgpu::BindGroup {
     let mut v: Vec<wgpu::BindGroupEntry> = vec![];
-    for i in 0..texture_images.len() {
-        let texture = texture_images[i].inner();
+    for (i, ti) in texture_images.iter().enumerate() {
+        let texture = ti.inner();
         v.push(wgpu::BindGroupEntry {
             binding: (2 * i) as u32,
             resource: wgpu::BindingResource::TextureView(&texture.view),

@@ -41,7 +41,7 @@ pub struct LayoutInner {
 
 impl PipelineGroup {
     pub fn new_0(
-        bind_group_layouts: &Vec<&wgpu::BindGroupLayout>,
+        bind_group_layouts: &[&wgpu::BindGroupLayout],
         bind_group_indices: Vec<usize>,
         device: &wgpu::Device,
     ) -> Self {
@@ -127,7 +127,7 @@ impl PipelineGroup {
 
 impl LayoutInner {
     fn new(
-        bind_group_layout: &Vec<&wgpu::BindGroupLayout>,
+        bind_group_layout: &[&wgpu::BindGroupLayout],
         bind_group_indices: Vec<usize>,
         device: &wgpu::Device,
     ) -> Self {
@@ -181,7 +181,7 @@ impl Pipeline {
 
 impl PipelinePost {
     pub fn new(
-        bind_group_layout: &Vec<&wgpu::BindGroupLayout>,
+        bind_group_layout: &[&wgpu::BindGroupLayout],
         bind_group_indices: Vec<usize>,
         device: &wgpu::Device,
         config: &wgpu::SurfaceConfiguration,

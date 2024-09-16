@@ -47,11 +47,9 @@ struct Buffer {
     stat_window_size: usize,
 }
 
-pub fn init(
-    chunck_size: u32,
-    min_freq: u32,
-    max_freq: u32,
-) -> Result<(Arc<Mutex<Data>>, Stream), Box<dyn Error>> {
+type AudioOut = Result<(Arc<Mutex<Data>>, Stream), Box<dyn Error>>;
+
+pub fn init(chunck_size: u32, min_freq: u32, max_freq: u32) -> AudioOut {
     /*
     // For debugging
     let hosts = cpal::available_hosts();
@@ -164,7 +162,6 @@ fn calculate_channel_index(
 ) -> Vec<usize> {
     let nb_octaves = (max_freq as f32 / min_freq as f32).log2();
     let nb_octaves_per_channel = nb_octaves / nb_channels as f32;
-    
 
     (0..nb_channels + 1)
         .map(|i| {
@@ -206,24 +203,24 @@ where
 
             // Initialization
             if buffer.count <= buffer.stat_window_size as u64 {
-                for i in 0..NB_AUDIO_CHANNELS {
-                    buffer.stat_window[i].push_front(levels[i]);
-                    buffer.mean[i] += tmp_inv * levels[i];
-                    buffer.var[i] += tmp_inv * levels[i].powi(2);
+                for (i, l) in levels.iter().enumerate().take(NB_AUDIO_CHANNELS) {
+                    buffer.stat_window[i].push_front(*l);
+                    buffer.mean[i] += tmp_inv * l;
+                    buffer.var[i] += tmp_inv * l.powi(2);
                     if buffer.count == buffer.stat_window_size as u64 {
                         buffer.var[i] -= buffer.mean[i].powi(2);
                     }
                 }
             } else {
-                for i in 0..NB_AUDIO_CHANNELS {
+                for (i, l) in levels.iter().enumerate().take(NB_AUDIO_CHANNELS) {
                     let last_val = buffer.stat_window[i].pop_back().unwrap();
-                    buffer.stat_window[i].push_front(levels[i]);
+                    buffer.stat_window[i].push_front(*l);
 
                     let cur_mean = buffer.mean[i];
 
-                    buffer.mean[i] = cur_mean + tmp_inv * (levels[i] - last_val);
+                    buffer.mean[i] = cur_mean + tmp_inv * (l - last_val);
                     buffer.var[i] = buffer.var[i]
-                        + tmp_inv * (levels[i].powi(2) - last_val.powi(2))
+                        + tmp_inv * (l.powi(2) - last_val.powi(2))
                         + (cur_mean.powi(2) - buffer.mean[i].powi(2));
 
                     if buffer.var[i] < 0.0 {

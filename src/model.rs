@@ -28,7 +28,7 @@ pub struct Mesh {
 
 impl InstanceModel {
     pub fn new(model: Model, instances: Vec<Instance>, device: &wgpu::Device) -> Self {
-        let instance_data = instances.iter().map(Instance::to_raw).collect::<Vec<_>>();
+        let instance_data = instances.iter().map(Instance::raw).collect::<Vec<_>>();
         let instance_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Instance Buffer"),
             contents: bytemuck::cast_slice(&instance_data),
@@ -56,7 +56,7 @@ impl Model {
         Self::points_to_model(device, &vertices, &indices)
     }
 
-    pub fn new_rectangle(device: &wgpu::Device, x: f32, y: f32) -> Model {
+    pub fn _new_rectangle(device: &wgpu::Device, x: f32, y: f32) -> Model {
         let vertices: Vec<[f32; 3]> = vec![[-x, y, 0.0], [x, y, 0.0], [-x, -y, 0.0], [x, -y, 0.0]];
         let indices: Vec<u32> = vec![0, 2, 1, 1, 2, 3];
         Self::points_to_model(device, &vertices, &indices)
@@ -80,11 +80,7 @@ impl Model {
         Self::points_to_model(device, &vertices, &indices)
     }
 
-    fn points_to_model(
-        device: &wgpu::Device,
-        vertices: &Vec<[f32; 3]>,
-        indices: &Vec<u32>,
-    ) -> Self {
+    fn points_to_model(device: &wgpu::Device, vertices: &[[f32; 3]], indices: &[u32]) -> Self {
         let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Quad Vertex Buffer"),
             contents: bytemuck::cast_slice(vertices),
