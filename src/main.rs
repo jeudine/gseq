@@ -1,13 +1,15 @@
+use clap::Parser;
 use gseq::{run, Show};
-use std::env;
+
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct Args {
+    /// Displayed visual show
+    #[arg(short, long, default_value_t = Show::MariusJulien)]
+    show: Show,
+}
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
-
-    let show = if args.len() == 1 {
-        Show::Lua
-    } else {
-        Show::MariusJulien
-    };
-    pollster::block_on(run(1, show));
+    let args = Args::parse();
+    pollster::block_on(run(1, args.show));
 }

@@ -6,14 +6,28 @@ use crate::pipeline::{PipelineError, PipelineGroup};
 use cgmath::Rotation3;
 use cgmath::Zero;
 use rand::prelude::*;
+use std::fmt;
 
-#[derive(Copy, Clone, Debug)]
+#[derive(clap::ValueEnum, Clone, Default, Debug, Copy)]
 pub enum Show {
-    Lua,
+    #[default]
     MariusJulien,
+    Lua,
 }
 
 use Show::*;
+impl fmt::Display for Show {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                MariusJulien => "marius-julien",
+                Lua => "lua",
+            }
+        )
+    }
+}
 
 const COLOR_0_0: [u8; 4] = [0x9f, 0x56, 0xff, 0xff];
 const COLOR_1_0: [u8; 4] = [0xb5, 0x82, 0xff, 0xff];
