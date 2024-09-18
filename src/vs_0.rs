@@ -1,4 +1,6 @@
 use crate::audio;
+use crate::color;
+use crate::color::{get_color, hex_to_f};
 use crate::instance::Instance;
 use crate::model::{InstanceModel, Model};
 use crate::pipeline::Pipeline;
@@ -29,41 +31,7 @@ impl fmt::Display for Show {
     }
 }
 
-const COLOR_0_0: [u8; 4] = [0x9f, 0x56, 0xff, 0xff];
-const COLOR_1_0: [u8; 4] = [0xb5, 0x82, 0xff, 0xff];
-const COLOR_2_0: [u8; 4] = [0xca, 0xad, 0xff, 0xff];
-const COLOR_3_0: [u8; 4] = [0xff, 0xad, 0xc7, 0xff];
-const COLOR_4_0: [u8; 4] = [0xff, 0x99, 0xb6, 0xff];
-
-const COLOR_0_1: [u8; 4] = [0x9f, 0x86, 0xfa, 0xff];
-const COLOR_1_1: [u8; 4] = [0x60, 0x64, 0xfc, 0xff];
-const COLOR_2_1: [u8; 4] = [0x1b, 0x59, 0xff, 0xff];
-const COLOR_3_1: [u8; 4] = [0x00, 0x05, 0xf1, 0xff];
-const COLOR_4_1: [u8; 4] = [0x2f, 0x08, 0x85, 0xff];
-
-const COLORS_0: [[u8; 4]; 5] = [COLOR_0_0, COLOR_1_0, COLOR_2_0, COLOR_3_0, COLOR_4_0];
-const COLORS_1: [[u8; 4]; 5] = [COLOR_0_1, COLOR_1_1, COLOR_2_1, COLOR_3_1, COLOR_4_1];
-
 const COLOR_SHADING_PERIOD: f64 = 3600.0;
-
-fn get_color_0(rng: &mut ThreadRng) -> [f32; 4] {
-    let v = COLORS_0
-        .choose(rng)
-        .unwrap()
-        .iter()
-        .map(|c| hex_to_f(*c))
-        .collect::<Vec<_>>();
-    [v[0], v[1], v[2], v[3]]
-}
-fn get_color_1(rng: &mut ThreadRng) -> [f32; 4] {
-    let v = COLORS_1
-        .choose(rng)
-        .unwrap()
-        .iter()
-        .map(|c| hex_to_f(*c))
-        .collect::<Vec<_>>();
-    [v[0], v[1], v[2], v[3]]
-}
 
 fn get_switch_time(time: f32, rng: &mut ThreadRng) -> f32 {
     600.0 * rng.gen::<f32>() + 600.0 + time
@@ -290,10 +258,12 @@ impl State {
         for i in 0..4 {
             match self.show {
                 Show::Lua => {
-                    bg.color[i] = hex_to_f(COLOR_0_0[i]) * x + (1.0 - x) * hex_to_f(COLOR_4_0[i])
+                    bg.color[i] = hex_to_f(color::COLOR_0_0[i]) * x
+                        + (1.0 - x) * hex_to_f(color::COLOR_4_0[i])
                 }
                 Show::MariusJulien => {
-                    bg.color[i] = hex_to_f(COLOR_2_1[i]) * x + (1.0 - x) * hex_to_f(COLOR_4_1[i])
+                    bg.color[i] = hex_to_f(color::COLOR_2_1[i]) * x
+                        + (1.0 - x) * hex_to_f(color::COLOR_4_1[i])
                 }
             }
         }
@@ -373,10 +343,7 @@ impl State {
 
         let instance = &mut i_ms[i].instances[0];
 
-        instance.color = match self.show {
-            Lua => get_color_0(&mut self.rng),
-            MariusJulien => get_color_1(&mut self.rng),
-        };
+        instance.color = get_color(&mut self.rng, self.show);
         instance.scale = 1.0;
         instance.position = (
             0.5 - 1.0 * self.rng.gen::<f32>(),
@@ -393,11 +360,7 @@ impl State {
 
         let instance = &mut i_ms[0].instances[0];
 
-        instance.color = match self.show {
-            Lua => get_color_0(&mut self.rng),
-            MariusJulien => get_color_1(&mut self.rng),
-        };
-
+        instance.color = get_color(&mut self.rng, self.show);
         instance.scale = 1.0;
         instance.position[0] = 1.0;
         instance.position[1] = 0.5 - 1.0 * self.rng.gen::<f32>();
@@ -415,11 +378,7 @@ impl State {
         }
 
         let instance = &mut i_ms[i].instances[0];
-
-        instance.color = match self.show {
-            Lua => get_color_0(&mut self.rng),
-            MariusJulien => get_color_1(&mut self.rng),
-        };
+        instance.color = get_color(&mut self.rng, self.show);
         instance.scale = self.rng.gen::<f32>() * 0.1 + 0.1;
         instance.position = (
             0.5 - 1.0 * self.rng.gen::<f32>(),
@@ -453,10 +412,8 @@ impl State {
         for (i, d) in instances.iter_mut().enumerate().take(NB_DISKS) {
             if !self.disk_activated[i] {
                 self.disk_activated[i] = true;
-                d.color = match self.show {
-                    Lua => get_color_0(&mut self.rng),
-                    MariusJulien => get_color_1(&mut self.rng),
-                };
+
+                d.color = get_color(&mut self.rng, self.show);
                 d.position = (
                     1.0 - 2.0 * self.rng.gen::<f32>(),
                     1.0 - 2.0 * self.rng.gen::<f32>(),
@@ -470,8 +427,4 @@ impl State {
             }
         }
     }
-}
-
-fn hex_to_f(c: u8) -> f32 {
-    c as f32 / 255.0
 }

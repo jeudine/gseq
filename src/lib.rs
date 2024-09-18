@@ -1,5 +1,6 @@
 mod audio;
 mod camera;
+mod color;
 mod display;
 mod instance;
 mod model;
