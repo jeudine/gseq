@@ -200,7 +200,7 @@ impl State {
         })
     }
 
-    pub fn switch_pipelines(&mut self, pipelines: &mut Vec<Pipeline>) {
+    pub fn switch_pipelines(&mut self, pipelines: &mut [Pipeline]) {
         let i = (0..audio::NB_AUDIO_CHANNELS).choose(&mut self.rng).unwrap();
         let old_index = self.active_pipelines[i];
         deactivate_pipeline(&mut pipelines[old_index]);
@@ -222,7 +222,7 @@ impl State {
     }
     pub fn update(
         &mut self,
-        pipelines: &mut Vec<Pipeline>,
+        pipelines: &mut [Pipeline],
         time: f32,
         old_audio: &audio::Data,
         new_audio: &audio::Data,
@@ -353,7 +353,7 @@ impl State {
             .into();
     }
 
-    fn activate_noise_3d(&mut self, time: f32, i_ms: &mut Vec<InstanceModel>) {
+    fn activate_noise_3d(&mut self, time: f32, i_ms: &mut [InstanceModel]) {
         self.noise_3d_activated = true;
         self.noise_3d_start_time = time;
         self.noise_3d_duration = 1.0 * self.rng.gen::<f32>() + 1.0;
@@ -394,16 +394,15 @@ impl State {
         if new_audio > 1.5 && old_audio < 1.5 {
             self.activate_disk(time, disks_i);
         }
-
-        for i in 0..NB_DISKS {
+        for (i, d) in disks_i.iter_mut().enumerate().take(NB_DISKS) {
             if self.disk_activated[i] {
                 let t = time - self.disk_start_time[i];
                 if t > self.disk_duration[i] {
                     self.disk_activated[i] = false;
-                    disks_i[i].scale = 0.0;
+                    d.scale = 0.0;
                     continue;
                 }
-                disks_i[i].scale = self.disk_scale[i] + DISK_SPEED * t;
+                d.scale = self.disk_scale[i] + DISK_SPEED * t;
             }
         }
     }
