@@ -12,6 +12,17 @@ If you already have a Rust environment set up, you can use the `cargo install` c
 cargo install gseq
 ```
 
-## TO DO
+## Usage
 
-* Add LFO in the post processing shader on the intensity of the effect
+You can select the visual show with the `-s` option. For example to run the `marius-julien` show:
+
+```bash
+gseq -s marius-julien 
+```
+
+Available visual shows:
+| Visual Show |
+|-|
+|`marius-julien`|
+|`lua`|
+
