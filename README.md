@@ -1,5 +1,7 @@
 # GSeq
 
+[![crates.io](https://img.shields.io/crates/v/gseq.svg)](https://crates.io/crates/gseq)
+
 GSeq is a realtime visual performance program written in [Rust](https://www.rust-lang.org/) based on [wgpu](https://wgpu.rs/). GSeq reacts to the audio input to animate the visuals.
 
 ## Installation
@@ -26,3 +28,6 @@ Available visual shows:
 |`marius-julien`|
 |`lua`|
 
+## Screenshot
+
+[![screenshot_0](screenshot/screenshot_0.png)]
