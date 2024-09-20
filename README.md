@@ -30,4 +30,4 @@ Available visual shows:
 
 ## Screenshot
 
-[![screenshot_0](screenshot/screenshot_0.png)]
+![screenshot_0](screenshot/screenshot_0.png)
