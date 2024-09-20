@@ -25,45 +25,45 @@ struct VertexOutput {
 
 @vertex
 fn vs_main(
-		model: VertexInput,
-		instance: InstanceInput,
-		) -> VertexOutput {
+    model: VertexInput,
+    instance: InstanceInput,
+) -> VertexOutput {
 
-	var out: VertexOutput;
-	let model_matrix = mat4x4<f32>(
-		instance.model_matrix_0,
-		instance.model_matrix_1,
-		instance.model_matrix_2,
-		instance.model_matrix_3,
-	);
+    var out: VertexOutput;
+    let model_matrix = mat4x4<f32>(
+        instance.model_matrix_0,
+        instance.model_matrix_1,
+        instance.model_matrix_2,
+        instance.model_matrix_3,
+    );
 
-	out.position =  model_matrix * vec4<f32>(model.position, 1.0);
-	out.position.z = 0.9999;
+    out.position = model_matrix * vec4<f32>(model.position, 1.0);
+    out.position.z = 0.9999;
 
 	// To keep the aspect ratio
-	let dims = vec2<f32>(dimensions);
-	if (dimensions.x < dimensions.y) {
-		out.position.x = out.position.x * dims.y / dims.x;
-	} else {
-		out.position.y = out.position.y * dims.x / dims.y;
-	}
+    let dims = vec2<f32>(dimensions);
+    if dimensions.x < dimensions.y {
+        out.position.x = out.position.x * dims.y / dims.x;
+    } else {
+        out.position.y = out.position.y * dims.x / dims.y;
+    }
 
-	if (model.position.x == -1.0) {
-		out.text.x = 0.0;
-	} else if (model.position.x == 1.0) {
-		out.text.x = 1.0;
-	}
+    if model.position.x == -1.0 {
+        out.text.x = 0.0;
+    } else if model.position.x == 1.0 {
+        out.text.x = 1.0;
+    }
 
-	if (model.position.y == -1.0) {
-		out.text.y = 1.0;
-	} else if (model.position.y == 1.0) {
-		out.text.y = 0.0;
-	}
+    if model.position.y == -1.0 {
+        out.text.y = 1.0;
+    } else if model.position.y == 1.0 {
+        out.text.y = 0.0;
+    }
 
-	return out;
+    return out;
 }
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-	return textureSample(t_image, s_image, in.text);
+    return textureSample(t_image, s_image, in.text);
 }

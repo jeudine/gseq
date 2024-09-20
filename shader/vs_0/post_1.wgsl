@@ -97,61 +97,43 @@ fn snoise(v: vec3<f32>) -> f32 {
     return 105.0 * dot(m * m, vec4(dot(p0, x0), dot(p1, x1), dot(p2, x2), dot(p3, x3)));
 }
 
+struct Audio {
+	gain: vec3<f32>,
+	_offset: f32,
+}
+
+@group(0) @binding(0)
+var<uniform> audio: Audio;
+
 @group(0) @binding(1)
 var<uniform> time: f32;
 
 @group(0) @binding(2)
 var<uniform> dimensions: vec2<u32>;
 
+@group(1) @binding(0)
+var t_framebuffer: texture_2d<f32>;
+@group(1) @binding(1)
+var s_framebuffer: sampler;
+
 struct VertexInput {
 	@location(0) position: vec3<f32>,
 }
 
-struct InstanceInput {
-    @location(1) color: vec4<f32>,
-    @location(2) model_matrix_0: vec4<f32>,
-    @location(3) model_matrix_1: vec4<f32>,
-    @location(4) model_matrix_2: vec4<f32>,
-    @location(5) model_matrix_3: vec4<f32>,
-};
-
 struct VertexOutput {
 	@builtin(position) position: vec4<f32>,
-	@location(0) color: vec4<f32>,
-	@location(1) noise_scale: f32,
 }
 
 @vertex
 fn vs_main(
     model: VertexInput,
-    instance: InstanceInput,
 ) -> VertexOutput {
-
     var out: VertexOutput;
-    let model_matrix = mat4x4<f32>(
-        instance.model_matrix_0,
-        instance.model_matrix_1,
-        instance.model_matrix_2,
-        instance.model_matrix_3,
-    );
-
-    out.position = model_matrix * vec4<f32>(model.position, 1.0);
-    out.position.z = 0.999;
-
-	// To keep the aspect ratio
-    let dims = vec2<f32>(dimensions);
-    if dimensions.x < dimensions.y {
-        out.position.x = out.position.x * dims.y / dims.x;
-    } else {
-        out.position.y = out.position.y * dims.x / dims.y;
-    }
-
-    out.color = instance.color;
-    out.noise_scale = instance.model_matrix_3.z;
+    out.position = vec4<f32>(model.position, 1.0);
     return out;
 }
 
-// Returns a 3D Simplex noise value between -1 and 1
+// Returns a 3D perlin noise value between -1 and 1
 fn layered_noise(v: vec3<f32>, n_layers: i32) -> f32 {
     let step = vec3<f32>(1.3, 1.7, 2.9);
     var f = 1.0;
@@ -167,7 +149,13 @@ fn layered_noise(v: vec3<f32>, n_layers: i32) -> f32 {
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    let n = layered_noise(vec3<f32>(in.position.xy * in.noise_scale, 0.05 * time), 6);
-    var v = sin(n * 60.0);
-    return vec4<f32>(in.color.xyz * (0.5 + 0.5 * v), 1.0);
+    let noise = layered_noise(vec3<f32>(in.position.xy / vec2<f32>(dimensions) * 2.0, time), 4);
+    let offset = (10.0 + 5.0 * cos(time * 0.0034 * exp(audio.gain))) * noise * exp(audio.gain);
+    let red = textureSample(t_framebuffer, s_framebuffer, (in.position.xy + vec2<f32>(offset.x, 0.0)) / vec2<f32>(dimensions));
+    let green = textureSample(t_framebuffer, s_framebuffer, (in.position.xy + vec2<f32>(offset.y, 0.0)) / vec2<f32>(dimensions));
+    let blue = textureSample(t_framebuffer, s_framebuffer, (in.position.xy + vec2<f32>(offset.z, 0.0)) / vec2<f32>(dimensions));
+    var out = red;
+    out.y = green.y;
+    out.z = blue.z;
+    return out;
 }

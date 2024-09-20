@@ -1,13 +1,13 @@
-// Description : Array and textureless GLSL 2D/3D/4D simplex 
-//               noise functions.
-//      Author : Ian McEwan, Ashima Arts.
-//  Maintainer : stegu
-//     Lastmod : 20201014 (stegu)
-//     License : Copyright (C) 2011 Ashima Arts. All rights reserved.
-//               Distributed under the MIT License. See LICENSE file.
-//               https://github.com/ashima/webgl-noise
-//               https://github.com/stegu/webgl-noise
-// 
+let maxSteps: i32 = 16;
+let hitThreshold: f32 = 0.01;
+let minStep: f32 = 0.01;
+
+@group(0) @binding(1)
+var<uniform> time: f32;
+
+@group(0) @binding(2)
+var<uniform> dimensions: vec2<u32>;
+
 
 fn mod289_3(x: vec3<f32>) -> vec3<f32> {
     return x - floor(x * (1.0 / 289.0)) * 289.0;
@@ -97,11 +97,57 @@ fn snoise(v: vec3<f32>) -> f32 {
     return 105.0 * dot(m * m, vec4(dot(p0, x0), dot(p1, x1), dot(p2, x2), dot(p3, x3)));
 }
 
-@group(0) @binding(1)
-var<uniform> time: f32;
+fn layered_noise(v: vec3<f32>, n_layers: i32) -> f32 {
+    let step = vec3<f32>(1.3, 1.7, 2.9);
+    var f = 1.0;
+    var ampl = 1.0;
+    var n = 0.0;
+    for (var i: i32 = 0; i < n_layers; i++) {
+        n += ampl * snoise(f * v - f32(i) * step);
+        ampl *= 0.5;
+        f *= 2.0;
+    }
+    return n;
+}
 
-@group(0) @binding(2)
-var<uniform> dimensions: vec2<u32>;
+fn rotateX(p: vec3<f32>, a: f32) -> vec3<f32> {
+    var sa: f32 = sin(a);
+    var ca: f32 = cos(a);
+    return vec3<f32>(p.x, ca * p.y - sa * p.z, sa * p.y + ca * p.z);
+} 
+
+fn rotateY(p: vec3<f32>, a: f32) -> vec3<f32> {
+    let sa: f32 = sin(a);
+    let ca: f32 = cos(a);
+    return vec3<f32>(ca * p.x + sa * p.z, p.y, -sa * p.x + ca * p.z);
+} 
+
+fn scene(p: vec3<f32>) -> f32 {
+    let np: vec3<f32> = p + vec3<f32>(0., 0., -time * 0.01);
+    return layered_noise(np, 2) * 0.8 + 0.2;
+} 
+
+fn traceInside(ro: vec3<f32>, rd: vec3<f32>, hit: ptr<function, bool>, insideDist: ptr<function, f32>) -> vec3<f32> {
+    (*hit) = false;
+    (*insideDist) = 0.;
+    var pos: vec3<f32> = ro;
+    var hitPos: vec3<f32> = pos;
+
+    for (var i: i32 = 0; i < maxSteps; i = i + 1) {
+        var d: f32 = scene(pos);
+        d = max(abs(d), minStep) * sign(d);
+        if d < hitThreshold && !(*hit) {
+            hitPos = pos;
+            (*hit) = true;
+        }
+        if d < 0. {
+            (*insideDist) = (*insideDist) + (-d);
+        }
+        pos = pos + (abs(d) * rd);
+    }
+
+    return hitPos;
+} 
 
 struct VertexInput {
 	@location(0) position: vec3<f32>,
@@ -118,7 +164,6 @@ struct InstanceInput {
 struct VertexOutput {
 	@builtin(position) position: vec4<f32>,
 	@location(0) color: vec4<f32>,
-	@location(1) noise_scale: f32,
 }
 
 @vertex
@@ -126,48 +171,32 @@ fn vs_main(
     model: VertexInput,
     instance: InstanceInput,
 ) -> VertexOutput {
-
     var out: VertexOutput;
-    let model_matrix = mat4x4<f32>(
-        instance.model_matrix_0,
-        instance.model_matrix_1,
-        instance.model_matrix_2,
-        instance.model_matrix_3,
-    );
-
-    out.position = model_matrix * vec4<f32>(model.position, 1.0);
-    out.position.z = 0.999;
-
-	// To keep the aspect ratio
-    let dims = vec2<f32>(dimensions);
-    if dimensions.x < dimensions.y {
-        out.position.x = out.position.x * dims.y / dims.x;
-    } else {
-        out.position.y = out.position.y * dims.x / dims.y;
-    }
-
-    out.color = instance.color;
-    out.noise_scale = instance.model_matrix_3.z;
+    out.position = vec4<f32>(model.position.xy, 0.99999, 1.0);
+    out.color = vec4<f32>(vec3<f32>(1.0) - instance.color.xyz, 1.);
     return out;
-}
-
-// Returns a 3D Simplex noise value between -1 and 1
-fn layered_noise(v: vec3<f32>, n_layers: i32) -> f32 {
-    let step = vec3<f32>(1.3, 1.7, 2.9);
-    var f = 1.0;
-    var ampl = 1.0;
-    var n = 0.0;
-    for (var i: i32 = 0; i < n_layers; i++) {
-        n += ampl * snoise(f * v - f32(i) * step);
-        ampl *= 0.5;
-        f *= 2.0;
-    }
-    return n;
 }
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    let n = layered_noise(vec3<f32>(in.position.xy * in.noise_scale, 0.05 * time), 6);
-    var v = sin(n * 60.0);
-    return vec4<f32>(in.color.xyz * (0.5 + 0.5 * v), 1.0);
+    let pos: vec2<f32> = in.position.xy / vec2<f32>(dimensions.xy) * 2. - 1.;
+    let asp = f32(dimensions.x) / f32(dimensions.y);
+    var rd: vec3<f32> = normalize(vec3<f32>(asp * pos.x, pos.y, -1.5));
+    var ro: vec3<f32> = vec3<f32>(0., 0., 2.5);
+    let roty: f32 = -time * 0.08;
+    let rotx: f32 = 0.;
+    rd = rotateX(rd, rotx);
+    ro = rotateX(ro, rotx);
+    rd = rotateY(rd, roty);
+    ro = rotateY(ro, roty);
+    var hit: bool;
+    var dist: f32;
+    let hitPos: vec3<f32> = traceInside(ro, rd, &hit, &dist);
+    var rgba: vec4<f32> = vec4<f32>(0.);
+    if hit {
+        rgba = exp(-dist * dist * in.color * 5.0);
+    } else {
+        rgba = vec4<f32>(1.0, 1.0, 1.0, 1.0);
+    }
+    return rgba;
 }
